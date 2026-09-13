@@ -54,12 +54,12 @@ async function main() {
         </div>
       </div>
     `;
-    document.getElementById('search-input').addEventListener('input', e => { searchQ = e.target.value.toLowerCase(); renderTable(); });
+    document.getElementById('search-input').addEventListener('input', e => { searchQ = ubNormalize(e.target.value); renderTable(); });
     renderTable();
   }
 
   function renderTable() {
-    const list = clients.filter(c => c.name.toLowerCase().includes(searchQ));
+    const list = clients.filter(c => ubNormalize(c.name).includes(searchQ));
     document.getElementById('clients-tbody').innerHTML = list.length ? list.map(c => `
       <tr>
         <td>

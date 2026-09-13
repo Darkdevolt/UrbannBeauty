@@ -90,7 +90,7 @@ async function main() {
       </div>
     `;
 
-    document.getElementById('search-input').addEventListener('input', e => { filterState.q = e.target.value.toLowerCase(); renderTable(); });
+    document.getElementById('search-input').addEventListener('input', e => { filterState.q = ubNormalize(e.target.value); renderTable(); });
     document.getElementById('filter-status').addEventListener('change', e => { filterState.status = e.target.value; renderTable(); });
     document.getElementById('filter-payment').addEventListener('change', e => { filterState.payment = e.target.value; renderTable(); });
     renderTable();
@@ -98,7 +98,7 @@ async function main() {
 
   function renderTable() {
     let list = orders.filter(o =>
-      (o.id.toLowerCase().includes(filterState.q) || o.client.toLowerCase().includes(filterState.q)) &&
+      (ubNormalize(o.id).includes(filterState.q) || ubNormalize(o.client).includes(filterState.q)) &&
       (filterState.status === 'all' || o.status === filterState.status) &&
       (filterState.payment === 'all' || o.paymentStatus === filterState.payment)
     );

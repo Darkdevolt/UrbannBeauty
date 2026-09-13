@@ -22,6 +22,19 @@ function ubFormatPrice(v) {
   return new Intl.NumberFormat('fr-FR').format(v) + ' FCFA';
 }
 
+/* Normalise pour une recherche insensible aux accents/majuscules (ex: "serum" trouve "Sérum") */
+function ubNormalize(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+function ubProductMatchesSearch(p, search, categoryName) {
+  const q = ubNormalize(search);
+  if (!q) return true;
+  return ubNormalize(p.name).includes(q)
+    || ubNormalize(p.desc).includes(q)
+    || ubNormalize(categoryName).includes(q)
+    || ubNormalize(p.tag).includes(q);
+}
+
 /* ---------- Catégories ---------- */
 function ubMapCategory(c) {
   return { id: c.id, name: c.name, icon: c.icon, image: c.image_url || '' };

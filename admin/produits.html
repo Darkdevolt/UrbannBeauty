@@ -135,7 +135,7 @@ async function main() {
     document.getElementById('filter-cat').value = filterState.cat;
     document.getElementById('filter-stock').value = filterState.stock;
 
-    document.getElementById('search-input').addEventListener('input', e => { filterState.q = e.target.value.toLowerCase(); renderTable(); });
+    document.getElementById('search-input').addEventListener('input', e => { filterState.q = ubNormalize(e.target.value); renderTable(); });
     document.getElementById('filter-cat').addEventListener('change', e => { filterState.cat = e.target.value; renderTable(); });
     document.getElementById('filter-stock').addEventListener('change', e => { filterState.stock = e.target.value; renderTable(); });
 
@@ -144,7 +144,7 @@ async function main() {
 
   function renderTable() {
     let list = products.filter(p =>
-      p.name.toLowerCase().includes(filterState.q) &&
+      ubNormalize(p.name).includes(filterState.q) &&
       (filterState.cat === 'all' || p.category === filterState.cat) &&
       (filterState.stock === 'all' || (filterState.stock === 'low' ? p.stock <= 5 : p.stock > 5))
     );
