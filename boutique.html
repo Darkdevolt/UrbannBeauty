@@ -7,163 +7,46 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/pages.css">
 </head>
 <body>
-
 <div id="site-header"></div>
-
-<div class="breadcrumb">
-  <div class="container">
-    <a href="index.html">Accueil</a><span>/</span><span id="bc-current">Boutique</span>
-  </div>
-</div>
-
+<div class="breadcrumb"><div class="container"><a href="index.html">Accueil</a><span>/</span><span id="bc-current">Boutique</span></div></div>
 <section style="padding-top:48px">
   <div class="container">
     <div class="section-head" style="margin-bottom:36px">
       <span class="eyebrow">Catalogue complet</span>
       <h2 id="page-title">Toute la boutique</h2>
-      <p>Trouvez le produit parfait parmi notre sélection de cosmétiques.</p>
+      <p>Une sélection pensée pour votre routine beauté : soins, cheveux, maquillage et essentiels du quotidien.</p>
     </div>
-
     <div class="shop-layout">
       <aside>
-        <div class="filter-box">
-          <h4>Catégories</h4>
-          <div class="filter-list" id="filter-categories"></div>
-        </div>
-        <div class="filter-box">
-          <h4>Budget</h4>
-          <div class="price-range">
-            <input type="range" id="price-range" min="0" max="50000" step="1000" value="50000">
-            <div class="range-values"><span>0 FCFA</span><span id="price-range-value">50 000 FCFA</span></div>
-          </div>
-        </div>
-        <div class="filter-box">
-          <h4>Note minimum</h4>
-          <div class="filter-list" id="filter-rating"></div>
-        </div>
+        <div class="filter-box"><h4>Catégories</h4><div class="filter-list" id="filter-categories"></div></div>
+        <div class="filter-box"><h4>Budget maximum</h4><div class="price-range"><input type="range" id="price-range" min="0" max="50000" step="1000" value="50000"><div class="range-values"><span>0 FCFA</span><span id="price-range-value">50 000 FCFA</span></div></div></div>
+        <div class="filter-box"><h4>Note minimum</h4><div class="filter-list" id="filter-rating"></div></div>
         <button class="btn btn-outline btn-block" onclick="ubResetFilters()">Réinitialiser les filtres</button>
       </aside>
-
       <div>
-        <div class="shop-toolbar">
-          <span id="result-count" style="color:var(--ink-soft);font-size:.88rem"></span>
-          <select id="sort-select">
-            <option value="pertinence">Trier par pertinence</option>
-            <option value="price-asc">Prix croissant</option>
-            <option value="price-desc">Prix décroissant</option>
-            <option value="rating">Meilleures notes</option>
-          </select>
-        </div>
+        <div class="shop-toolbar"><span id="result-count" style="color:var(--ink-soft);font-size:.88rem"></span><select id="sort-select"><option value="pertinence">Trier par pertinence</option><option value="price-asc">Prix croissant</option><option value="price-desc">Prix décroissant</option><option value="rating">Meilleures notes</option></select></div>
         <div class="product-grid" id="shop-grid"></div>
-        <div class="pagination">
-          <span class="active">1</span><a href="#">2</a><a href="#">3</a>
-        </div>
+        <div class="pagination"><span class="active">1</span><a href="#">2</a><a href="#">3</a></div>
       </div>
     </div>
   </div>
 </section>
-
 <div id="site-footer"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="assets/js/icons.js"></script>
-<script src="assets/js/data.js"></script>
-<script src="assets/js/media.js"></script>
-<script src="assets/js/main.js"></script>
+<script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
 <script>
-ubRenderHeader('boutique');
-ubRenderFooter();
-
-const params = new URLSearchParams(location.search);
-let state = {
-  cat: params.get('cat') || 'all',
-  search: params.get('search') || '',
-  maxPrice: 50000,
-  minRating: 0,
-  sort: 'pertinence',
-};
-let allProducts = [];
-let allCategories = [];
-let catsById = {};
-
-async function main() {
-  [allProducts, allCategories] = await Promise.all([ubGetAllProducts(), ubGetAllCategories()]);
-  catsById = ubCatsById(allCategories);
-  renderCategoryFilters();
-  renderRatingFilters();
-  renderGrid();
-}
-
-  function renderCategoryFilters() {
-    const all = [{ id: 'all', name: 'Toutes les catégories' }, ...allCategories];
-    document.getElementById('filter-categories').innerHTML = all.map(c => `
-      <label>
-        <input type="radio" name="cat" value="${c.id}" ${state.cat === c.id ? 'checked' : ''} onchange="ubOnFilterChange()">
-        ${c.name}
-      </label>`).join('');
-  }
-
-  function renderRatingFilters() {
-    document.getElementById('filter-rating').innerHTML = [4, 3, 0].map(r => `
-      <label>
-        <input type="radio" name="rating" value="${r}" ${state.minRating === r ? 'checked' : ''} onchange="ubOnFilterChange()">
-        ${r > 0 ? `${'★'.repeat(r)}${'☆'.repeat(5 - r)} et plus` : 'Toutes les notes'}
-      </label>`).join('');
-  }
-
-  function ubOnFilterChange() {
-    state.cat = document.querySelector('input[name="cat"]:checked')?.value || 'all';
-    state.minRating = Number(document.querySelector('input[name="rating"]:checked')?.value || 0);
-    renderGrid();
-  }
-
-  function ubResetFilters() {
-    state = { cat: 'all', search: '', maxPrice: 50000, minRating: 0, sort: 'pertinence' };
-    document.getElementById('price-range').value = 50000;
-    document.getElementById('price-range-value').textContent = '50 000 FCFA';
-    document.getElementById('sort-select').value = 'pertinence';
-    renderCategoryFilters();
-    renderRatingFilters();
-    renderGrid();
-  }
-
-  document.getElementById('price-range').addEventListener('input', (e) => {
-    state.maxPrice = Number(e.target.value);
-    document.getElementById('price-range-value').textContent = ubFormatPrice(state.maxPrice);
-    renderGrid();
-  });
-
-  document.getElementById('sort-select').addEventListener('change', (e) => {
-    state.sort = e.target.value;
-    renderGrid();
-  });
-
-  function renderGrid() {
-    const q = state.search.trim().toLowerCase();
-    let list = allProducts.filter(p =>
-      (state.cat === 'all' || p.category === state.cat) &&
-      p.price <= state.maxPrice &&
-      p.rating >= state.minRating &&
-      (!q || p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q))
-    );
-    if (state.sort === 'price-asc') list.sort((a, b) => a.price - b.price);
-    if (state.sort === 'price-desc') list.sort((a, b) => b.price - a.price);
-    if (state.sort === 'rating') list.sort((a, b) => b.rating - a.rating);
-
-    document.getElementById('shop-grid').innerHTML = list.length
-      ? list.map(p => ubProductCardHTML(p, catsById)).join('')
-      : `<p style="grid-column:1/-1;text-align:center;color:var(--ink-soft);padding:40px 0">Aucun produit ne correspond à votre recherche.</p>`;
-    document.getElementById('result-count').textContent = `${list.length} produit${list.length > 1 ? 's' : ''} trouvé${list.length > 1 ? 's' : ''}`;
-
-    const cat = allCategories.find(c => c.id === state.cat);
-    document.getElementById('page-title').textContent = q ? `Résultats pour « ${state.search.trim()} »` : (cat ? cat.name : 'Toute la boutique');
-    document.getElementById('bc-current').textContent = q ? 'Recherche' : (cat ? cat.name : 'Boutique');
-    ubInitReveal();
-  }
-
-  main();
+ubRenderHeader('boutique');ubRenderFooter();
+const params=new URLSearchParams(location.search);let state={cat:params.get('cat')||'all',search:params.get('search')||'',maxPrice:50000,minRating:0,sort:'pertinence'};let allProducts=[],allCategories=[],catsById={};
+async function main(){[allProducts,allCategories]=await Promise.all([ubGetAllProducts(),ubGetAllCategories()]);catsById=ubCatsById(allCategories);renderCategoryFilters();renderRatingFilters();renderGrid()}
+function renderCategoryFilters(){const all=[{id:'all',name:'Toutes les catégories'},...allCategories];document.getElementById('filter-categories').innerHTML=all.map(c=>`<label><input type="radio" name="cat" value="${c.id}" ${state.cat===c.id?'checked':''} onchange="ubOnFilterChange()">${c.name}</label>`).join('')}
+function renderRatingFilters(){document.getElementById('filter-rating').innerHTML=[4,3,0].map(r=>`<label><input type="radio" name="rating" value="${r}" ${state.minRating===r?'checked':''} onchange="ubOnFilterChange()">${r>0?`${'★'.repeat(r)}${'☆'.repeat(5-r)} et plus`:'Toutes les notes'}</label>`).join('')}
+function ubOnFilterChange(){state.cat=document.querySelector('input[name="cat"]:checked')?.value||'all';state.minRating=Number(document.querySelector('input[name="rating"]:checked')?.value||0);renderGrid()}
+function ubResetFilters(){state={cat:'all',search:'',maxPrice:50000,minRating:0,sort:'pertinence'};document.getElementById('price-range').value=50000;document.getElementById('price-range-value').textContent='50 000 FCFA';document.getElementById('sort-select').value='pertinence';renderCategoryFilters();renderRatingFilters();renderGrid()}
+document.getElementById('price-range').addEventListener('input',e=>{state.maxPrice=Number(e.target.value);document.getElementById('price-range-value').textContent=ubFormatPrice(state.maxPrice);renderGrid()});document.getElementById('sort-select').addEventListener('change',e=>{state.sort=e.target.value;renderGrid()});
+function renderGrid(){const q=state.search.trim().toLowerCase();let list=allProducts.filter(p=>(state.cat==='all'||p.category===state.cat)&&p.price<=state.maxPrice&&p.rating>=state.minRating&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)));if(state.sort==='price-asc')list.sort((a,b)=>a.price-b.price);if(state.sort==='price-desc')list.sort((a,b)=>b.price-a.price);if(state.sort==='rating')list.sort((a,b)=>b.rating-a.rating);document.getElementById('shop-grid').innerHTML=list.length?list.map(p=>ubProductCardHTML(p,catsById)).join(''):`<div style="grid-column:1/-1;text-align:center;background:var(--off-white);border:1px dashed var(--mauve-200);border-radius:20px;padding:55px 20px"><h3>Aucun produit trouvé</h3><p style="color:var(--ink-soft)">Essayez d'élargir votre budget ou de modifier vos filtres.</p><button class="btn btn-outline" onclick="ubResetFilters()">Réinitialiser</button></div>`;document.getElementById('result-count').textContent=`${list.length} produit${list.length>1?'s':''} trouvé${list.length>1?'s':''}`;const cat=allCategories.find(c=>c.id===state.cat);document.getElementById('page-title').textContent=q?`Résultats pour « ${state.search.trim()} »`:(cat?cat.name:'Toute la boutique');document.getElementById('bc-current').textContent=q?'Recherche':(cat?cat.name:'Boutique');ubInitReveal()}
+main();
 </script>
-</body>
-</html>
+</body></html>
