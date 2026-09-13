@@ -2,4 +2,68 @@
 <div id="site-header"></div><div class="breadcrumb"><div class="container"><a href="index.html">Accueil</a><span>/</span><span>Panier</span></div></div>
 <section style="padding-top:48px"><div class="container"><div class="section-head" style="text-align:left;margin-bottom:36px"><span class="eyebrow">Votre sélection</span><h2>Mon panier</h2><p>Vérifiez votre sélection avant de finaliser votre commande.</p></div><div id="cart-content"></div></div></section><div id="site-footer"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
-<script>ubRenderHeader('boutique');ubRenderFooter();async function renderCart(){const cart=ubGetCart(),container=document.getElementById('cart-content');if(!cart.length){container.innerHTML=`<div class="empty-cart">${ubIcon('bag')}<h3>Votre panier est vide</h3><p style="color:var(--ink-soft)">Vous n’avez encore rien ajouté. Découvrez nos soins et trouvez vos essentiels.</p><a href="boutique.html" class="btn btn-primary">Découvrir la boutique</a></div>`;return}const[allProducts,allCategories]=await Promise.all([ubGetAllProducts(),ubGetAllCategories()]),productsById=Object.fromEntries(allProducts.map(p=>[p.id,p])),catsById=ubCatsById(allCategories),lines=cart.map(l=>({...l,product:productsById[l.id]})).filter(l=>l.product),subtotal=lines.reduce((s,l)=>s+l.product.price*l.qty,0),shipping=subtotal>=50000?0:2500,total=subtotal+shipping;container.innerHTML=`<div class="cart-layout"><div><div class="cart-table-wrap"><table class="cart-table"><thead><tr><th>Produit</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th></tr></thead><tbody>${lines.map(l=>`<tr><td><a href="produit.html?id=${l.product.id}" class="cart-product"><img src="${l.product.img}" alt="${l.product.name}"><div><strong>${l.product.name}</strong><span>${catsById[l.product.category]?.name||''}</span></div></a></td><td>${ubFormatPrice(l.product.price)}</td><td><div class="qty-selector"><button onclick="ubUpdateLine('${l.product.id}',${l.qty-1})">−</button><span>${l.qty}</span><button onclick="ubUpdateLine('${l.product.id}',${l.qty+1})">+</button></div></td><td><strong>${ubFormatPrice(l.product.price*l.qty)}</strong></td><td><button class="remove-btn" aria-label="Supprimer" onclick="ubRemoveFromCart('${l.product.id}');renderCart();">${ubIcon('trash')}</button></td></tr>`).join('')}</tbody></table></div><a href="boutique.html" style="display:inline-block;margin-top:18px;font-size:.82rem;color:var(--mauve-600)">← Continuer mes achats</a></div><div class="cart-summary"><h3>Récapitulatif</h3><div class="summary-row"><span>Sous-total</span><span>${ubFormatPrice(subtotal)}</span></div><div class="summary-row"><span>Livraison</span><span>${shipping===0?'Offerte':ubFormatPrice(shipping)}</span></div>${shipping>0?`<p style="font-size:.72rem;color:var(--ink-soft)">Livraison offerte dès 50 000 FCFA.</p>`:`<p style="font-size:.72rem;color:var(--success)">Vous bénéficiez de la livraison offerte.</p>`}<div class="coupon-row"><input type="text" placeholder="Code promo"><button class="btn btn-outline btn-sm" onclick="ubShowToast('Code promo appliqué')">Appliquer</button></div><div class="summary-row total"><span>Total</span><span>${ubFormatPrice(total)}</span></div><button class="btn btn-primary btn-block" style="margin-top:20px" onclick="ubShowToast('Redirection vers le paiement...')">Passer la commande</button><p style="font-size:.7rem;color:var(--ink-soft);text-align:center;margin-top:12px">Paiement sécurisé · Commande préparée avec soin</p></div></div>`}function ubUpdateLine(id,qty){if(qty<=0)ubRemoveFromCart(id);else ubSetQty(id,qty);renderCart()}renderCart();</script></body></html>
+<script>
+ubRenderHeader('boutique');ubRenderFooter();
+
+const UB_PAYMENT_METHODS = ['Orange Money', 'Wave', 'Carte bancaire', 'Paiement à la livraison'];
+let currentLines = [];
+
+async function renderCart(){
+  const cart=ubGetCart(), container=document.getElementById('cart-content');
+  if(!cart.length){
+    container.innerHTML=`<div class="empty-cart">${ubIcon('bag')}<h3>Votre panier est vide</h3><p style="color:var(--ink-soft)">Vous n’avez encore rien ajouté. Découvrez nos soins et trouvez vos essentiels.</p><a href="boutique.html" class="btn btn-primary">Découvrir la boutique</a></div>`;
+    currentLines=[];
+    return;
+  }
+  const [allProducts, allCategories] = await Promise.all([ubGetAllProducts(), ubGetAllCategories()]);
+  const productsById=Object.fromEntries(allProducts.map(p=>[p.id,p])), catsById=ubCatsById(allCategories);
+  const lines=cart.map(l=>({...l,product:productsById[l.id]})).filter(l=>l.product);
+  currentLines=lines;
+  const subtotal=lines.reduce((s,l)=>s+l.product.price*l.qty,0), shipping=subtotal>=50000?0:2500, total=subtotal+shipping;
+  container.innerHTML=`<div class="cart-layout"><div><div class="cart-table-wrap"><table class="cart-table"><thead><tr><th>Produit</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th></tr></thead><tbody>${lines.map(l=>`<tr><td><a href="produit.html?id=${l.product.id}" class="cart-product"><img src="${l.product.img}" alt="${l.product.name}"><div><strong>${l.product.name}</strong><span>${catsById[l.product.category]?.name||''}</span></div></a></td><td>${ubFormatPrice(l.product.price)}</td><td><div class="qty-selector"><button onclick="ubUpdateLine('${l.product.id}',${l.qty-1})">−</button><span>${l.qty}</span><button onclick="ubUpdateLine('${l.product.id}',${l.qty+1})">+</button></div></td><td><strong>${ubFormatPrice(l.product.price*l.qty)}</strong></td><td><button class="remove-btn" aria-label="Supprimer" onclick="ubRemoveFromCart('${l.product.id}');renderCart();">${ubIcon('trash')}</button></td></tr>`).join('')}</tbody></table></div><a href="boutique.html" style="display:inline-block;margin-top:18px;font-size:.82rem;color:var(--mauve-600)">← Continuer mes achats</a></div><div class="cart-summary"><h3>Récapitulatif</h3><div class="summary-row"><span>Sous-total</span><span>${ubFormatPrice(subtotal)}</span></div><div class="summary-row"><span>Livraison</span><span>${shipping===0?'Offerte':ubFormatPrice(shipping)}</span></div>${shipping>0?`<p style="font-size:.72rem;color:var(--ink-soft)">Livraison offerte dès 50 000 FCFA.</p>`:`<p style="font-size:.72rem;color:var(--success)">Vous bénéficiez de la livraison offerte.</p>`}<div class="coupon-row"><input type="text" placeholder="Code promo"><button class="btn btn-outline btn-sm" onclick="ubShowToast('Code promo appliqué')">Appliquer</button></div><div class="summary-row total"><span>Total</span><span>${ubFormatPrice(total)}</span></div><div class="checkout-form"><div class="field"><label>Nom complet *</label><input id="co-name" type="text" placeholder="Votre nom"></div><div class="field"><label>Téléphone *</label><input id="co-phone" type="tel" placeholder="77 000 00 00"></div><div class="field"><label>Adresse de livraison</label><input id="co-address" type="text" placeholder="Quartier, ville"></div><div class="field"><label>Mode de paiement *</label><div class="payment-methods">${UB_PAYMENT_METHODS.map((m,i)=>`<label class="payment-option"><input type="radio" name="payment" value="${m}" ${i===0?'checked':''}><span>${m}</span></label>`).join('')}</div></div><div id="checkout-error" class="checkout-error" style="display:none"></div></div><button class="btn btn-primary btn-block" style="margin-top:16px" id="checkout-submit" onclick="ubSubmitOrder()">Passer la commande</button><p style="font-size:.7rem;color:var(--ink-soft);text-align:center;margin-top:12px">Paiement sécurisé · Commande préparée avec soin</p></div></div>`;
+}
+
+function ubUpdateLine(id,qty){ if(qty<=0) ubRemoveFromCart(id); else ubSetQty(id,qty); renderCart(); }
+
+async function ubSubmitOrder(){
+  const btn=document.getElementById('checkout-submit'), errBox=document.getElementById('checkout-error');
+  errBox.style.display='none';
+  const name=document.getElementById('co-name').value.trim();
+  const phone=document.getElementById('co-phone').value.trim();
+  const address=document.getElementById('co-address').value.trim();
+  const payment=document.querySelector('input[name="payment"]:checked')?.value || UB_PAYMENT_METHODS[0];
+
+  const showError = (msg) => { errBox.textContent=msg; errBox.style.display='block'; };
+  if(!currentLines.length) return showError('Votre panier est vide.');
+  if(!name) return showError('Merci de renseigner votre nom complet.');
+  if(!phone || phone.replace(/\D/g,'').length < 9) return showError('Merci de renseigner un numéro de téléphone valide.');
+
+  btn.disabled=true; btn.textContent='Traitement en cours...';
+  const result = await ubPlaceOrder({
+    clientName: name, phone, address, paymentMethod: payment,
+    items: currentLines.map(l => ({ id: l.product.id, qty: l.qty })),
+  });
+  btn.disabled=false; btn.textContent='Passer la commande';
+
+  if(result.error){
+    if(result.error==='PRODUIT_INDISPONIBLE'){
+      const p=currentLines.find(l=>l.product.id===result.productId)?.product;
+      showError(`Stock insuffisant pour "${p?p.name:result.productId}" : ajustez la quantité ou retirez ce produit du panier.`);
+    } else if(result.error==='PANIER_VIDE'){
+      showError('Votre panier est vide.');
+    } else if(result.error==='NOM_CLIENT_REQUIS'){
+      showError('Merci de renseigner votre nom complet.');
+    } else if(result.error==='TELEPHONE_REQUIS'){
+      showError('Merci de renseigner votre numéro de téléphone.');
+    } else {
+      showError("Une erreur est survenue lors de l'enregistrement de votre commande. Merci de réessayer dans un instant.");
+    }
+    return;
+  }
+
+  ubSaveCart([]);
+  document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée. Nous vous contacterons au ${phone} pour la confirmer.</p><a href="boutique.html" class="btn btn-primary">Continuer mes achats</a></div>`;
+}
+
+renderCart();
+</script></body></html>

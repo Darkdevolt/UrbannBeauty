@@ -72,3 +72,28 @@ async function ubGetProduct(id) {
 function ubCatsById(categories) {
   return Object.fromEntries(categories.map(c => [c.id, c]));
 }
+
+/* ---------- Commande (checkout) ----------
+   Passe par la fonction Postgres ub_place_order (SECURITY DEFINER) qui verifie et
+   reserve le stock puis cree la commande de facon atomique : soit tout reussit,
+   soit rien n'est enregistre (voir migration add_indexes_and_atomic_order_placement).
+   Ne jamais recalculer/decrementer le stock depuis le frontend. */
+async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items }) {
+  const { data, error } = await ubSupabase.rpc('ub_place_order', {
+    p_client_name: clientName,
+    p_phone: phone,
+    p_address: address || null,
+    p_payment_method: paymentMethod,
+    p_items: items.map(l => ({ product_id: l.id, qty: l.qty })),
+  });
+  if (error) {
+    const code = (error.message || '').match(/PRODUIT_INDISPONIBLE:\s*(\S+)/);
+    if (code) return { error: 'PRODUIT_INDISPONIBLE', productId: code[1] };
+    if (/PANIER_VIDE/.test(error.message)) return { error: 'PANIER_VIDE' };
+    if (/NOM_CLIENT_REQUIS/.test(error.message)) return { error: 'NOM_CLIENT_REQUIS' };
+    if (/TELEPHONE_REQUIS/.test(error.message)) return { error: 'TELEPHONE_REQUIS' };
+    console.error('ubPlaceOrder', error);
+    return { error: 'INCONNU' };
+  }
+  return { orderId: data };
+}
