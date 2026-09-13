@@ -9,9 +9,7 @@
 <link rel="stylesheet" href="assets/admin.css">
 </head>
 <body>
-
 <div class="admin-shell" id="admin-shell"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
@@ -38,206 +36,40 @@ async function main() {
 
   document.getElementById('a-content').innerHTML = `
     <div class="a-stats-grid">
-      <div class="a-panel a-stat-card">
-        <div class="row">
-          <div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('chart')}</div>
-        </div>
-        <div class="value">${ubFormatPrice(revenue)}</div>
-        <div class="label">Chiffre d'affaires (30 jours)</div>
-        <div class="a-trend up">▲ 12.4% vs mois dernier</div>
-      </div>
-      <div class="a-panel a-stat-card">
-        <div class="row">
-          <div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('orders')}</div>
-        </div>
-        <div class="value">${orders.length}</div>
-        <div class="label">Commandes ce mois-ci</div>
-        <div class="a-trend up">▲ 6 nouvelles aujourd'hui</div>
-      </div>
-      <div class="a-panel a-stat-card">
-        <div class="row">
-          <div class="icon" style="background:#fbf1e3;color:#c98a3e">${ubIcon('box')}</div>
-        </div>
-        <div class="value">${products.length}</div>
-        <div class="label">Produits au catalogue</div>
-        <div class="a-trend down">${lowStock.length} en stock faible</div>
-      </div>
-      <div class="a-panel a-stat-card">
-        <div class="row">
-          <div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('users')}</div>
-        </div>
-        <div class="value">${ubFormatPrice(avgBasket)}</div>
-        <div class="label">Panier moyen</div>
-        <div class="a-trend up">▲ 3.1% vs mois dernier</div>
-      </div>
+      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('chart')}</div></div><div class="value">${ubFormatPrice(revenue)}</div><div class="label">Chiffre d'affaires (30 jours)</div><div class="a-trend up">▲ 12.4% vs mois dernier</div></div>
+      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('orders')}</div></div><div class="value">${orders.length}</div><div class="label">Commandes ce mois-ci</div><div class="a-trend up">▲ 6 nouvelles aujourd'hui</div></div>
+      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#fbf1e3;color:#c98a3e">${ubIcon('box')}</div></div><div class="value">${products.length}</div><div class="label">Produits au catalogue</div><div class="a-trend down">${lowStock.length} en stock faible</div></div>
+      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('users')}</div></div><div class="value">${ubFormatPrice(avgBasket)}</div><div class="label">Panier moyen</div><div class="a-trend up">▲ 3.1% vs mois dernier</div></div>
     </div>
 
-    <div class="a-panel" style="margin-bottom:22px">
-      <div class="a-panel-body" style="display:flex;align-items:center;flex-wrap:wrap;gap:24px">
-        <div style="flex:1;min-width:200px">
-          <div style="font-size:.78rem;color:var(--a-ink-soft)">À recevoir (créances clients)</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--a-warning)">${ubFormatPrice(receivablesQuick.total)}</div>
-        </div>
-        <div style="flex:1;min-width:200px">
-          <div style="font-size:.78rem;color:var(--a-ink-soft)">À payer (dettes fournisseurs)</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--a-danger)">${ubFormatPrice(payablesQuick.total)}</div>
-        </div>
-        <a href="finances.html" class="a-btn a-btn-primary a-btn-sm">${ubIcon('chart')} Voir les finances</a>
-      </div>
-    </div>
+    <div class="a-panel" style="margin-bottom:22px"><div class="a-panel-body" style="display:flex;align-items:center;flex-wrap:wrap;gap:24px">
+      <div style="flex:1;min-width:200px"><div style="font-size:.78rem;color:var(--a-ink-soft)">À recevoir (créances clients)</div><div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--a-warning)">${ubFormatPrice(receivablesQuick.total)}</div></div>
+      <div style="flex:1;min-width:200px"><div style="font-size:.78rem;color:var(--a-ink-soft)">À payer (dettes fournisseurs)</div><div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--a-danger)">${ubFormatPrice(payablesQuick.total)}</div></div>
+      <a href="finances.html" class="a-btn a-btn-primary a-btn-sm">${ubIcon('chart')} Voir les finances</a>
+    </div></div>
 
-    <div class="a-grid-2">
-      <div class="a-panel">
-        <div class="a-panel-head">
-          <h3>Ventes des 7 derniers jours</h3>
-          <select class="a-select"><option>7 derniers jours</option><option>30 derniers jours</option></select>
-        </div>
-        <div class="a-panel-body">
-          <div class="chart-bars" id="chart-bars"></div>
-        </div>
-      </div>
-      <div class="a-panel">
-        <div class="a-panel-head"><h3>Ventes par catégorie</h3></div>
-        <div class="a-panel-body">
-          <div id="cat-bars"></div>
-          <div class="donut-legend" id="cat-legend"></div>
-        </div>
-      </div>
-    </div>
+    <div class="a-panel" style="margin-bottom:22px"><div class="a-panel-head"><div><h3>Logistique</h3><div style="font-size:.78rem;color:var(--a-ink-soft)">Gérez les livraisons et les retours à partir du numéro de téléphone du client.</div></div></div><div class="a-panel-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><a href="livraison.html" class="a-btn a-btn-outline" style="justify-content:flex-start;padding:16px">${ubIcon('truck')} <span><strong style="display:block">Livraisons</strong><small style="color:var(--a-ink-soft)">Suivre, attribuer et clôturer les livraisons</small></span></a><a href="retours.html" class="a-btn a-btn-outline" style="justify-content:flex-start;padding:16px">${ubIcon('truck')} <span><strong style="display:block">Retours</strong><small style="color:var(--a-ink-soft)">Demandes, échanges et remboursements</small></span></a></div></div></div>
 
-    <div class="a-grid-3" style="margin-top:22px">
-      <div class="a-panel">
-        <div class="a-panel-head">
-          <h3>Ventes par zone (Dakar)</h3>
-        </div>
-        <div class="a-table-wrap">
-          <table class="a-table">
-            <thead><tr><th>Zone</th><th>Commandes</th><th>Chiffre d'affaires</th></tr></thead>
-            <tbody id="zones-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="a-panel">
-        <div class="a-panel-head">
-          <h3>Meilleures ventes</h3>
-          <a href="produits.html" class="a-btn a-btn-outline a-btn-sm">Voir les produits</a>
-        </div>
-        <div class="a-table-wrap">
-          <table class="a-table">
-            <thead><tr><th>Produit</th><th>Unités vendues</th><th>Chiffre d'affaires</th></tr></thead>
-            <tbody id="bestsellers-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="a-panel">
-        <div class="a-panel-head">
-          <h3>Meilleurs clients</h3>
-          <a href="clients.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a>
-        </div>
-        <div class="a-table-wrap">
-          <table class="a-table">
-            <thead><tr><th>Cliente</th><th>Commandes</th><th>Total dépensé</th></tr></thead>
-            <tbody id="bestclients-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <div class="a-grid-2"><div class="a-panel"><div class="a-panel-head"><h3>Ventes des 7 derniers jours</h3><select class="a-select"><option>7 derniers jours</option><option>30 derniers jours</option></select></div><div class="a-panel-body"><div class="chart-bars" id="chart-bars"></div></div></div>
+    <div class="a-panel"><div class="a-panel-head"><h3>Ventes par catégorie</h3></div><div class="a-panel-body"><div id="cat-bars"></div><div class="donut-legend" id="cat-legend"></div></div></div></div>
 
-    <div class="a-grid-2" style="margin-top:22px">
-      <div class="a-panel">
-        <div class="a-panel-head">
-          <h3>Dernières commandes</h3>
-          <a href="commandes.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a>
-        </div>
-        <div class="a-table-wrap">
-          <table class="a-table">
-            <thead><tr><th>Commande</th><th>Client</th><th>Total</th><th>Paiement</th><th>Statut</th></tr></thead>
-            <tbody id="orders-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="a-panel">
-        <div class="a-panel-head">
-          <h3>Alertes stock faible</h3>
-          <a href="produits.html" class="a-btn a-btn-outline a-btn-sm">Gérer le stock</a>
-        </div>
-        <div class="a-panel-body" style="padding-top:8px">
-          <div id="low-stock-list"></div>
-        </div>
-      </div>
-    </div>
-  `;
+    <div class="a-grid-3" style="margin-top:22px"><div class="a-panel"><div class="a-panel-head"><h3>Ventes par zone (Dakar)</h3></div><div class="a-table-wrap"><table class="a-table"><thead><tr><th>Zone</th><th>Commandes</th><th>Chiffre d'affaires</th></tr></thead><tbody id="zones-tbody"></tbody></table></div></div>
+    <div class="a-panel"><div class="a-panel-head"><h3>Meilleures ventes</h3><a href="produits.html" class="a-btn a-btn-outline a-btn-sm">Voir les produits</a></div><div class="a-table-wrap"><table class="a-table"><thead><tr><th>Produit</th><th>Unités vendues</th><th>Chiffre d'affaires</th></tr></thead><tbody id="bestsellers-tbody"></tbody></table></div></div>
+    <div class="a-panel"><div class="a-panel-head"><h3>Meilleurs clients</h3><a href="clients.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a></div><div class="a-table-wrap"><table class="a-table"><thead><tr><th>Cliente</th><th>Commandes</th><th>Total dépensé</th></tr></thead><tbody id="bestclients-tbody"></tbody></table></div></div></div>
 
-  // Chart barres ventes 7 jours (données démo)
-  const days = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-  const values = [42, 58, 39, 71, 65, 88, 54];
-  const max = Math.max(...values);
-  document.getElementById('chart-bars').innerHTML = days.map((d, i) => `
-    <div class="bar-col">
-      <div class="bar" style="height:${(values[i]/max*100)}%"></div>
-      <span class="bar-label">${d}</span>
-    </div>`).join('');
+    <div class="a-grid-2" style="margin-top:22px"><div class="a-panel"><div class="a-panel-head"><h3>Dernières commandes</h3><a href="commandes.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a></div><div class="a-table-wrap"><table class="a-table"><thead><tr><th>Commande</th><th>Client</th><th>Total</th><th>Paiement</th><th>Statut</th></tr></thead><tbody id="orders-tbody"></tbody></table></div></div>
+    <div class="a-panel"><div class="a-panel-head"><h3>Alertes stock faible</h3><a href="produits.html" class="a-btn a-btn-outline a-btn-sm">Gérer le stock</a></div><div class="a-panel-body" style="padding-top:8px"><div id="low-stock-list"></div></div></div></div>`;
 
-  // Répartition par catégorie
-  const catColors = ['#8e56bd','#c199e0','#d1495c','#c98a3e','#2f9e63','#6b6478'];
-  const catData = categories.map((c, i) => ({
-    ...c,
-    count: products.filter(p => p.category === c.id).length,
-    color: catColors[i % catColors.length],
-  }));
-  const totalCount = catData.reduce((s,c) => s + c.count, 0) || 1;
-  document.getElementById('cat-bars').innerHTML = `
-    <div style="display:flex;height:16px;border-radius:999px;overflow:hidden">
-      ${catData.map(c => `<div style="width:${c.count/totalCount*100}%;background:${c.color}"></div>`).join('')}
-    </div>`;
-  document.getElementById('cat-legend').innerHTML = catData.map(c => `
-    <div class="item"><span class="dot" style="background:${c.color}"></span> ${c.name} <span style="color:var(--a-ink-soft);margin-left:auto">${c.count} produits</span></div>
-  `).join('');
-
-  document.getElementById('orders-tbody').innerHTML = orders.slice(0, 5).map(o => `
-    <tr>
-      <td><strong>${o.id}</strong></td>
-      <td>${o.client}</td>
-      <td>${ubFormatPrice(ubOrderTotal(o, productsById))}</td>
-      <td>${ubPaymentStatusBadge(o.paymentStatus)}</td>
-      <td>${ubOrderStatusBadge(o.status)}</td>
-    </tr>`).join('');
-
-  document.getElementById('zones-tbody').innerHTML = zoneStats.length ? zoneStats.map(z => `
-    <tr>
-      <td><strong>${z.zone}</strong></td>
-      <td>${z.orders} commande${z.orders > 1 ? 's' : ''}</td>
-      <td><strong>${ubFormatPrice(z.total)}</strong></td>
-    </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune donnée géographique disponible.</td></tr>`;
-
-  document.getElementById('bestsellers-tbody').innerHTML = bestSellers.length ? bestSellers.map(b => `
-    <tr>
-      <td>
-        <div class="a-prod-cell">
-          <img src="${b.product.img}" alt="">
-          <div><strong>${b.product.name}</strong></div>
-        </div>
-      </td>
-      <td>${b.qty} unité${b.qty > 1 ? 's' : ''}</td>
-      <td><strong>${ubFormatPrice(b.qty * b.product.price)}</strong></td>
-    </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune vente enregistrée.</td></tr>`;
-
-  document.getElementById('bestclients-tbody').innerHTML = bestClients.length ? bestClients.map(c => `
-    <tr>
-      <td><strong>${c.name}</strong></td>
-      <td>${c.orders} commande${c.orders > 1 ? 's' : ''}</td>
-      <td><strong>${ubFormatPrice(c.total)}</strong></td>
-    </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune cliente pour le moment.</td></tr>`;
-
-  document.getElementById('low-stock-list').innerHTML = lowStock.length ? lowStock.map(p => `
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--a-line)">
-      <img src="${p.img}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">
-      <div style="flex:1">
-        <strong style="display:block;font-size:.85rem">${p.name}</strong>
-        <span style="font-size:.76rem;color:var(--a-ink-soft)">${p.stock} unités restantes</span>
-      </div>
-      ${ubStockBadge(p.stock)}
-    </div>`).join('') : `<p style="color:var(--a-ink-soft);font-size:.86rem">Aucune alerte de stock pour le moment.</p>`;
+  const days = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const values = [42,58,39,71,65,88,54]; const max = Math.max(...values);
+  document.getElementById('chart-bars').innerHTML = days.map((d,i)=>`<div class="bar-col"><div class="bar" style="height:${values[i]/max*100}%"></div><span class="bar-label">${d}</span></div>`).join('');
+  const catColors=['#8e56bd','#c199e0','#d1495c','#c98a3e','#2f9e63','#6b6478']; const catData=categories.map((c,i)=>({...c,count:products.filter(p=>p.category===c.id).length,color:catColors[i%catColors.length]})); const totalCount=catData.reduce((s,c)=>s+c.count,0)||1;
+  document.getElementById('cat-bars').innerHTML=`<div style="display:flex;height:16px;border-radius:999px;overflow:hidden">${catData.map(c=>`<div style="width:${c.count/totalCount*100}%;background:${c.color}"></div>`).join('')}</div>`;
+  document.getElementById('cat-legend').innerHTML=catData.map(c=>`<div class="item"><span class="dot" style="background:${c.color}"></span> ${c.name}<span style="color:var(--a-ink-soft);margin-left:auto">${c.count} produits</span></div>`).join('');
+  document.getElementById('orders-tbody').innerHTML=orders.slice(0,5).map(o=>`<tr><td><strong>${o.id}</strong></td><td>${o.client}</td><td>${ubFormatPrice(ubOrderTotal(o,productsById))}</td><td>${ubPaymentStatusBadge(o.paymentStatus)}</td><td>${ubOrderStatusBadge(o.status)}</td></tr>`).join('');
+  document.getElementById('zones-tbody').innerHTML=zoneStats.length?zoneStats.map(z=>`<tr><td><strong>${z.zone}</strong></td><td>${z.orders} commande${z.orders>1?'s':''}</td><td><strong>${ubFormatPrice(z.total)}</strong></td></tr>`).join(''):`<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune donnée géographique disponible.</td></tr>`;
+  document.getElementById('bestsellers-tbody').innerHTML=bestSellers.length?bestSellers.map(b=>`<tr><td><div class="a-prod-cell"><img src="${b.product.img}" alt=""><div><strong>${b.product.name}</strong></div></div></td><td>${b.qty} unité${b.qty>1?'s':''}</td><td><strong>${ubFormatPrice(b.qty*b.product.price)}</strong></td></tr>`).join(''):`<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune vente enregistrée.</td></tr>`;
+  document.getElementById('bestclients-tbody').innerHTML=bestClients.length?bestClients.map(c=>`<tr><td><strong>${c.name}</strong></td><td>${c.orders} commande${c.orders>1?'s':''}</td><td><strong>${ubFormatPrice(c.total)}</strong></td></tr>`).join(''):`<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune cliente pour le moment.</td></tr>`;
+  document.getElementById('low-stock-list').innerHTML=lowStock.length?lowStock.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--a-line)"><img src="${p.img}" style="width:40px;height:40px;border-radius:8px;object-fit:cover"><div style="flex:1"><strong style="display:block;font-size:.85rem">${p.name}</strong><span style="font-size:.76rem;color:var(--a-ink-soft)">${p.stock} unités restantes</span></div>${ubStockBadge(p.stock)}</div>`).join(''):`<p style="color:var(--a-ink-soft);font-size:.86rem">Aucune alerte de stock pour le moment.</p>`;
 }
 main();
 </script>
