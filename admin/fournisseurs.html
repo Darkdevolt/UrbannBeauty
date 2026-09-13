@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fournisseurs — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+
+<div class="admin-shell" id="admin-shell"></div>
+
+<div class="a-modal-overlay" id="sup-modal">
+  <div class="a-modal" style="max-width:480px">
+    <div class="a-modal-head">
+      <h3 id="sup-modal-title">Ajouter un fournisseur</h3>
+      <button class="a-modal-close" onclick="ubCloseSupModal()"></button>
+    </div>
+    <div class="a-modal-body">
+      <form id="sup-form">
+        <input type="hidden" id="s-id">
+        <div class="a-form-grid">
+          <div class="a-field full">
+            <label>Nom du fournisseur</label>
+            <input type="text" id="s-name" required placeholder="Ex : Cosmetics Import SARL">
+          </div>
+          <div class="a-field">
+            <label>Contact (téléphone)</label>
+            <input type="text" id="s-contact" placeholder="77 000 00 00">
+          </div>
+          <div class="a-field">
+            <label>Catégorie</label>
+            <input type="text" id="s-category" placeholder="Ex : Emballages">
+          </div>
+          <div class="a-field">
+            <label>Montant dû (FCFA)</label>
+            <input type="number" id="s-amount" required min="0" placeholder="150000">
+          </div>
+          <div class="a-field">
+            <label>Date d'échéance</label>
+            <input type="date" id="s-duedate" required>
+          </div>
+          <div class="a-field full">
+            <label>Statut</label>
+            <select id="s-status">
+              <option value="a_payer">À payer</option>
+              <option value="paye">Payé</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="a-modal-foot">
+      <button class="a-btn a-btn-outline" onclick="ubCloseSupModal()">Annuler</button>
+      <button class="a-btn a-btn-primary" onclick="ubSaveSupplier()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+  ubAdminGuard();
+  ubAdminRenderShell('fournisseurs', 'Fournisseurs', 'Suivez vos fournisseurs et les montants que vous leur devez');
+  document.querySelector('.a-modal-close').innerHTML = ubIcon('close');
+
+  let suppliers = ubAdminGetSuppliers();
+
+  function renderContent() {
+    const { total } = ubComputePayables(suppliers);
+    const lateCount = suppliers.filter(ubSupplierIsLate).length;
+    const paidCount = suppliers.filter(s => s.status === 'paye').length;
+
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-stats-grid">
+        <div class="a-panel a-stat-card">
+          <div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('truck')}</div>
+          <div class="value">${ubFormatPrice(total)}</div><div class="label">Total à payer</div>
+        </div>
+        <div class="a-panel a-stat-card">
+          <div class="icon" style="background:#fbf1e3;color:#c98a3e">${ubIcon('clock')}</div>
+          <div class="value">${lateCount}</div><div class="label">Paiements en retard</div>
+        </div>
+        <div class="a-panel a-stat-card">
+          <div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('check')}</div>
+          <div class="value">${paidCount}</div><div class="label">Fournisseurs à jour</div>
+        </div>
+        <div class="a-panel a-stat-card">
+          <div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('box')}</div>
+          <div class="value">${suppliers.length}</div><div class="label">Fournisseurs au total</div>
+        </div>
+      </div>
+
+      <div class="a-toolbar">
+        <p style="color:var(--a-ink-soft);font-size:.88rem;margin:0">Gérez vos dettes fournisseurs</p>
+        <div class="a-filters">
+          <button class="a-btn a-btn-outline" onclick="ubExportSuppliers()">${ubIcon('upload')} Exporter (Excel/CSV)</button>
+          <button class="a-btn a-btn-primary" onclick="ubOpenSupModal()">${ubIcon('plus')} Ajouter un fournisseur</button>
+        </div>
+      </div>
+      <div class="a-panel">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Fournisseur</th><th>Contact</th><th>Catégorie</th><th>Montant dû</th><th>Échéance</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="sup-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    renderTable();
+  }
+
+  function renderTable() {
+    document.getElementById('sup-tbody').innerHTML = suppliers.length ? suppliers.map(s => {
+      const late = ubSupplierIsLate(s);
+      const badge = s.status === 'paye'
+        ? '<span class="a-badge success">Payé</span>'
+        : (late ? '<span class="a-badge danger">En retard</span>' : '<span class="a-badge warning">À payer</span>');
+      return `
+      <tr>
+        <td><strong>${s.name}</strong></td>
+        <td>${s.contact || '—'}</td>
+        <td>${s.category || '—'}</td>
+        <td><strong>${ubFormatPrice(s.amount)}</strong></td>
+        <td>${new Date(s.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+        <td>${badge}</td>
+        <td>
+          <div class="a-actions-cell">
+            ${s.status === 'a_payer' ? `<button class="a-icon-action" onclick="ubMarkSupplierPaid('${s.id}')" title="Marquer payé">${ubIcon('check')}</button>` : ''}
+            <button class="a-icon-action" onclick="ubOpenSupModal('${s.id}')" title="Modifier">${ubIcon('edit')}</button>
+            <button class="a-icon-action" onclick="ubDeleteSupplier('${s.id}')" title="Supprimer">${ubIcon('trash')}</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('truck')}<p>Aucun fournisseur enregistré.</p></div></td></tr>`;
+  }
+
+  function ubOpenSupModal(id) {
+    if (id) {
+      const s = suppliers.find(x => x.id === id);
+      document.getElementById('sup-modal-title').textContent = 'Modifier le fournisseur';
+      document.getElementById('s-id').value = s.id;
+      document.getElementById('s-name').value = s.name;
+      document.getElementById('s-contact').value = s.contact || '';
+      document.getElementById('s-category').value = s.category || '';
+      document.getElementById('s-amount').value = s.amount;
+      document.getElementById('s-duedate').value = s.dueDate;
+      document.getElementById('s-status').value = s.status;
+    } else {
+      document.getElementById('sup-modal-title').textContent = 'Ajouter un fournisseur';
+      document.getElementById('sup-form').reset();
+      document.getElementById('s-id').value = '';
+      document.getElementById('s-status').value = 'a_payer';
+    }
+    document.getElementById('sup-modal').classList.add('open');
+  }
+  function ubCloseSupModal() { document.getElementById('sup-modal').classList.remove('open'); }
+
+  function ubSaveSupplier() {
+    const form = document.getElementById('sup-form');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const id = document.getElementById('s-id').value;
+    const data = {
+      name: document.getElementById('s-name').value,
+      contact: document.getElementById('s-contact').value,
+      category: document.getElementById('s-category').value,
+      amount: Number(document.getElementById('s-amount').value),
+      dueDate: document.getElementById('s-duedate').value,
+      status: document.getElementById('s-status').value,
+    };
+    if (id) {
+      const idx = suppliers.findIndex(s => s.id === id);
+      suppliers[idx] = { ...suppliers[idx], ...data };
+      ubAToast('Fournisseur mis à jour');
+    } else {
+      data.id = 'F' + Date.now();
+      suppliers.push(data);
+      ubAToast('Fournisseur ajouté');
+    }
+    ubAdminSaveSuppliers(suppliers);
+    ubCloseSupModal();
+    renderContent();
+  }
+
+  function ubMarkSupplierPaid(id) {
+    const s = suppliers.find(x => x.id === id);
+    if (s) { s.status = 'paye'; ubAdminSaveSuppliers(suppliers); ubAToast(s.name + ' marqué comme payé'); renderContent(); }
+  }
+
+  function ubDeleteSupplier(id) {
+    if (!confirm('Supprimer ce fournisseur ?')) return;
+    suppliers = suppliers.filter(s => s.id !== id);
+    ubAdminSaveSuppliers(suppliers);
+    ubAToast('Fournisseur supprimé');
+    renderContent();
+  }
+
+  function ubExportSuppliers() {
+    const headers = ['Fournisseur', 'Contact', 'Catégorie', 'Montant dû (FCFA)', 'Échéance', 'Statut'];
+    const rows = suppliers.map(s => [s.name, s.contact || '', s.category || '', s.amount, s.dueDate, s.status === 'paye' ? 'Payé' : (ubSupplierIsLate(s) ? 'En retard' : 'À payer')]);
+    ubExportCSV('urbann-beauty-fournisseurs.csv', headers, rows);
+  }
+
+  renderContent();
+</script>
+</body>
+</html>

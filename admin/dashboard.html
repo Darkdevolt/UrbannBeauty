@@ -27,6 +27,9 @@
   const avgBasket = Math.round(revenue / (activeOrders.length || 1));
   const bestSellers = ubComputeBestSellers(orders, 5);
   const bestClients = ubComputeBestClients(orders, 5);
+  const zoneStats = ubComputeZoneStats(orders, 6);
+  const receivablesQuick = ubComputeReceivables(orders);
+  const payablesQuick = ubComputePayables(ubAdminGetSuppliers());
 
   document.getElementById('a-content').innerHTML = `
     <div class="a-stats-grid">
@@ -64,6 +67,20 @@
       </div>
     </div>
 
+    <div class="a-panel" style="margin-bottom:22px">
+      <div class="a-panel-body" style="display:flex;align-items:center;flex-wrap:wrap;gap:24px">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:.78rem;color:var(--a-ink-soft)">À recevoir (créances clients)</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--a-warning)">${ubFormatPrice(receivablesQuick.total)}</div>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:.78rem;color:var(--a-ink-soft)">À payer (dettes fournisseurs)</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--a-danger)">${ubFormatPrice(payablesQuick.total)}</div>
+        </div>
+        <a href="finances.html" class="a-btn a-btn-primary a-btn-sm">${ubIcon('chart')} Voir les finances</a>
+      </div>
+    </div>
+
     <div class="a-grid-2">
       <div class="a-panel">
         <div class="a-panel-head">
@@ -83,7 +100,18 @@
       </div>
     </div>
 
-    <div class="a-grid-2" style="margin-top:22px">
+    <div class="a-grid-3" style="margin-top:22px">
+      <div class="a-panel">
+        <div class="a-panel-head">
+          <h3>Ventes par zone (Dakar)</h3>
+        </div>
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Zone</th><th>Commandes</th><th>Chiffre d'affaires</th></tr></thead>
+            <tbody id="zones-tbody"></tbody>
+          </table>
+        </div>
+      </div>
       <div class="a-panel">
         <div class="a-panel-head">
           <h3>Meilleures ventes</h3>
@@ -169,6 +197,13 @@
       <td>${ubPaymentStatusBadge(o.paymentStatus)}</td>
       <td>${ubOrderStatusBadge(o.status)}</td>
     </tr>`).join('');
+
+  document.getElementById('zones-tbody').innerHTML = zoneStats.length ? zoneStats.map(z => `
+    <tr>
+      <td><strong>${z.zone}</strong></td>
+      <td>${z.orders} commande${z.orders > 1 ? 's' : ''}</td>
+      <td><strong>${ubFormatPrice(z.total)}</strong></td>
+    </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune donnée géographique disponible.</td></tr>`;
 
   document.getElementById('bestsellers-tbody').innerHTML = bestSellers.length ? bestSellers.map(b => `
     <tr>

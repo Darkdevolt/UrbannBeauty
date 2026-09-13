@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finances — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+
+<div class="admin-shell" id="admin-shell"></div>
+
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+  ubAdminGuard();
+  ubAdminRenderShell('finances', 'Finances', "Etat financier rapide : ventes, sommes a recevoir et a payer");
+
+  const orders = ubAdminGetOrders();
+  const suppliers = ubAdminGetSuppliers();
+  const activeOrders = orders.filter(o => o.status !== 'annulee');
+
+  const revenue = activeOrders.reduce((s, o) => s + ubOrderTotal(o), 0);
+  const encaisse = activeOrders.filter(o => o.paymentStatus === 'paye').reduce((s, o) => s + ubOrderTotal(o), 0);
+  const receivables = ubComputeReceivables(orders);
+  const payables = ubComputePayables(suppliers);
+  const soldeNet = receivables.total - payables.total;
+
+  document.getElementById('a-content').innerHTML = `
+    <div class="a-stats-grid">
+      <div class="a-panel a-stat-card">
+        <div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('chart')}</div>
+        <div class="value">${ubFormatPrice(revenue)}</div><div class="label">Chiffre d'affaires total</div>
+      </div>
+      <div class="a-panel a-stat-card">
+        <div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('check')}</div>
+        <div class="value">${ubFormatPrice(encaisse)}</div><div class="label">Encaissé (payé)</div>
+      </div>
+      <div class="a-panel a-stat-card">
+        <div class="icon" style="background:#fbf1e3;color:#c98a3e">${ubIcon('clock')}</div>
+        <div class="value">${ubFormatPrice(receivables.total)}</div><div class="label">À recevoir (créances clients)</div>
+      </div>
+      <div class="a-panel a-stat-card">
+        <div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('truck')}</div>
+        <div class="value">${ubFormatPrice(payables.total)}</div><div class="label">À payer (dettes fournisseurs)</div>
+      </div>
+    </div>
+
+    <div class="a-panel" style="margin-bottom:22px">
+      <div class="a-panel-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+        <div>
+          <div style="font-size:.82rem;color:var(--a-ink-soft);margin-bottom:4px">Solde net (créances − dettes)</div>
+          <div style="font-family:'Playfair Display',serif;font-size:2rem;color:${soldeNet >= 0 ? 'var(--a-success)' : 'var(--a-danger)'}">${soldeNet >= 0 ? '+' : ''}${ubFormatPrice(soldeNet)}</div>
+        </div>
+        <p style="max-width:420px;color:var(--a-ink-soft);font-size:.86rem;margin:0">
+          ${soldeNet >= 0
+            ? "Vos clients vous doivent globalement plus que ce que vous devez à vos fournisseurs."
+            : "Vous devez actuellement plus à vos fournisseurs que ce que vos clients vous doivent — priorisez le recouvrement ou négociez vos échéances."}
+        </p>
+        <button class="a-btn a-btn-outline" onclick="ubExportFinances()">${ubIcon('upload')} Exporter le rapport complet</button>
+      </div>
+    </div>
+
+    <div class="a-grid-2">
+      <div class="a-panel">
+        <div class="a-panel-head">
+          <h3>Créances clients (à recevoir)</h3>
+          <a href="commandes.html" class="a-btn a-btn-outline a-btn-sm">Voir les commandes</a>
+        </div>
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Cliente</th><th>Commande(s)</th><th>Montant dû</th></tr></thead>
+            <tbody id="receivables-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="a-panel">
+        <div class="a-panel-head">
+          <h3>Dettes fournisseurs (à payer)</h3>
+          <a href="fournisseurs.html" class="a-btn a-btn-outline a-btn-sm">Gérer</a>
+        </div>
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Fournisseur</th><th>Échéance</th><th>Montant dû</th></tr></thead>
+            <tbody id="payables-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('receivables-tbody').innerHTML = receivables.list.length ? receivables.list.map(c => `
+    <tr>
+      <td><strong>${c.client}</strong>${c.phone ? `<br><span style="font-size:.76rem;color:var(--a-ink-soft)">${c.phone}</span>` : ''}</td>
+      <td>${c.orders.join(', ')}</td>
+      <td><strong style="color:var(--a-warning)">${ubFormatPrice(c.total)}</strong></td>
+    </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune créance en cours — toutes les commandes sont payées.</td></tr>`;
+
+  document.getElementById('payables-tbody').innerHTML = payables.list.length ? payables.list.map(s => `
+    <tr>
+      <td><strong>${s.name}</strong>${ubSupplierIsLate(s) ? ' <span class="a-badge danger">En retard</span>' : ''}</td>
+      <td>${new Date(s.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+      <td><strong style="color:var(--a-danger)">${ubFormatPrice(s.amount)}</strong></td>
+    </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune dette fournisseur en cours.</td></tr>`;
+
+  function ubExportFinances() {
+    const headers = ['Type', 'Tiers', 'Reference', 'Montant (FCFA)', 'Echeance / date'];
+    const rows = [
+      ...receivables.list.map(c => ['Creance client (a recevoir)', c.client, c.orders.join(' / '), c.total, '']),
+      ...payables.list.map(s => ['Dette fournisseur (a payer)', s.name, s.category || '', s.amount, s.dueDate]),
+    ];
+    ubExportCSV('urbann-beauty-rapport-financier.csv', headers, rows);
+  }
+</script>
+</body>
+</html>

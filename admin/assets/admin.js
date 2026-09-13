@@ -79,6 +79,55 @@ function ubAdminSaveOrders(list) {
   localStorage.setItem(UB_ADMIN_ORDERS_KEY, JSON.stringify(list));
 }
 
+/* ---------- Fournisseurs (comptes a payer) ---------- */
+const UB_ADMIN_SUPPLIERS_KEY = 'ub_admin_suppliers';
+const UB_DEMO_SUPPLIERS = [
+  { id: 'F1', name: 'Cosmetics Import SARL', contact: '77 111 22 33', category: 'Matieres premieres', amount: 250000, dueDate: '2026-09-25', status: 'a_payer' },
+  { id: 'F2', name: 'Packaging Plus', contact: '78 222 33 44', category: 'Emballages', amount: 65000, dueDate: '2026-09-18', status: 'a_payer' },
+  { id: 'F3', name: 'Dakar Logistique', contact: '76 333 44 55', category: 'Livraison', amount: 40000, dueDate: '2026-09-05', status: 'paye' },
+  { id: 'F4', name: 'Parfums Grossiste Sarl', contact: '70 444 55 66', category: 'Matieres premieres', amount: 180000, dueDate: '2026-08-30', status: 'a_payer' },
+];
+function ubAdminGetSuppliers() {
+  const overrides = JSON.parse(localStorage.getItem(UB_ADMIN_SUPPLIERS_KEY) || 'null');
+  return overrides || JSON.parse(JSON.stringify(UB_DEMO_SUPPLIERS));
+}
+function ubAdminSaveSuppliers(list) {
+  localStorage.setItem(UB_ADMIN_SUPPLIERS_KEY, JSON.stringify(list));
+}
+function ubSupplierIsLate(s) {
+  return s.status === 'a_payer' && new Date(s.dueDate) < new Date(new Date().toDateString());
+}
+
+/* ---------- Comptabilite : creances clients & dettes fournisseurs ---------- */
+function ubComputeReceivables(orders) {
+  const map = {};
+  orders.forEach(o => {
+    if (o.status === 'annulee' || o.paymentStatus === 'paye') return;
+    if (!map[o.client]) map[o.client] = { client: o.client, phone: o.phone, total: 0, orders: [] };
+    map[o.client].total += ubOrderTotal(o);
+    map[o.client].orders.push(o.id);
+  });
+  const list = Object.values(map).sort((a, b) => b.total - a.total);
+  return { total: list.reduce((s, c) => s + c.total, 0), list };
+}
+function ubComputePayables(suppliers) {
+  const list = suppliers.filter(s => s.status === 'a_payer');
+  return { total: list.reduce((s, f) => s + f.amount, 0), list };
+}
+
+/* ---------- Zones geographiques (extraites des adresses de livraison) ---------- */
+function ubComputeZoneStats(orders, limit = 6) {
+  const map = {};
+  orders.forEach(o => {
+    if (o.status === 'annulee' || !o.address) return;
+    const zone = o.address.split(',')[0].trim();
+    if (!map[zone]) map[zone] = { zone, orders: 0, total: 0 };
+    map[zone].orders += 1;
+    map[zone].total += ubOrderTotal(o);
+  });
+  return Object.values(map).sort((a, b) => b.total - a.total).slice(0, limit);
+}
+
 /* ---------- Analytics : meilleures ventes & meilleurs clients ---------- */
 function ubComputeBestSellers(orders, limit = 5) {
   const sales = {};
@@ -134,6 +183,9 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
     { href: 'categories.html', key: 'categories', label: 'Catégories', icon: 'filter' },
     { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders' },
     { href: 'clients.html', key: 'clients', label: 'Clients', icon: 'users' },
+    { group: 'Comptabilite' },
+    { href: 'finances.html', key: 'finances', label: 'Finances', icon: 'chart' },
+    { href: 'fournisseurs.html', key: 'fournisseurs', label: 'Fournisseurs', icon: 'truck' },
     { group: 'Compte' },
     { href: '#', key: 'parametres', label: 'Paramètres', icon: 'settings' },
   ];

@@ -191,6 +191,9 @@ h1,h2,h3,h4 { font-family: 'Playfair Display', serif; margin: 0; color: var(--a-
 .a-panel-body { padding: 24px; }
 .a-grid-2 { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap: 22px; }
 @media (max-width: 1100px) { .a-grid-2 { grid-template-columns: minmax(0,1fr); } }
+.a-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px; }
+@media (max-width: 1300px) { .a-grid-3 { grid-template-columns: minmax(0,1fr) minmax(0,1fr); } }
+@media (max-width: 800px) { .a-grid-3 { grid-template-columns: minmax(0,1fr); } }
 
 /* ---------- Simple bar chart (CSS only) ---------- */
 .chart-bars { display: flex; align-items: flex-end; gap: 14px; height: 200px; padding-top: 20px; overflow-x: auto; }
