@@ -99,7 +99,7 @@ function ubRenderHeader(active) {
     if (e.key === 'Enter' && searchInput.value.trim()) location.href = 'boutique.html?search=' + encodeURIComponent(searchInput.value.trim());
   });
   ubUpdateCartCount();
-  ubApplyLogo(document.getElementById('ub-logo'), '/assets/img/logo.png');
+  ubApplyLogo(document.getElementById('ub-logo'));
 }
 
 function ubRenderFooter() {
@@ -155,7 +155,7 @@ function ubRenderFooter() {
       </div>
     </footer>
   `;
-  ubApplyLogo(document.getElementById('ub-footer-logo'), '/assets/img/logo.png');
+  ubApplyLogo(document.getElementById('ub-footer-logo'));
 }
 
 /* ---------- Reveal on scroll ---------- */
@@ -174,8 +174,8 @@ function ubStars(rating) {
   return Array.from({ length: 5 }, (_, i) => `<span style="opacity:${i < full ? 1 : .3}">★</span>`).join('');
 }
 
-function ubProductCardHTML(p) {
-  const cat = ubGetCategory(p.category);
+function ubProductCardHTML(p, catsById) {
+  const cat = catsById ? catsById[p.category] : null;
   return `
   <div class="product-card reveal">
     <a href="produit.html?id=${p.id}" class="product-media" style="position:relative;display:block">

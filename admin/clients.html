@@ -12,25 +12,32 @@
 
 <div class="admin-shell" id="admin-shell"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-  ubAdminGuard();
-  ubAdminRenderShell('clients', 'Clients', 'Retrouvez toutes les clientes ayant commandé sur votre boutique, et identifiez vos meilleures clientes');
+let clients = [];
+let searchQ = '';
 
-  const orders = ubAdminGetOrders();
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('clients', 'Clients', 'Retrouvez toutes les clientes ayant commandé sur votre boutique, et identifiez vos meilleures clientes');
+
+  const [orders, products] = await Promise.all([ubAdminGetOrders(), ubAdminGetProducts()]);
+  const productsById = ubProductsById(products);
   const clientsMap = {};
   orders.forEach(o => {
     if (!clientsMap[o.client]) clientsMap[o.client] = { name: o.client, phone: o.phone, orders: 0, total: 0, lastDate: o.date };
     if (o.status !== 'annulee') {
       clientsMap[o.client].orders += 1;
-      clientsMap[o.client].total += ubOrderTotal(o);
+      clientsMap[o.client].total += ubOrderTotal(o, productsById);
     }
     if (new Date(o.date) > new Date(clientsMap[o.client].lastDate)) clientsMap[o.client].lastDate = o.date;
   });
-  let clients = Object.values(clientsMap).sort((a, b) => b.total - a.total);
-  let searchQ = '';
+  clients = Object.values(clientsMap).sort((a, b) => b.total - a.total);
+  renderContent();
 
   function renderContent() {
     document.getElementById('a-content').innerHTML = `
@@ -70,15 +77,15 @@
       </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('users')}<p>Aucune cliente ne correspond à votre recherche.</p></div></td></tr>`;
   }
 
-  function ubExportClients() {
+  window.ubExportClients = function () {
     const headers = ['Cliente', 'Téléphone', 'Nombre de commandes', 'Panier moyen (FCFA)', 'Total dépensé (FCFA)', 'Dernière commande', 'Statut'];
     const rows = clients.map(c => [
       c.name, c.phone || '', c.orders, c.orders ? Math.round(c.total / c.orders) : 0, c.total, c.lastDate, c.total > 80000 ? 'VIP' : 'Régulière',
     ]);
     ubExportCSV('urbann-beauty-clients.csv', headers, rows);
-  }
-
-  renderContent();
+  };
+}
+main();
 </script>
 </body>
 </html>

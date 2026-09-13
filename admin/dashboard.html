@@ -12,24 +12,29 @@
 
 <div class="admin-shell" id="admin-shell"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-  ubAdminGuard();
-  ubAdminRenderShell('dashboard', 'Tableau de bord', 'Aperçu de l\'activité de votre boutique aujourd\'hui');
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('dashboard', 'Tableau de bord', 'Aperçu de l\'activité de votre boutique aujourd\'hui');
 
-  const products = ubAdminGetProducts();
-  const orders = ubAdminGetOrders();
+  const [products, orders, suppliers, categories] = await Promise.all([
+    ubAdminGetProducts(), ubAdminGetOrders(), ubAdminGetSuppliers(), ubGetAllCategories(),
+  ]);
+  const productsById = ubProductsById(products);
   const lowStock = products.filter(p => p.stock <= 5);
   const activeOrders = orders.filter(o => o.status !== 'annulee');
-  const revenue = activeOrders.reduce((s, o) => s + ubOrderTotal(o), 0);
+  const revenue = activeOrders.reduce((s, o) => s + ubOrderTotal(o, productsById), 0);
   const avgBasket = Math.round(revenue / (activeOrders.length || 1));
-  const bestSellers = ubComputeBestSellers(orders, 5);
-  const bestClients = ubComputeBestClients(orders, 5);
-  const zoneStats = ubComputeZoneStats(orders, 6);
-  const receivablesQuick = ubComputeReceivables(orders);
-  const payablesQuick = ubComputePayables(ubAdminGetSuppliers());
+  const bestSellers = ubComputeBestSellers(orders, productsById, 5);
+  const bestClients = ubComputeBestClients(orders, productsById, 5);
+  const zoneStats = ubComputeZoneStats(orders, productsById, 6);
+  const receivablesQuick = ubComputeReceivables(orders, productsById);
+  const payablesQuick = ubComputePayables(suppliers);
 
   document.getElementById('a-content').innerHTML = `
     <div class="a-stats-grid">
@@ -175,7 +180,7 @@
 
   // Répartition par catégorie
   const catColors = ['#8e56bd','#c199e0','#d1495c','#c98a3e','#2f9e63','#6b6478'];
-  const catData = ubGetAllCategories().map((c, i) => ({
+  const catData = categories.map((c, i) => ({
     ...c,
     count: products.filter(p => p.category === c.id).length,
     color: catColors[i % catColors.length],
@@ -193,7 +198,7 @@
     <tr>
       <td><strong>${o.id}</strong></td>
       <td>${o.client}</td>
-      <td>${ubFormatPrice(ubOrderTotal(o))}</td>
+      <td>${ubFormatPrice(ubOrderTotal(o, productsById))}</td>
       <td>${ubPaymentStatusBadge(o.paymentStatus)}</td>
       <td>${ubOrderStatusBadge(o.status)}</td>
     </tr>`).join('');
@@ -233,6 +238,8 @@
       </div>
       ${ubStockBadge(p.stock)}
     </div>`).join('') : `<p style="color:var(--a-ink-soft);font-size:.86rem">Aucune alerte de stock pour le moment.</p>`;
+}
+main();
 </script>
 </body>
 </html>

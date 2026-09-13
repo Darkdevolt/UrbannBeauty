@@ -75,24 +75,33 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-  ubAdminGuard();
-  ubAdminRenderShell('produits', 'Produits & Stock', 'Ajoutez, modifiez et suivez le stock de vos produits');
+let products = [];
+let categories = [];
+let categoriesById = {};
+let currentPhoto = null;
+let currentVideo = null;
+let filterState = { q: '', cat: 'all', stock: 'all' };
 
-  document.querySelectorAll('.a-modal-close, .upload-zone').forEach(() => {});
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('produits', 'Produits & Stock', 'Ajoutez, modifiez et suivez le stock de vos produits');
+
   document.querySelector('.a-modal-head').innerHTML = document.querySelector('.a-modal-head').innerHTML.replace('{{close}}', ubIcon('close'));
   document.querySelectorAll('.upload-zone').forEach(z => {
     const m = z.innerHTML.match(/\{\{(\w+)\}\}/);
     if (m) z.innerHTML = z.innerHTML.replace(m[0], ubIcon(m[1]));
   });
 
-  let products = ubAdminGetProducts();
-  let currentPhoto = null;
-  let currentVideo = null;
-  let filterState = { q: '', cat: 'all', stock: 'all' };
+  [products, categories] = await Promise.all([ubAdminGetProducts(), ubGetAllCategories()]);
+  categoriesById = ubCatsById(categories);
+
+  renderContent();
 
   function renderContent() {
     document.getElementById('a-content').innerHTML = `
@@ -122,7 +131,7 @@
     `;
 
     document.getElementById('filter-cat').innerHTML = `<option value="all">Toutes les catégories</option>` +
-      ubGetAllCategories().map(c => `<option value="${c.id}" ${filterState.cat === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+      categories.map(c => `<option value="${c.id}" ${filterState.cat === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
     document.getElementById('filter-cat').value = filterState.cat;
     document.getElementById('filter-stock').value = filterState.stock;
 
@@ -147,7 +156,7 @@
             <div><strong>${p.name}</strong><span>Réf. UB-${p.id.toUpperCase()}</span></div>
           </div>
         </td>
-        <td>${ubGetCategory(p.category)?.name || '—'}</td>
+        <td>${categoriesById[p.category]?.name || '—'}</td>
         <td><strong>${ubFormatPrice(p.price)}</strong>${p.oldPrice ? `<br><span style="font-size:.76rem;color:var(--a-ink-soft);text-decoration:line-through">${ubFormatPrice(p.oldPrice)}</span>` : ''}</td>
         <td>${p.stock} unités</td>
         <td>${ubStockBadge(p.stock)}</td>
@@ -164,7 +173,7 @@
   function ubOpenModal(id) {
     const modal = document.getElementById('product-modal');
     const catSelect = document.getElementById('f-category');
-    catSelect.innerHTML = ubGetAllCategories().map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    catSelect.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     currentPhoto = null; currentVideo = null;
     document.getElementById('photo-preview').innerHTML = '';
     document.getElementById('video-preview').innerHTML = '';
@@ -190,32 +199,31 @@
   }
   function ubCloseModal() { document.getElementById('product-modal').classList.remove('open'); }
 
-  document.getElementById('f-photo-input').addEventListener('change', (e) => {
+  document.getElementById('f-photo-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      currentPhoto = reader.result;
-      document.getElementById('photo-preview').innerHTML = `<div class="item"><img src="${currentPhoto}"><button type="button" onclick="event.stopPropagation(); currentPhoto=null; document.getElementById('photo-preview').innerHTML='';">✕</button></div>`;
-    };
-    reader.readAsDataURL(file);
+    document.getElementById('photo-preview').innerHTML = `<div class="item" style="display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--a-ink-soft)">Envoi...</div>`;
+    const url = await ubUploadImage(file, 'products');
+    if (!url) { ubAToast('Échec de l\'envoi de la photo'); document.getElementById('photo-preview').innerHTML = ''; return; }
+    currentPhoto = url;
+    document.getElementById('photo-preview').innerHTML = `<div class="item"><img src="${currentPhoto}"><button type="button" onclick="event.stopPropagation(); currentPhoto=null; document.getElementById('photo-preview').innerHTML='';">✕</button></div>`;
   });
-  document.getElementById('f-video-input').addEventListener('change', (e) => {
+  document.getElementById('f-video-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      currentVideo = reader.result;
-      document.getElementById('video-preview').innerHTML = `<div class="item"><video src="${currentVideo}" muted></video><button type="button" onclick="event.stopPropagation(); currentVideo=null; document.getElementById('video-preview').innerHTML='';">✕</button></div>`;
-    };
-    reader.readAsDataURL(file);
+    document.getElementById('video-preview').innerHTML = `<div class="item" style="display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--a-ink-soft)">Envoi...</div>`;
+    const url = await ubUploadVideo(file, 'products');
+    if (!url) { ubAToast('Échec de l\'envoi de la vidéo'); document.getElementById('video-preview').innerHTML = ''; return; }
+    currentVideo = url;
+    document.getElementById('video-preview').innerHTML = `<div class="item"><video src="${currentVideo}" muted></video><button type="button" onclick="event.stopPropagation(); currentVideo=null; document.getElementById('video-preview').innerHTML='';">✕</button></div>`;
   });
 
-  function ubSaveProduct() {
+  window.ubSaveProduct = async function () {
     const form = document.getElementById('product-form');
     if (!form.checkValidity()) { form.reportValidity(); return; }
     const id = document.getElementById('f-id').value;
     const data = {
+      id: id || ('p' + Date.now()),
       name: document.getElementById('f-name').value,
       category: document.getElementById('f-category').value,
       price: Number(document.getElementById('f-price').value),
@@ -224,40 +232,48 @@
       desc: document.getElementById('f-desc').value,
       img: currentPhoto || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop',
       video: currentVideo || null,
-      rating: 4.5, reviews: 0, tag: null,
+      rating: id ? (products.find(p => p.id === id)?.rating || 4.5) : 4.5,
+      reviews: id ? (products.find(p => p.id === id)?.reviews || 0) : 0,
+      tag: id ? (products.find(p => p.id === id)?.tag || null) : null,
     };
+
+    const ok = await ubAdminSaveProduct(data);
+    if (!ok) { ubAToast('Erreur lors de l\'enregistrement'); return; }
 
     if (id) {
       const idx = products.findIndex(p => p.id === id);
       products[idx] = { ...products[idx], ...data };
       ubAToast('Produit mis à jour avec succès');
     } else {
-      data.id = 'p' + Date.now();
       products.push(data);
       ubAToast('Produit ajouté avec succès');
     }
-    ubAdminSaveProducts(products);
     ubCloseModal();
     renderTable();
-  }
+  };
 
-  function ubExportProducts() {
+  window.ubExportProducts = function () {
     const headers = ['Référence', 'Nom', 'Catégorie', 'Prix (FCFA)', 'Prix barré (FCFA)', 'Stock', 'Description'];
     const rows = products.map(p => [
-      'UB-' + p.id.toUpperCase(), p.name, ubGetCategory(p.category)?.name || '', p.price, p.oldPrice || '', p.stock, p.desc,
+      'UB-' + p.id.toUpperCase(), p.name, categoriesById[p.category]?.name || '', p.price, p.oldPrice || '', p.stock, p.desc,
     ]);
     ubExportCSV('urbann-beauty-produits.csv', headers, rows);
-  }
+  };
 
-  function ubDeleteProduct(id) {
+  window.ubDeleteProduct = async function (id) {
     if (!confirm('Supprimer définitivement ce produit ?')) return;
+    const ok = await ubAdminDeleteProduct(id);
+    if (!ok) { ubAToast('Erreur lors de la suppression'); return; }
     products = products.filter(p => p.id !== id);
-    ubAdminSaveProducts(products);
     ubAToast('Produit supprimé');
     renderTable();
-  }
+  };
 
-  renderContent();
+  window.ubOpenModal = ubOpenModal;
+  window.ubCloseModal = ubCloseModal;
+  window.renderTable = renderTable;
+}
+main();
 </script>
 </body>
 </html>

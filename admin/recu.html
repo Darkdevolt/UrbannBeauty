@@ -54,23 +54,27 @@
   <div class="receipt-card" id="receipt-card"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-  ubAdminGuard();
+async function main() {
+  if (!(await ubAdminGuard())) return;
   document.getElementById('print-btn').innerHTML = ubIcon('printer') + ' Imprimer / Télécharger en PDF';
 
   const params = new URLSearchParams(location.search);
-  const orders = ubAdminGetOrders();
+  const [orders, products] = await Promise.all([ubAdminGetOrders(), ubAdminGetProducts()]);
+  const productsById = ubProductsById(products);
   const order = orders.find(o => o.id === params.get('id'));
 
   if (!order) {
     document.getElementById('receipt-card').innerHTML = `<div class="empty-state">${ubIcon('receipt')}<p>Commande introuvable.</p></div>`;
   } else {
     document.getElementById('doc-title').textContent = `Reçu ${order.id} — Urbann Beauty`;
-    const lines = ubOrderLines(order);
-    const total = ubOrderTotal(order);
+    const lines = ubOrderLines(order, productsById);
+    const total = ubOrderTotal(order, productsById);
     const statusLabel = { livree: 'Livrée', en_cours: 'En préparation / expédiée', en_attente: 'En attente', annulee: 'Annulée' }[order.status] || order.status;
     const paymentLabel = { paye: 'Payé', en_attente: 'En attente', rembourse: 'Remboursé' }[order.paymentStatus] || order.paymentStatus;
 
@@ -126,8 +130,10 @@
         Une question sur cette commande ? Écrivez-nous sur WhatsApp au ${UB_CONTACT.phoneDisplay}.
       </div>
     `;
-    ubApplyLogo(document.getElementById('receipt-logo'), '/assets/img/logo.png');
+    ubApplyLogo(document.getElementById('receipt-logo'));
   }
+}
+main();
 </script>
 </body>
 </html>

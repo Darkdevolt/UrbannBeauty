@@ -50,11 +50,17 @@ const UB_ICONS = {
 };
 function ubIcon(name) { return UB_ICONS[name] || ''; }
 
-/* Affiche le logo image (assets/img/logo.png) si présent, sinon garde
-   le logo texte déjà en place. Déposez votre fichier logo.png (ou .svg)
-   dans assets/img/ pour qu'il apparaisse automatiquement partout. */
-function ubApplyLogo(el, srcPath) {
-  if (!el) return;
+/* Affiche le logo (géré depuis l'admin -> Médiathèque, stocké dans
+   Supabase). Si aucun logo n'est configuré, garde le logo texte déjà
+   en place. */
+async function ubApplyLogo(el) {
+  if (!el || typeof ubGetMediaConfig !== 'function') return;
+  let srcPath;
+  try {
+    const cfg = await ubGetMediaConfig();
+    srcPath = cfg.logo;
+  } catch (e) { return; }
+  if (!srcPath) return;
   const img = new Image();
   img.onload = () => {
     el.innerHTML = '';
@@ -65,6 +71,6 @@ function ubApplyLogo(el, srcPath) {
     el.appendChild(logoImg);
     el.classList.add('has-logo-img');
   };
-  img.onerror = () => { /* pas de logo fourni : on garde le logo texte */ };
+  img.onerror = () => { /* logo invalide : on garde le logo texte */ };
   img.src = srcPath;
 }

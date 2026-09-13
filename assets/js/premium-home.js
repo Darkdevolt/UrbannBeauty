@@ -31,7 +31,7 @@
     const input=document.getElementById('ub-search-input');
     input.addEventListener('keydown',e=>{if(e.key==='Enter'&&input.value.trim()) location.href='boutique.html?search='+encodeURIComponent(input.value.trim());});
     ubUpdateCartCount();
-    ubApplyLogo(document.getElementById('ub-premium-logo'), '/assets/img/logo.png');
+    ubApplyLogo(document.getElementById('ub-premium-logo'));
   }
   function init(){
     render();

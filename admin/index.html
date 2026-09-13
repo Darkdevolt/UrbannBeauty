@@ -23,31 +23,53 @@
       <form id="login-form">
         <div class="a-field">
           <label>Adresse email</label>
-          <input type="email" id="login-email" value="admin@urbannbeauty.com" required>
+          <input type="email" id="login-email" required autocomplete="username">
         </div>
         <div class="a-field">
           <label>Mot de passe</label>
-          <input type="password" id="login-password" value="demo1234" required>
+          <input type="password" id="login-password" required autocomplete="current-password">
         </div>
         <div class="remember-row">
-          <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" checked> Se souvenir de moi</label>
+          <span></span>
           <a href="#" style="color:var(--a-mauve)">Mot de passe oublié ?</a>
         </div>
-        <button class="a-btn a-btn-primary a-btn-block" type="submit">Se connecter</button>
+        <div id="login-error" style="display:none;color:var(--a-danger);font-size:.84rem;margin:-8px 0 16px"></div>
+        <button class="a-btn a-btn-primary a-btn-block" type="submit" id="login-submit">Se connecter</button>
       </form>
-      <div class="demo-hint">Maquette de démonstration : les identifiants sont pré-remplis, cliquez simplement sur « Se connecter ».</div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-  ubApplyLogo(document.getElementById('admin-login-logo'), '/assets/img/logo.png');
-  document.getElementById('login-form').addEventListener('submit', (e) => {
+  ubApplyLogo(document.getElementById('admin-login-logo'));
+
+  (async () => {
+    const session = await ubAdminGetSession();
+    if (session) location.href = 'dashboard.html';
+  })();
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    ubAdminLogin();
+    const btn = document.getElementById('login-submit');
+    const errorBox = document.getElementById('login-error');
+    errorBox.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Connexion...';
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const { session, error } = await ubAdminLogin(email, password);
+    if (error || !session) {
+      errorBox.textContent = 'Email ou mot de passe incorrect.';
+      errorBox.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Se connecter';
+      return;
+    }
     location.href = 'dashboard.html';
   });
 </script>

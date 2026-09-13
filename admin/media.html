@@ -12,12 +12,44 @@
 </style>
 </head>
 <body><div class="admin-shell" id="admin-shell"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script><script src="../assets/js/data.js"></script><script src="../assets/js/media.js"></script><script src="assets/admin.js"></script>
 <script>
-ubAdminGuard();ubAdminRenderShell('media','Médiathèque','Gérez les visuels du site et affectez-les à chaque emplacement');
-const MEDIA_SLOTS=[['heroMain','Hero principal','Visuel principal de la page d’accueil'],['heroProduct','Produit Hero','Produit flottant dans le Hero'],['welcomeOffer','Offre de bienvenue','Visuel du bloc −15%'],['editorialRoutine','Routine beauté','Visuel du bloc conseils personnalisés'],['brandsEditorial','Sélection marques','Visuel éditorial des marques'],['commitmentBeauty','Engagements','Visuel de la section engagements']];
-function renderMedia(){const cfg=ubGetMediaConfig(),cats=ubGetAllCategories();document.getElementById('a-content').innerHTML=`<div class="a-panel" style="padding:20px"><p class="media-intro"><strong>Une seule médiathèque pour tout le site.</strong><br>Importez une image depuis votre ordinateur. Les images affectées ici remplacent immédiatement les visuels par défaut du site dans ce navigateur.</p><div class="media-grid">${MEDIA_SLOTS.map(([key,title,desc])=>`<article class="media-card"><div class="media-preview">${cfg[key]?`<img src="${cfg[key]}" alt="${title}">`:`<div class="empty">${ubIcon('image')}<span>Aucun visuel</span></div>`}</div><div class="media-body"><h3>${title}</h3><div class="media-key">${key}</div><small style="color:var(--a-ink-soft)">${desc}</small><div class="media-actions"><label class="a-btn a-btn-outline media-upload" style="cursor:pointer">${ubIcon('upload')} Importer<input type="file" accept="image/*" data-slot="${key}" hidden></label><button class="a-btn a-btn-outline" onclick="resetSlot('${key}')" title="Restaurer le visuel par défaut">↺</button></div></div></article>`).join('')}</div></div><div class="a-panel" style="padding:20px;margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px"><div><h2 style="margin:0;font-size:1.15rem">Images des catégories</h2><p style="margin:4px 0 0;color:var(--a-ink-soft);font-size:.82rem">Associez une image spécifique à chaque catégorie.</p></div><a href="categories.html" class="a-btn a-btn-outline a-btn-sm">Gérer les catégories</a></div><div class="media-cat-grid">${cats.map(c=>{const src=ubGetCategoryImage(c);return `<article class="media-cat"><img src="${src}" alt="${c.name}"><h4>${c.name}</h4><small>${c.id}</small><div style="margin-top:10px"><label class="a-btn a-btn-outline a-btn-sm" style="cursor:pointer">${ubIcon('upload')} Changer<input type="file" accept="image/*" data-cat="${c.id}" hidden></label></div></article>`}).join('')}</div></div><div class="media-note">ℹ️ Cette version statique compresse les uploads et les conserve dans le stockage local du navigateur. Pour une gestion centralisée sur plusieurs appareils, il faudra ensuite brancher Supabase Storage/API.</div>`;
- document.querySelectorAll('input[data-slot]').forEach(input=>input.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;ubReadImageFile(file,url=>{ubSetMedia(e.target.dataset.slot,url);ubAToast('Visuel mis à jour');renderMedia();});}));
- document.querySelectorAll('input[data-cat]').forEach(input=>input.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;ubReadImageFile(file,url=>{const list=ubGetAllCategories(),cat=list.find(c=>c.id===e.target.dataset.cat);if(!cat)return;cat.image=url;ubSaveAllCategories(list);ubAToast('Image de catégorie mise à jour');renderMedia();});}));}
-function resetSlot(key){const cfg=ubGetMediaConfig();cfg[key]=UB_DEFAULT_MEDIA[key];ubSaveMediaConfig(cfg);ubAToast('Visuel par défaut restauré');renderMedia();}renderMedia();
+const MEDIA_SLOTS=[['logo','Logo','Affiché dans l\'en-tête, le pied de page et l\'admin'],['heroMain','Hero principal','Visuel principal de la page d’accueil'],['heroProduct','Produit Hero','Produit flottant dans le Hero'],['welcomeOffer','Offre de bienvenue','Visuel du bloc −15%'],['editorialRoutine','Routine beauté','Visuel du bloc conseils personnalisés'],['brandsEditorial','Sélection marques','Visuel éditorial des marques'],['commitmentBeauty','Engagements','Visuel de la section engagements']];
+let mediaCfg={}, mediaCats=[];
+
+async function main(){
+ if(!(await ubAdminGuard())) return;
+ await ubAdminRenderShell('media','Médiathèque','Gérez les visuels du site et affectez-les à chaque emplacement');
+ await renderMedia();
+}
+
+async function renderMedia(){
+ [mediaCfg, mediaCats]=await Promise.all([ubGetMediaConfig(), ubGetAllCategories()]);
+ document.getElementById('a-content').innerHTML=`<div class="a-panel" style="padding:20px"><p class="media-intro"><strong>Une seule médiathèque pour tout le site.</strong><br>Importez une image depuis votre ordinateur. Les images affectées ici sont hébergées sur Supabase et remplacent immédiatement les visuels par défaut, pour tout le monde.</p><div class="media-grid">${MEDIA_SLOTS.map(([key,title,desc])=>`<article class="media-card"><div class="media-preview">${mediaCfg[key]?`<img src="${mediaCfg[key]}" alt="${title}">`:`<div class="empty">${ubIcon('image')}<span>Aucun visuel</span></div>`}</div><div class="media-body"><h3>${title}</h3><div class="media-key">${key}</div><small style="color:var(--a-ink-soft)">${desc}</small><div class="media-actions"><label class="a-btn a-btn-outline media-upload" style="cursor:pointer">${ubIcon('upload')} Importer<input type="file" accept="image/*" data-slot="${key}" hidden></label></div></div></article>`).join('')}</div></div><div class="a-panel" style="padding:20px;margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px"><div><h2 style="margin:0;font-size:1.15rem">Images des catégories</h2><p style="margin:4px 0 0;color:var(--a-ink-soft);font-size:.82rem">Associez une image spécifique à chaque catégorie.</p></div><a href="categories.html" class="a-btn a-btn-outline a-btn-sm">Gérer les catégories</a></div><div class="media-cat-grid">${mediaCats.map(c=>{const src=ubGetCategoryImage(c);return `<article class="media-cat"><img src="${src}" alt="${c.name}"><h4>${c.name}</h4><small>${c.id}</small><div style="margin-top:10px"><label class="a-btn a-btn-outline a-btn-sm" style="cursor:pointer">${ubIcon('upload')} Changer<input type="file" accept="image/*" data-cat="${c.id}" hidden></label></div></article>`}).join('')}</div></div><div class="media-note">ℹ️ Les images sont hébergées dans le bucket Supabase "media", accessible publiquement en lecture. Seul un compte admin connecté peut en ajouter ou en modifier.</div>`;
+
+ document.querySelectorAll('input[data-slot]').forEach(input=>input.addEventListener('change', async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  ubAToast('Envoi en cours...');
+  const url=await ubUploadImage(file,'site');
+  if(!url){ ubAToast('Échec de l\'envoi'); return; }
+  const ok=await ubSetMedia(e.target.dataset.slot,url);
+  if(!ok){ ubAToast('Erreur lors de l\'enregistrement'); return; }
+  ubAToast('Visuel mis à jour');
+  renderMedia();
+ }));
+ document.querySelectorAll('input[data-cat]').forEach(input=>input.addEventListener('change', async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const cat=mediaCats.find(c=>c.id===e.target.dataset.cat); if(!cat) return;
+  ubAToast('Envoi en cours...');
+  const url=await ubUploadImage(file,'categories');
+  if(!url){ ubAToast('Échec de l\'envoi'); return; }
+  cat.image=url;
+  const ok=await ubAdminSaveCategory(cat);
+  if(!ok){ ubAToast('Erreur lors de l\'enregistrement'); return; }
+  ubAToast('Image de catégorie mise à jour');
+  renderMedia();
+ }));
+}
+main();
 </script></body></html>

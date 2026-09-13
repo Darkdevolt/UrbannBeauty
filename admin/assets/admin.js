@@ -1,110 +1,115 @@
 /* ============================================
    URBANN BEAUTY ADMIN — Comportements du back-office
-   (démo front-end uniquement : persistance via localStorage)
+   (données réelles via Supabase : Postgres + Auth + Storage)
    ============================================ */
 
-const UB_ADMIN_SESSION_KEY = 'ub_admin_session';
-const UB_ADMIN_PRODUCTS_KEY = 'ub_admin_products';
-const UB_ADMIN_ORDERS_KEY = 'ub_admin_orders';
-
-/* ---------- Auth (démo) ---------- */
-function ubAdminIsLoggedIn() {
-  return sessionStorage.getItem(UB_ADMIN_SESSION_KEY) === '1';
+/* ---------- Auth (Supabase) ---------- */
+async function ubAdminGetSession() {
+  const { data } = await ubSupabase.auth.getSession();
+  return data.session;
 }
-function ubAdminLogin() {
-  sessionStorage.setItem(UB_ADMIN_SESSION_KEY, '1');
+async function ubAdminLogin(email, password) {
+  const { data, error } = await ubSupabase.auth.signInWithPassword({ email, password });
+  return { session: data?.session, error };
 }
-function ubAdminLogout() {
-  sessionStorage.removeItem(UB_ADMIN_SESSION_KEY);
+async function ubAdminLogout() {
+  await ubSupabase.auth.signOut();
   location.href = 'index.html';
 }
-function ubAdminGuard() {
-  if (!ubAdminIsLoggedIn()) location.href = 'index.html';
+async function ubAdminGuard() {
+  const session = await ubAdminGetSession();
+  if (!session) { location.href = 'index.html'; return false; }
+  return true;
 }
 
-/* ---------- Données admin (seed depuis data.js + overrides localStorage) ---------- */
-function ubAdminGetProducts() {
-  const overrides = JSON.parse(localStorage.getItem(UB_ADMIN_PRODUCTS_KEY) || 'null');
-  return overrides || JSON.parse(JSON.stringify(UB_PRODUCTS));
+/* ---------- Produits ---------- */
+async function ubAdminGetProducts() { return ubGetAllProducts(); }
+async function ubAdminSaveProduct(p) {
+  const { error } = await ubSupabase.from('products').upsert({
+    id: p.id, name: p.name, category_id: p.category, price: p.price, old_price: p.oldPrice || null,
+    stock: p.stock, rating: p.rating, reviews: p.reviews, tag: p.tag || null, description: p.desc,
+    image_url: p.img, video_url: p.video || null, updated_at: new Date().toISOString(),
+  });
+  if (error) console.error('ubAdminSaveProduct', error);
+  return !error;
 }
-function ubAdminSaveProducts(list) {
-  localStorage.setItem(UB_ADMIN_PRODUCTS_KEY, JSON.stringify(list));
+async function ubAdminDeleteProduct(id) {
+  const { error } = await ubSupabase.from('products').delete().eq('id', id);
+  if (error) console.error('ubAdminDeleteProduct', error);
+  return !error;
 }
 
-const UB_DEMO_ORDERS = [
-  { id: 'CMD-1042', client: 'Aïcha Konaté', phone: '77 123 45 67', address: 'Plateau, Dakar', date: '2026-09-11',
-    items: [{ productId: 'p1', qty: 1 }, { productId: 'p3', qty: 1 }, { productId: 'p9', qty: 1 }],
-    status: 'livree', paymentStatus: 'paye', payment: 'Wave' },
-  { id: 'CMD-1041', client: 'Fatou Diallo', phone: '78 234 56 78', address: 'Sacré-Cœur, Dakar', date: '2026-09-11',
-    items: [{ productId: 'p1', qty: 1 }],
-    status: 'en_cours', paymentStatus: 'paye', payment: 'Orange Money' },
-  { id: 'CMD-1040', client: 'Nadège Perreira', phone: '76 345 67 89', address: 'Almadies, Dakar', date: '2026-09-10',
-    items: [{ productId: 'p5', qty: 1 }, { productId: 'p3', qty: 1 }, { productId: 'p11', qty: 1 }],
-    status: 'en_cours', paymentStatus: 'en_attente', payment: 'Carte bancaire' },
-  { id: 'CMD-1039', client: 'Marie Sow', phone: '70 456 78 90', address: 'Ouakam, Dakar', date: '2026-09-10',
-    items: [{ productId: 'p2', qty: 1 }, { productId: 'p10', qty: 1 }],
-    status: 'livree', paymentStatus: 'paye', payment: 'Wave' },
-  { id: 'CMD-1038', client: 'Khady Ba', phone: '77 567 89 01', address: 'Yoff, Dakar', date: '2026-09-09',
-    items: [{ productId: 'p9', qty: 1 }],
-    status: 'annulee', paymentStatus: 'rembourse', payment: 'Orange Money' },
-  { id: 'CMD-1037', client: 'Rokhaya Fall', phone: '78 678 90 12', address: 'Mermoz, Dakar', date: '2026-09-09',
-    items: [{ productId: 'p3', qty: 1 }, { productId: 'p1', qty: 1 }, { productId: 'p6', qty: 1 }, { productId: 'p12', qty: 1 }],
-    status: 'livree', paymentStatus: 'paye', payment: 'Carte bancaire' },
-  { id: 'CMD-1036', client: 'Bineta Ndiaye', phone: '76 789 01 23', address: 'Parcelles Assainies, Dakar', date: '2026-09-08',
-    items: [{ productId: 'p7', qty: 1 }, { productId: 'p8', qty: 2 }],
-    status: 'en_attente', paymentStatus: 'en_attente', payment: 'Paiement à la livraison' },
-  { id: 'CMD-1035', client: 'Aminata Sarr', phone: '70 890 12 34', address: 'Grand Yoff, Dakar', date: '2026-09-08',
-    items: [{ productId: 'p2', qty: 1 }],
-    status: 'livree', paymentStatus: 'paye', payment: 'Orange Money' },
-];
+/* ---------- Catégories ---------- */
+async function ubAdminSaveCategory(cat) {
+  const { error } = await ubSupabase.from('categories').upsert({ id: cat.id, name: cat.name, icon: cat.icon, image_url: cat.image || null });
+  if (error) console.error('ubAdminSaveCategory', error);
+  return !error;
+}
+async function ubAdminDeleteCategory(id) {
+  const { error } = await ubSupabase.from('categories').delete().eq('id', id);
+  if (error) console.error('ubAdminDeleteCategory', error);
+  return !error;
+}
 
-function ubOrderLines(order) {
+/* ---------- Commandes ---------- */
+async function ubAdminGetOrders() {
+  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty)').order('order_date', { ascending: false });
+  if (error) { console.error('ubAdminGetOrders', error); return []; }
+  return data.map(o => ({
+    id: o.id, client: o.client_name, phone: o.phone, address: o.address, date: o.order_date,
+    payment: o.payment_method, paymentStatus: o.payment_status, status: o.status,
+    items: (o.order_items || []).map(it => ({ productId: it.product_id, qty: it.qty })),
+  }));
+}
+async function ubAdminUpdateOrderStatus(id, status) {
+  const { error } = await ubSupabase.from('orders').update({ status }).eq('id', id);
+  return !error;
+}
+async function ubAdminUpdateOrderPayment(id, paymentStatus) {
+  const { error } = await ubSupabase.from('orders').update({ payment_status: paymentStatus }).eq('id', id);
+  return !error;
+}
+
+function ubProductsById(products) { return Object.fromEntries(products.map(p => [p.id, p])); }
+function ubOrderLines(order, productsById) {
   return order.items.map(l => {
-    const p = ubGetProduct(l.productId);
+    const p = productsById[l.productId];
     return { productId: l.productId, name: p ? p.name : 'Produit supprimé', qty: l.qty, price: p ? p.price : 0 };
   });
 }
-function ubOrderTotal(order) {
-  return ubOrderLines(order).reduce((s, l) => s + l.qty * l.price, 0);
+function ubOrderTotal(order, productsById) {
+  return ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * l.price, 0);
 }
 function ubOrderItemCount(order) {
   return order.items.reduce((s, l) => s + l.qty, 0);
 }
 
-function ubAdminGetOrders() {
-  const overrides = JSON.parse(localStorage.getItem(UB_ADMIN_ORDERS_KEY) || 'null');
-  return overrides || JSON.parse(JSON.stringify(UB_DEMO_ORDERS));
+/* ---------- Fournisseurs (comptes à payer) ---------- */
+async function ubAdminGetSuppliers() {
+  const { data, error } = await ubSupabase.from('suppliers').select('*').order('due_date');
+  if (error) { console.error('ubAdminGetSuppliers', error); return []; }
+  return data.map(s => ({ id: s.id, name: s.name, contact: s.contact, category: s.category, amount: s.amount, dueDate: s.due_date, status: s.status }));
 }
-function ubAdminSaveOrders(list) {
-  localStorage.setItem(UB_ADMIN_ORDERS_KEY, JSON.stringify(list));
+async function ubAdminSaveSupplier(s) {
+  const { error } = await ubSupabase.from('suppliers').upsert({ id: s.id, name: s.name, contact: s.contact || null, category: s.category || null, amount: s.amount, due_date: s.dueDate, status: s.status });
+  if (error) console.error('ubAdminSaveSupplier', error);
+  return !error;
 }
-
-/* ---------- Fournisseurs (comptes a payer) ---------- */
-const UB_ADMIN_SUPPLIERS_KEY = 'ub_admin_suppliers';
-const UB_DEMO_SUPPLIERS = [
-  { id: 'F1', name: 'Cosmetics Import SARL', contact: '77 111 22 33', category: 'Matieres premieres', amount: 250000, dueDate: '2026-09-25', status: 'a_payer' },
-  { id: 'F2', name: 'Packaging Plus', contact: '78 222 33 44', category: 'Emballages', amount: 65000, dueDate: '2026-09-18', status: 'a_payer' },
-  { id: 'F3', name: 'Dakar Logistique', contact: '76 333 44 55', category: 'Livraison', amount: 40000, dueDate: '2026-09-05', status: 'paye' },
-  { id: 'F4', name: 'Parfums Grossiste Sarl', contact: '70 444 55 66', category: 'Matieres premieres', amount: 180000, dueDate: '2026-08-30', status: 'a_payer' },
-];
-function ubAdminGetSuppliers() {
-  const overrides = JSON.parse(localStorage.getItem(UB_ADMIN_SUPPLIERS_KEY) || 'null');
-  return overrides || JSON.parse(JSON.stringify(UB_DEMO_SUPPLIERS));
-}
-function ubAdminSaveSuppliers(list) {
-  localStorage.setItem(UB_ADMIN_SUPPLIERS_KEY, JSON.stringify(list));
+async function ubAdminDeleteSupplier(id) {
+  const { error } = await ubSupabase.from('suppliers').delete().eq('id', id);
+  return !error;
 }
 function ubSupplierIsLate(s) {
   return s.status === 'a_payer' && new Date(s.dueDate) < new Date(new Date().toDateString());
 }
 
-/* ---------- Comptabilite : creances clients & dettes fournisseurs ---------- */
-function ubComputeReceivables(orders) {
+/* ---------- Comptabilité : créances clients & dettes fournisseurs ---------- */
+function ubComputeReceivables(orders, productsById) {
   const map = {};
   orders.forEach(o => {
     if (o.status === 'annulee' || o.paymentStatus === 'paye') return;
     if (!map[o.client]) map[o.client] = { client: o.client, phone: o.phone, total: 0, orders: [] };
-    map[o.client].total += ubOrderTotal(o);
+    map[o.client].total += ubOrderTotal(o, productsById);
     map[o.client].orders.push(o.id);
   });
   const list = Object.values(map).sort((a, b) => b.total - a.total);
@@ -115,40 +120,38 @@ function ubComputePayables(suppliers) {
   return { total: list.reduce((s, f) => s + f.amount, 0), list };
 }
 
-/* ---------- Zones geographiques (extraites des adresses de livraison) ---------- */
-function ubComputeZoneStats(orders, limit = 6) {
+/* ---------- Zones géographiques (extraites des adresses de livraison) ---------- */
+function ubComputeZoneStats(orders, productsById, limit = 6) {
   const map = {};
   orders.forEach(o => {
     if (o.status === 'annulee' || !o.address) return;
     const zone = o.address.split(',')[0].trim();
     if (!map[zone]) map[zone] = { zone, orders: 0, total: 0 };
     map[zone].orders += 1;
-    map[zone].total += ubOrderTotal(o);
+    map[zone].total += ubOrderTotal(o, productsById);
   });
   return Object.values(map).sort((a, b) => b.total - a.total).slice(0, limit);
 }
 
 /* ---------- Analytics : meilleures ventes & meilleurs clients ---------- */
-function ubComputeBestSellers(orders, limit = 5) {
+function ubComputeBestSellers(orders, productsById, limit = 5) {
   const sales = {};
   orders.forEach(o => {
     if (o.status === 'annulee') return;
-    o.items.forEach(l => {
-      sales[l.productId] = (sales[l.productId] || 0) + l.qty;
-    });
+    o.items.forEach(l => { sales[l.productId] = (sales[l.productId] || 0) + l.qty; });
   });
   return Object.entries(sales)
-    .map(([productId, qty]) => ({ product: ubGetProduct(productId), qty }))
+    .map(([productId, qty]) => ({ product: productsById[productId], qty }))
     .filter(x => x.product)
     .sort((a, b) => b.qty - a.qty)
     .slice(0, limit);
 }
-function ubComputeBestClients(orders, limit = 5) {
+function ubComputeBestClients(orders, productsById, limit = 5) {
   const map = {};
   orders.forEach(o => {
     if (o.status === 'annulee') return;
     if (!map[o.client]) map[o.client] = { name: o.client, total: 0, orders: 0 };
-    map[o.client].total += ubOrderTotal(o);
+    map[o.client].total += ubOrderTotal(o, productsById);
     map[o.client].orders += 1;
   });
   return Object.values(map).sort((a, b) => b.total - a.total).slice(0, limit);
@@ -171,9 +174,12 @@ function ubAToast(message) {
 }
 
 /* ---------- Shell (sidebar + topbar) réutilisable ---------- */
-function ubAdminRenderShell(active, pageTitle, pageSub) {
+async function ubAdminRenderShell(active, pageTitle, pageSub) {
   const shell = document.getElementById('admin-shell');
   if (!shell) return;
+
+  const session = await ubAdminGetSession();
+  const userEmail = session?.user?.email || 'admin';
 
   const nav = [
     { group: 'Général' },
@@ -204,7 +210,7 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
         <a href="https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent('Bonjour, j\'ai besoin d\'aide sur mon espace admin Urbann Beauty.')}" target="_blank" rel="noopener" class="a-btn a-btn-sm a-btn-block" style="background:#25D366;color:#fff;margin-bottom:10px">${ubIcon('whatsapp')} Assistance WhatsApp</a>
         <div class="a-user-chip">
           <div class="avatar">UB</div>
-          <div><strong>Admin Urbann</strong><span>admin@urbannbeauty.com</span></div>
+          <div><strong>Admin Urbann</strong><span>${userEmail}</span></div>
         </div>
         <button class="a-btn a-btn-outline a-btn-sm a-btn-block" style="margin-top:14px" onclick="ubAdminLogout()">${ubIcon('logout')} Déconnexion</button>
       </div>
@@ -228,7 +234,7 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
     </main>
   `;
 
-  ubApplyLogo(document.getElementById('a-brand-logo'), '/assets/img/logo.png');
+  ubApplyLogo(document.getElementById('a-brand-logo'));
 
   const burger = document.getElementById('a-burger');
   const sidebar = document.getElementById('a-sidebar');
@@ -283,7 +289,7 @@ function ubExportCSV(filename, headers, rows) {
 }
 
 /* ---------- Mise en promo rapide ---------- */
-function ubQuickPromo(id, products, onSaved) {
+async function ubQuickPromo(id, products, onSaved) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const input = prompt(`Remise en % pour "${p.name}" (prix actuel : ${ubFormatPrice(p.price)}). Laisser vide pour retirer la promo.`, '');
@@ -297,7 +303,7 @@ function ubQuickPromo(id, products, onSaved) {
     const base = p.oldPrice;
     p.price = Math.round(base * (1 - pct / 100));
   }
-  ubAdminSaveProducts(products);
+  await ubAdminSaveProduct(p);
   ubAToast('Promotion mise à jour pour ' + p.name);
   if (onSaved) onSaved();
 }

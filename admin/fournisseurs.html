@@ -59,15 +59,21 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-  ubAdminGuard();
-  ubAdminRenderShell('fournisseurs', 'Fournisseurs', 'Suivez vos fournisseurs et les montants que vous leur devez');
+let suppliers = [];
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('fournisseurs', 'Fournisseurs', 'Suivez vos fournisseurs et les montants que vous leur devez');
   document.querySelector('.a-modal-close').innerHTML = ubIcon('close');
 
-  let suppliers = ubAdminGetSuppliers();
+  suppliers = await ubAdminGetSuppliers();
+  renderContent();
 
   function renderContent() {
     const { total } = ubComputePayables(suppliers);
@@ -138,7 +144,7 @@
     }).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('truck')}<p>Aucun fournisseur enregistré.</p></div></td></tr>`;
   }
 
-  function ubOpenSupModal(id) {
+  window.ubOpenSupModal = function ubOpenSupModal(id) {
     if (id) {
       const s = suppliers.find(x => x.id === id);
       document.getElementById('sup-modal-title').textContent = 'Modifier le fournisseur';
@@ -157,13 +163,14 @@
     }
     document.getElementById('sup-modal').classList.add('open');
   }
-  function ubCloseSupModal() { document.getElementById('sup-modal').classList.remove('open'); }
+  window.ubCloseSupModal = function () { document.getElementById('sup-modal').classList.remove('open'); };
 
-  function ubSaveSupplier() {
+  window.ubSaveSupplier = async function () {
     const form = document.getElementById('sup-form');
     if (!form.checkValidity()) { form.reportValidity(); return; }
     const id = document.getElementById('s-id').value;
     const data = {
+      id: id || ('F' + Date.now()),
       name: document.getElementById('s-name').value,
       contact: document.getElementById('s-contact').value,
       category: document.getElementById('s-category').value,
@@ -171,40 +178,46 @@
       dueDate: document.getElementById('s-duedate').value,
       status: document.getElementById('s-status').value,
     };
+    const ok = await ubAdminSaveSupplier(data);
+    if (!ok) { ubAToast('Erreur lors de l\'enregistrement'); return; }
     if (id) {
       const idx = suppliers.findIndex(s => s.id === id);
       suppliers[idx] = { ...suppliers[idx], ...data };
       ubAToast('Fournisseur mis à jour');
     } else {
-      data.id = 'F' + Date.now();
       suppliers.push(data);
       ubAToast('Fournisseur ajouté');
     }
-    ubAdminSaveSuppliers(suppliers);
     ubCloseSupModal();
     renderContent();
-  }
+  };
 
-  function ubMarkSupplierPaid(id) {
+  window.ubMarkSupplierPaid = async function (id) {
     const s = suppliers.find(x => x.id === id);
-    if (s) { s.status = 'paye'; ubAdminSaveSuppliers(suppliers); ubAToast(s.name + ' marqué comme payé'); renderContent(); }
-  }
+    if (!s) return;
+    const ok = await ubAdminSaveSupplier({ ...s, status: 'paye' });
+    if (!ok) { ubAToast('Erreur lors de la mise à jour'); return; }
+    s.status = 'paye';
+    ubAToast(s.name + ' marqué comme payé');
+    renderContent();
+  };
 
-  function ubDeleteSupplier(id) {
+  window.ubDeleteSupplier = async function (id) {
     if (!confirm('Supprimer ce fournisseur ?')) return;
+    const ok = await ubAdminDeleteSupplier(id);
+    if (!ok) { ubAToast('Erreur lors de la suppression'); return; }
     suppliers = suppliers.filter(s => s.id !== id);
-    ubAdminSaveSuppliers(suppliers);
     ubAToast('Fournisseur supprimé');
     renderContent();
-  }
+  };
 
-  function ubExportSuppliers() {
+  window.ubExportSuppliers = function () {
     const headers = ['Fournisseur', 'Contact', 'Catégorie', 'Montant dû (FCFA)', 'Échéance', 'Statut'];
     const rows = suppliers.map(s => [s.name, s.contact || '', s.category || '', s.amount, s.dueDate, s.status === 'paye' ? 'Payé' : (ubSupplierIsLate(s) ? 'En retard' : 'À payer')]);
     ubExportCSV('urbann-beauty-fournisseurs.csv', headers, rows);
-  }
-
-  renderContent();
+  };
+}
+main();
 </script>
 </body>
 </html>

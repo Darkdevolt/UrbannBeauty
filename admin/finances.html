@@ -12,20 +12,23 @@
 
 <div class="admin-shell" id="admin-shell"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-  ubAdminGuard();
-  ubAdminRenderShell('finances', 'Finances', "Etat financier rapide : ventes, sommes a recevoir et a payer");
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('finances', 'Finances', "Etat financier rapide : ventes, sommes a recevoir et a payer");
 
-  const orders = ubAdminGetOrders();
-  const suppliers = ubAdminGetSuppliers();
+  const [orders, suppliers, products] = await Promise.all([ubAdminGetOrders(), ubAdminGetSuppliers(), ubAdminGetProducts()]);
+  const productsById = ubProductsById(products);
   const activeOrders = orders.filter(o => o.status !== 'annulee');
 
-  const revenue = activeOrders.reduce((s, o) => s + ubOrderTotal(o), 0);
-  const encaisse = activeOrders.filter(o => o.paymentStatus === 'paye').reduce((s, o) => s + ubOrderTotal(o), 0);
-  const receivables = ubComputeReceivables(orders);
+  const revenue = activeOrders.reduce((s, o) => s + ubOrderTotal(o, productsById), 0);
+  const encaisse = activeOrders.filter(o => o.paymentStatus === 'paye').reduce((s, o) => s + ubOrderTotal(o, productsById), 0);
+  const receivables = ubComputeReceivables(orders, productsById);
   const payables = ubComputePayables(suppliers);
   const soldeNet = receivables.total - payables.total;
 
@@ -106,14 +109,16 @@
       <td><strong style="color:var(--a-danger)">${ubFormatPrice(s.amount)}</strong></td>
     </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune dette fournisseur en cours.</td></tr>`;
 
-  function ubExportFinances() {
+  window.ubExportFinances = function () {
     const headers = ['Type', 'Tiers', 'Reference', 'Montant (FCFA)', 'Echeance / date'];
     const rows = [
       ...receivables.list.map(c => ['Creance client (a recevoir)', c.client, c.orders.join(' / '), c.total, '']),
       ...payables.list.map(s => ['Dette fournisseur (a payer)', s.name, s.category || '', s.amount, s.dueDate]),
     ];
     ubExportCSV('urbann-beauty-rapport-financier.csv', headers, rows);
-  }
+  };
+}
+main();
 </script>
 </body>
 </html>

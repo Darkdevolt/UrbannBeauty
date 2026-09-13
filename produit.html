@@ -36,16 +36,22 @@
 
 <div id="site-footer"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="assets/js/icons.js"></script>
 <script src="assets/js/data.js"></script>
+<script src="assets/js/media.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
+async function main() {
   ubRenderHeader('boutique');
   ubRenderFooter();
 
   const params = new URLSearchParams(location.search);
-  const product = ubGetProduct(params.get('id')) || UB_PRODUCTS[0];
-  const cat = ubGetCategory(product.category);
+  const requestedId = params.get('id');
+  const allProducts = await ubGetAllProducts();
+  let product = requestedId ? await ubGetProduct(requestedId) : null;
+  if (!product) product = allProducts.find(p => p.id === requestedId) || allProducts[0];
+  const cat = await ubGetCategory(product.category);
   let qty = 1;
 
   document.title = product.name + ' — Urbann Beauty';
@@ -53,9 +59,8 @@
 
   const gallery = [
     { type: 'image', src: product.img },
-    { type: 'image', src: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop' },
-    { type: 'video', src: '', poster: product.img },
   ];
+  if (product.video) gallery.push({ type: 'video', src: product.video, poster: product.img });
 
   document.getElementById('product-section').innerHTML = `
     <div class="container">
@@ -135,25 +140,31 @@
     </div>
   `;
 
-  function ubChangeQty(delta) {
+  window.ubChangeQty = function (delta) {
     qty = Math.max(1, qty + delta);
     document.getElementById('qty-value').textContent = qty;
-  }
-  function ubSwitchMedia(i) {
+  };
+  window.ubSwitchMedia = function (i) {
     document.querySelectorAll('.pd-thumbs .thumb').forEach((t, idx) => t.classList.toggle('active', idx === i));
-    document.getElementById('pd-gallery-main').innerHTML = `<img src="${gallery[i].src || gallery[i].poster}" alt="${product.name}">`;
-  }
-  function ubSwitchTab(i) {
+    const g = gallery[i];
+    document.getElementById('pd-gallery-main').innerHTML = g.type === 'video'
+      ? `<video src="${g.src}" controls autoplay poster="${g.poster}"></video>`
+      : `<img src="${g.src}" alt="${product.name}">`;
+  };
+  window.ubSwitchTab = function (i) {
     document.querySelectorAll('.pd-tabs button').forEach((b, idx) => b.classList.toggle('active', idx === i));
     document.querySelectorAll('.pd-tab-panel').forEach((p, idx) => p.classList.toggle('active', idx === i));
-  }
+  };
 
-  document.getElementById('related-grid').innerHTML = UB_PRODUCTS
+  const catsById = ubCatsById(await ubGetAllCategories());
+  document.getElementById('related-grid').innerHTML = allProducts
     .filter(p => p.category === product.category && p.id !== product.id)
     .slice(0, 4)
-    .map(ubProductCardHTML).join('');
+    .map(p => ubProductCardHTML(p, catsById)).join('');
 
   ubInitReveal();
+}
+main();
 </script>
 </body>
 </html>

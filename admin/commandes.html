@@ -12,18 +12,27 @@
 
 <div class="admin-shell" id="admin-shell"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
 <script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-  ubAdminGuard();
-  ubAdminRenderShell('commandes', 'Commandes & Ventes', 'Suivez les commandes, les livraisons et les paiements de votre boutique');
+let orders = [];
+let productsById = {};
+let filterState = { q: '', status: 'all', payment: 'all' };
 
-  let orders = ubAdminGetOrders();
-  let filterState = { q: '', status: 'all', payment: 'all' };
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('commandes', 'Commandes & Ventes', 'Suivez les commandes, les livraisons et les paiements de votre boutique');
+
+  const products = await ubAdminGetProducts();
+  productsById = ubProductsById(products);
+  orders = await ubAdminGetOrders();
+  renderContent();
 
   function renderContent() {
-    const revenue = orders.filter(o => o.status !== 'annulee').reduce((s, o) => s + ubOrderTotal(o), 0);
+    const revenue = orders.filter(o => o.status !== 'annulee').reduce((s, o) => s + ubOrderTotal(o, productsById), 0);
     const counts = {
       livree: orders.filter(o => o.status === 'livree').length,
       en_cours: orders.filter(o => o.status === 'en_cours').length,
@@ -107,7 +116,7 @@
             <option value="rembourse" ${o.paymentStatus === 'rembourse' ? 'selected' : ''}>Remboursé</option>
           </select>
         </td>
-        <td><strong>${ubFormatPrice(ubOrderTotal(o))}</strong></td>
+        <td><strong>${ubFormatPrice(ubOrderTotal(o, productsById))}</strong></td>
         <td>
           <select class="a-select" style="padding:6px 10px;font-size:.78rem" onchange="ubUpdateStatus('${o.id}', this.value)">
             <option value="en_attente" ${o.status === 'en_attente' ? 'selected' : ''}>En attente</option>
@@ -120,24 +129,34 @@
       </tr>`).join('') : `<tr><td colspan="9"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
   }
 
-  function ubUpdateStatus(id, status) {
+  window.ubUpdateStatus = async function (id, status) {
     const o = orders.find(x => x.id === id);
-    if (o) { o.status = status; ubAdminSaveOrders(orders); ubAToast(`Statut de ${id} mis à jour`); renderContent(); }
-  }
-  function ubUpdatePayment(id, paymentStatus) {
+    if (!o) return;
+    const ok = await ubAdminUpdateOrderStatus(id, status);
+    if (!ok) { ubAToast('Erreur lors de la mise à jour'); return; }
+    o.status = status;
+    ubAToast(`Statut de ${id} mis à jour`);
+    renderContent();
+  };
+  window.ubUpdatePayment = async function (id, paymentStatus) {
     const o = orders.find(x => x.id === id);
-    if (o) { o.paymentStatus = paymentStatus; ubAdminSaveOrders(orders); ubAToast(`Paiement de ${id} mis à jour`); renderContent(); }
-  }
+    if (!o) return;
+    const ok = await ubAdminUpdateOrderPayment(id, paymentStatus);
+    if (!ok) { ubAToast('Erreur lors de la mise à jour'); return; }
+    o.paymentStatus = paymentStatus;
+    ubAToast(`Paiement de ${id} mis à jour`);
+    renderContent();
+  };
 
-  function ubExportOrders() {
+  window.ubExportOrders = function () {
     const headers = ['Commande', 'Client', 'Téléphone', 'Adresse', 'Date', 'Articles', 'Mode de paiement', 'Statut paiement', 'Statut livraison', 'Total (FCFA)'];
     const rows = orders.map(o => [
-      o.id, o.client, o.phone || '', o.address || '', o.date, ubOrderItemCount(o), o.payment, o.paymentStatus, o.status, ubOrderTotal(o),
+      o.id, o.client, o.phone || '', o.address || '', o.date, ubOrderItemCount(o), o.payment, o.paymentStatus, o.status, ubOrderTotal(o, productsById),
     ]);
     ubExportCSV('urbann-beauty-commandes.csv', headers, rows);
-  }
-
-  renderContent();
+  };
+}
+main();
 </script>
 </body>
 </html>

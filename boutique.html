@@ -67,24 +67,37 @@
 
 <div id="site-footer"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="assets/js/icons.js"></script>
 <script src="assets/js/data.js"></script>
+<script src="assets/js/media.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
-  ubRenderHeader('boutique');
-  ubRenderFooter();
+ubRenderHeader('boutique');
+ubRenderFooter();
 
-  const params = new URLSearchParams(location.search);
-  let state = {
-    cat: params.get('cat') || 'all',
-    search: params.get('search') || '',
-    maxPrice: 50000,
-    minRating: 0,
-    sort: 'pertinence',
-  };
+const params = new URLSearchParams(location.search);
+let state = {
+  cat: params.get('cat') || 'all',
+  search: params.get('search') || '',
+  maxPrice: 50000,
+  minRating: 0,
+  sort: 'pertinence',
+};
+let allProducts = [];
+let allCategories = [];
+let catsById = {};
+
+async function main() {
+  [allProducts, allCategories] = await Promise.all([ubGetAllProducts(), ubGetAllCategories()]);
+  catsById = ubCatsById(allCategories);
+  renderCategoryFilters();
+  renderRatingFilters();
+  renderGrid();
+}
 
   function renderCategoryFilters() {
-    const all = [{ id: 'all', name: 'Toutes les catégories' }, ...ubGetAllCategories()];
+    const all = [{ id: 'all', name: 'Toutes les catégories' }, ...allCategories];
     document.getElementById('filter-categories').innerHTML = all.map(c => `
       <label>
         <input type="radio" name="cat" value="${c.id}" ${state.cat === c.id ? 'checked' : ''} onchange="ubOnFilterChange()">
@@ -129,7 +142,7 @@
 
   function renderGrid() {
     const q = state.search.trim().toLowerCase();
-    let list = UB_PRODUCTS.filter(p =>
+    let list = allProducts.filter(p =>
       (state.cat === 'all' || p.category === state.cat) &&
       p.price <= state.maxPrice &&
       p.rating >= state.minRating &&
@@ -140,19 +153,17 @@
     if (state.sort === 'rating') list.sort((a, b) => b.rating - a.rating);
 
     document.getElementById('shop-grid').innerHTML = list.length
-      ? list.map(ubProductCardHTML).join('')
+      ? list.map(p => ubProductCardHTML(p, catsById)).join('')
       : `<p style="grid-column:1/-1;text-align:center;color:var(--ink-soft);padding:40px 0">Aucun produit ne correspond à votre recherche.</p>`;
     document.getElementById('result-count').textContent = `${list.length} produit${list.length > 1 ? 's' : ''} trouvé${list.length > 1 ? 's' : ''}`;
 
-    const cat = ubGetAllCategories().find(c => c.id === state.cat);
+    const cat = allCategories.find(c => c.id === state.cat);
     document.getElementById('page-title').textContent = q ? `Résultats pour « ${state.search.trim()} »` : (cat ? cat.name : 'Toute la boutique');
     document.getElementById('bc-current').textContent = q ? 'Recherche' : (cat ? cat.name : 'Boutique');
     ubInitReveal();
   }
 
-  renderCategoryFilters();
-  renderRatingFilters();
-  renderGrid();
+  main();
 </script>
 </body>
 </html>

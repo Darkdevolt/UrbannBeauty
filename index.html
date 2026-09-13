@@ -82,18 +82,21 @@
 <section class="ub-newsletter-section"><div class="container"><div class="newsletter ub-newsletter"><div><span class="eyebrow">Rejoignez notre univers</span><h2>Recevez nos offres <em>exclusives</em></h2><p>Conseils beauté, nouveautés et avantages privés directement dans votre boîte mail.</p></div><form onsubmit="event.preventDefault();ubShowToast('Bienvenue dans l’univers Urbann Beauty !');this.reset();"><input type="email" required placeholder="Votre adresse email"><button class="btn btn-primary">S'inscrire <b>→</b></button></form></div></div></section>
 
 <div id="site-footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
 <script>
-  const ubMedia = ubGetMediaConfig();
-  document.getElementById('hero-main-image').src = ubMedia.heroMain;
-  document.getElementById('hero-product-image').src = ubMedia.heroProduct;
-  document.getElementById('editorial-routine-image').src = ubMedia.editorialRoutine;
+async function main() {
+  const [, categories, products] = await Promise.all([ubApplyManagedMedia(), ubGetAllCategories(), ubGetAllProducts()]);
+  const catsById = ubCatsById(categories);
 
   ubRenderFooter();
-  document.getElementById('cat-rail').innerHTML=ubGetAllCategories().map(c=>{const label=c.name.replace('Soins ','');return `<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${ubGetCategoryImage(c)}" alt="${c.name}"></span><b>${label.charAt(0).toUpperCase()+label.slice(1)}</b></a>`;}).join('');
-  document.getElementById('bestsellers-grid').innerHTML=UB_PRODUCTS.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4).map(ubProductCardHTML).join('');
-  document.getElementById('new-grid').innerHTML=UB_PRODUCTS.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4).map(ubProductCardHTML).join('');
+  document.getElementById('cat-rail').innerHTML=categories.map(c=>{const label=c.name.replace('Soins ','');return `<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${ubGetCategoryImage(c)}" alt="${c.name}"></span><b>${label.charAt(0).toUpperCase()+label.slice(1)}</b></a>`;}).join('');
+  document.getElementById('bestsellers-grid').innerHTML=products.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4).map(p=>ubProductCardHTML(p,catsById)).join('');
+  document.getElementById('new-grid').innerHTML=products.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4).map(p=>ubProductCardHTML(p,catsById)).join('');
   document.getElementById('testi-grid').innerHTML=UB_TESTIMONIALS.map(t=>`<div class="testi-card reveal"><div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</div><p>“${t.text}”</p><div class="testi-user"><img src="${t.avatar}" alt="${t.name}"><div><strong>${t.name}</strong><span>${t.role}</span></div></div></div>`).join('');
   document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=ubIcon(el.dataset.icon));
+  ubInitReveal();
+}
+main();
 </script><script src="assets/js/premium-enhancements.js"></script><script src="assets/js/premium-home.js"></script>
 </body></html>
