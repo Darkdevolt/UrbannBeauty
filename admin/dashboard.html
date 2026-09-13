@@ -20,14 +20,22 @@ async function main() {
   if (!(await ubAdminGuard())) return;
   await ubAdminRenderShell('dashboard', 'Tableau de bord', 'Aperçu de l\'activité de votre boutique aujourd\'hui');
 
-  const [products, orders, suppliers, categories] = await Promise.all([
+  const [products, orders, suppliers, categories, summaryRes] = await Promise.all([
     ubAdminGetProducts(), ubAdminGetOrders(), ubAdminGetSuppliers(), ubGetAllCategories(),
+    ubSupabase.rpc('ub_dashboard_summary'),
   ]);
+  const summary = summaryRes.data || { revenueThisMonth: 0, revenueLastMonth: 0, ordersThisMonth: orders.length, ordersLastMonth: 0, ordersToday: 0, last7Days: [] };
   const productsById = ubProductsById(products);
   const lowStock = products.filter(p => p.stock <= 5);
   const activeOrders = orders.filter(o => o.status !== 'annulee');
-  const revenue = activeOrders.reduce((s, o) => s + ubOrderTotal(o, productsById), 0);
-  const avgBasket = Math.round(revenue / (activeOrders.length || 1));
+  const revenue = summary.revenueThisMonth;
+  const avgBasket = Math.round(revenue / (summary.ordersThisMonth || 1));
+  const ubTrend = (current, previous) => {
+    if (!previous) return `<span class="a-trend">Pas de données le mois dernier</span>`;
+    const pct = ((current - previous) / previous) * 100;
+    const up = pct >= 0;
+    return `<div class="a-trend ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}% vs mois dernier</div>`;
+  };
   const bestSellers = ubComputeBestSellers(orders, productsById, 5);
   const bestClients = ubComputeBestClients(orders, productsById, 5);
   const zoneStats = ubComputeZoneStats(orders, productsById, 6);
@@ -36,10 +44,10 @@ async function main() {
 
   document.getElementById('a-content').innerHTML = `
     <div class="a-stats-grid">
-      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('chart')}</div></div><div class="value">${ubFormatPrice(revenue)}</div><div class="label">Chiffre d'affaires (30 jours)</div><div class="a-trend up">▲ 12.4% vs mois dernier</div></div>
-      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('orders')}</div></div><div class="value">${orders.length}</div><div class="label">Commandes ce mois-ci</div><div class="a-trend up">▲ 6 nouvelles aujourd'hui</div></div>
+      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('chart')}</div></div><div class="value">${ubFormatPrice(revenue)}</div><div class="label">Chiffre d'affaires (ce mois-ci)</div>${ubTrend(summary.revenueThisMonth, summary.revenueLastMonth)}</div>
+      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('orders')}</div></div><div class="value">${summary.ordersThisMonth}</div><div class="label">Commandes ce mois-ci</div><div class="a-trend">${summary.ordersToday} nouvelle${summary.ordersToday>1?'s':''} aujourd'hui</div></div>
       <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#fbf1e3;color:#c98a3e">${ubIcon('box')}</div></div><div class="value">${products.length}</div><div class="label">Produits au catalogue</div><div class="a-trend down">${lowStock.length} en stock faible</div></div>
-      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('users')}</div></div><div class="value">${ubFormatPrice(avgBasket)}</div><div class="label">Panier moyen</div><div class="a-trend up">▲ 3.1% vs mois dernier</div></div>
+      <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('users')}</div></div><div class="value">${ubFormatPrice(avgBasket)}</div><div class="label">Panier moyen (ce mois-ci)</div>${ubTrend(summary.ordersThisMonth?summary.revenueThisMonth/summary.ordersThisMonth:0, summary.ordersLastMonth?summary.revenueLastMonth/summary.ordersLastMonth:0)}</div>
     </div>
 
     <div class="a-panel" style="margin-bottom:22px"><div class="a-panel-body" style="display:flex;align-items:center;flex-wrap:wrap;gap:24px">
@@ -60,8 +68,13 @@ async function main() {
     <div class="a-grid-2" style="margin-top:22px"><div class="a-panel"><div class="a-panel-head"><h3>Dernières commandes</h3><a href="commandes.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a></div><div class="a-table-wrap"><table class="a-table"><thead><tr><th>Commande</th><th>Client</th><th>Total</th><th>Paiement</th><th>Statut</th></tr></thead><tbody id="orders-tbody"></tbody></table></div></div>
     <div class="a-panel"><div class="a-panel-head"><h3>Alertes stock faible</h3><a href="produits.html" class="a-btn a-btn-outline a-btn-sm">Gérer le stock</a></div><div class="a-panel-body" style="padding-top:8px"><div id="low-stock-list"></div></div></div></div>`;
 
-  const days = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; const values = [42,58,39,71,65,88,54]; const max = Math.max(...values);
-  document.getElementById('chart-bars').innerHTML = days.map((d,i)=>`<div class="bar-col"><div class="bar" style="height:${values[i]/max*100}%"></div><span class="bar-label">${d}</span></div>`).join('');
+  const dayLabels = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const last7 = summary.last7Days.length ? summary.last7Days : [{date:new Date().toISOString().slice(0,10),total:0}];
+  const maxDay = Math.max(...last7.map(d=>d.total), 1);
+  document.getElementById('chart-bars').innerHTML = last7.map(d=>{
+    const label = dayLabels[new Date(d.date+'T00:00:00').getDay()];
+    return `<div class="bar-col" title="${ubFormatPrice(d.total)}"><div class="bar" style="height:${d.total/maxDay*100}%"></div><span class="bar-label">${label}</span></div>`;
+  }).join('');
   const catColors=['#8e56bd','#c199e0','#d1495c','#c98a3e','#2f9e63','#6b6478']; const catData=categories.map((c,i)=>({...c,count:products.filter(p=>p.category===c.id).length,color:catColors[i%catColors.length]})); const totalCount=catData.reduce((s,c)=>s+c.count,0)||1;
   document.getElementById('cat-bars').innerHTML=`<div style="display:flex;height:16px;border-radius:999px;overflow:hidden">${catData.map(c=>`<div style="width:${c.count/totalCount*100}%;background:${c.color}"></div>`).join('')}</div>`;
   document.getElementById('cat-legend').innerHTML=catData.map(c=>`<div class="item"><span class="dot" style="background:${c.color}"></span> ${c.name}<span style="color:var(--a-ink-soft);margin-left:auto">${c.count} produits</span></div>`).join('');
