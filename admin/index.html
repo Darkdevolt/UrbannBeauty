@@ -12,7 +12,7 @@
 
 <div class="login-page">
   <div class="login-visual">
-    <div class="logo">Urbann<span>Beauty</span></div>
+    <div class="logo" id="admin-login-logo">Urbann<span>Beauty</span></div>
     <h2>Gérez votre boutique en toute simplicité</h2>
     <p>Produits, stock, ventes et clients : pilotez toute votre activité depuis un tableau de bord unique, pensé pour aller à l'essentiel.</p>
   </div>
@@ -44,6 +44,7 @@
 <script src="../assets/js/data.js"></script>
 <script src="assets/admin.js"></script>
 <script>
+  ubApplyLogo(document.getElementById('admin-login-logo'), '../assets/img/logo.png');
   document.getElementById('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
     ubAdminLogin();

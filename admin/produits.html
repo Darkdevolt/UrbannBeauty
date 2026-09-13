@@ -105,6 +105,7 @@
             <option value="low">Stock faible (≤ 5)</option>
             <option value="ok">En stock</option>
           </select>
+          <button class="a-btn a-btn-outline" onclick="ubExportProducts()">${ubIcon('upload')} Exporter (Excel/CSV)</button>
           <button class="a-btn a-btn-primary" onclick="ubOpenModal()">${ubIcon('plus')} Ajouter un produit</button>
         </div>
       </div>
@@ -121,7 +122,7 @@
     `;
 
     document.getElementById('filter-cat').innerHTML = `<option value="all">Toutes les catégories</option>` +
-      UB_CATEGORIES.map(c => `<option value="${c.id}" ${filterState.cat === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+      ubGetAllCategories().map(c => `<option value="${c.id}" ${filterState.cat === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
     document.getElementById('filter-cat').value = filterState.cat;
     document.getElementById('filter-stock').value = filterState.stock;
 
@@ -152,6 +153,7 @@
         <td>${ubStockBadge(p.stock)}</td>
         <td>
           <div class="a-actions-cell">
+            <button class="a-icon-action" onclick="ubQuickPromo('${p.id}', products, renderTable)" title="Mettre en promo">${ubIcon('chart')}</button>
             <button class="a-icon-action" onclick="ubOpenModal('${p.id}')" title="Modifier">${ubIcon('edit')}</button>
             <button class="a-icon-action" onclick="ubDeleteProduct('${p.id}')" title="Supprimer">${ubIcon('trash')}</button>
           </div>
@@ -162,7 +164,7 @@
   function ubOpenModal(id) {
     const modal = document.getElementById('product-modal');
     const catSelect = document.getElementById('f-category');
-    catSelect.innerHTML = UB_CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    catSelect.innerHTML = ubGetAllCategories().map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     currentPhoto = null; currentVideo = null;
     document.getElementById('photo-preview').innerHTML = '';
     document.getElementById('video-preview').innerHTML = '';
@@ -237,6 +239,14 @@
     ubAdminSaveProducts(products);
     ubCloseModal();
     renderTable();
+  }
+
+  function ubExportProducts() {
+    const headers = ['Référence', 'Nom', 'Catégorie', 'Prix (FCFA)', 'Prix barré (FCFA)', 'Stock', 'Description'];
+    const rows = products.map(p => [
+      'UB-' + p.id.toUpperCase(), p.name, ubGetCategory(p.category)?.name || '', p.price, p.oldPrice || '', p.stock, p.desc,
+    ]);
+    ubExportCSV('urbann-beauty-produits.csv', headers, rows);
   }
 
   function ubDeleteProduct(id) {

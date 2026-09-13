@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catégories — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+
+<div class="admin-shell" id="admin-shell"></div>
+
+<div class="a-modal-overlay" id="cat-modal">
+  <div class="a-modal" style="max-width:440px">
+    <div class="a-modal-head">
+      <h3 id="cat-modal-title">Ajouter une catégorie</h3>
+      <button class="a-modal-close" onclick="ubCloseCatModal()"></button>
+    </div>
+    <div class="a-modal-body">
+      <form id="cat-form">
+        <input type="hidden" id="c-original-id">
+        <div class="a-field">
+          <label>Nom de la catégorie</label>
+          <input type="text" id="c-name" required placeholder="Ex : Bijoux fantaisie">
+        </div>
+        <div class="a-field">
+          <label>Icône</label>
+          <select id="c-icon"></select>
+        </div>
+      </form>
+    </div>
+    <div class="a-modal-foot">
+      <button class="a-btn a-btn-outline" onclick="ubCloseCatModal()">Annuler</button>
+      <button class="a-btn a-btn-primary" onclick="ubSaveCategory()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+  ubAdminGuard();
+  ubAdminRenderShell('categories', 'Catégories', 'Créez, modifiez ou supprimez les catégories de votre boutique');
+
+  document.querySelector('.a-modal-close').innerHTML = ubIcon('close');
+
+  const CAT_ICONS = ['face','body','makeup','hair','perfume','accessory','box','star','leaf','image'];
+
+  let categories = ubGetAllCategories();
+  const products = ubAdminGetProducts();
+
+  function slugify(str) {
+    return str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
+  function renderContent() {
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-toolbar">
+        <p style="color:var(--a-ink-soft);font-size:.88rem;margin:0">${categories.length} catégorie${categories.length > 1 ? 's' : ''} au total</p>
+        <button class="a-btn a-btn-primary" onclick="ubOpenCatModal()">${ubIcon('plus')} Ajouter une catégorie</button>
+      </div>
+      <div class="a-panel">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Icône</th><th>Nom</th><th>Identifiant</th><th>Produits</th><th>Actions</th></tr></thead>
+            <tbody id="cat-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    renderTable();
+  }
+
+  function renderTable() {
+    document.getElementById('cat-tbody').innerHTML = categories.map(c => {
+      const count = products.filter(p => p.category === c.id).length;
+      return `
+      <tr>
+        <td><div style="width:38px;height:38px;border-radius:10px;background:var(--a-mauve-light);color:var(--a-mauve);display:flex;align-items:center;justify-content:center">${ubIcon(c.icon)}</div></td>
+        <td><strong>${c.name}</strong></td>
+        <td><code style="color:var(--a-ink-soft)">${c.id}</code></td>
+        <td>${count} produit${count > 1 ? 's' : ''}</td>
+        <td>
+          <div class="a-actions-cell">
+            <button class="a-icon-action" onclick="ubOpenCatModal('${c.id}')" title="Modifier">${ubIcon('edit')}</button>
+            <button class="a-icon-action" onclick="ubDeleteCategory('${c.id}')" title="Supprimer">${ubIcon('trash')}</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="5"><div class="empty-state">${ubIcon('filter')}<p>Aucune catégorie pour le moment.</p></div></td></tr>`;
+  }
+
+  function ubOpenCatModal(id) {
+    document.getElementById('c-icon').innerHTML = CAT_ICONS.map(i => `<option value="${i}">${i}</option>`).join('');
+    if (id) {
+      const c = categories.find(x => x.id === id);
+      document.getElementById('cat-modal-title').textContent = 'Modifier la catégorie';
+      document.getElementById('c-original-id').value = c.id;
+      document.getElementById('c-name').value = c.name;
+      document.getElementById('c-icon').value = c.icon;
+    } else {
+      document.getElementById('cat-modal-title').textContent = 'Ajouter une catégorie';
+      document.getElementById('cat-form').reset();
+      document.getElementById('c-original-id').value = '';
+    }
+    document.getElementById('cat-modal').classList.add('open');
+  }
+  function ubCloseCatModal() { document.getElementById('cat-modal').classList.remove('open'); }
+
+  function ubSaveCategory() {
+    const form = document.getElementById('cat-form');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const originalId = document.getElementById('c-original-id').value;
+    const name = document.getElementById('c-name').value.trim();
+    const icon = document.getElementById('c-icon').value;
+
+    if (originalId) {
+      const cat = categories.find(c => c.id === originalId);
+      cat.name = name;
+      cat.icon = icon;
+      ubAToast('Catégorie mise à jour');
+    } else {
+      let id = slugify(name) || 'categorie-' + Date.now();
+      if (categories.some(c => c.id === id)) id = id + '-' + Date.now();
+      categories.push({ id, name, icon });
+      ubAToast('Catégorie ajoutée');
+    }
+    ubSaveAllCategories(categories);
+    ubCloseCatModal();
+    renderTable();
+  }
+
+  function ubDeleteCategory(id) {
+    const count = products.filter(p => p.category === id).length;
+    const msg = count > 0
+      ? `Cette catégorie contient ${count} produit(s). Les supprimer aussi n'est pas nécessaire, mais ils n'apparaîtront plus dans aucune catégorie. Continuer ?`
+      : 'Supprimer définitivement cette catégorie ?';
+    if (!confirm(msg)) return;
+    categories = categories.filter(c => c.id !== id);
+    ubSaveAllCategories(categories);
+    ubAToast('Catégorie supprimée');
+    renderTable();
+  }
+
+  renderContent();
+</script>
+</body>
+</html>

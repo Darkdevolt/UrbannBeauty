@@ -119,6 +119,22 @@ function ubGetProduct(id) {
   return UB_PRODUCTS.find(p => p.id === id);
 }
 
+/* Catégories personnalisables : les modifications faites dans l'admin
+   (ajout/édition/suppression) sont stockées dans localStorage et
+   remplacent la liste par défaut partout sur le site. */
+const UB_CATEGORIES_KEY = 'ub_categories';
+
+function ubGetAllCategories() {
+  try {
+    const overrides = JSON.parse(localStorage.getItem(UB_CATEGORIES_KEY) || 'null');
+    return (overrides && overrides.length) ? overrides : UB_CATEGORIES;
+  } catch (e) { return UB_CATEGORIES; }
+}
+
+function ubSaveAllCategories(list) {
+  localStorage.setItem(UB_CATEGORIES_KEY, JSON.stringify(list));
+}
+
 function ubGetCategory(id) {
-  return UB_CATEGORIES.find(c => c.id === id);
+  return ubGetAllCategories().find(c => c.id === id);
 }

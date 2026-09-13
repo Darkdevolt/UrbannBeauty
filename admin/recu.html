@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="doc-title">Reçu — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+  body { background: var(--a-bg); }
+  .receipt-page { max-width: 720px; margin: 40px auto; padding: 0 20px 60px; }
+  .receipt-actions { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 18px; }
+  .receipt-card { background: #fff; border-radius: 16px; padding: 48px; box-shadow: var(--a-shadow); }
+  .receipt-head { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: flex-start; padding-bottom: 28px; border-bottom: 2px solid var(--a-ink); margin-bottom: 28px; }
+  .receipt-head .brand { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--a-ink); }
+  .receipt-head .brand span { color: var(--a-mauve); font-style: italic; }
+  .receipt-head .brand-info { font-size: .8rem; color: var(--a-ink-soft); margin-top: 8px; line-height: 1.6; }
+  .receipt-head .meta { text-align: right; }
+  .receipt-head .meta h2 { font-size: 1.3rem; margin-bottom: 6px; }
+  .receipt-head .meta div { font-size: .82rem; color: var(--a-ink-soft); }
+  .receipt-section-title { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--a-ink-soft); margin-bottom: 10px; font-weight: 600; }
+  .receipt-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; margin-bottom: 32px; }
+  .receipt-grid p { margin: 0; font-size: .9rem; }
+  .receipt-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  .receipt-table th { text-align: left; font-size: .74rem; text-transform: uppercase; color: var(--a-ink-soft); padding: 10px 8px; border-bottom: 2px solid var(--a-line); }
+  .receipt-table td { padding: 12px 8px; border-bottom: 1px solid var(--a-line); font-size: .9rem; }
+  .receipt-table th:last-child, .receipt-table td:last-child { text-align: right; }
+  .receipt-totals { margin-left: auto; width: 280px; }
+  .receipt-totals .row { display: flex; justify-content: space-between; padding: 8px 0; font-size: .9rem; color: var(--a-ink-soft); }
+  .receipt-totals .row.total { font-size: 1.2rem; font-weight: 700; color: var(--a-ink); border-top: 2px solid var(--a-ink); padding-top: 14px; margin-top: 6px; }
+  .receipt-foot { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px dashed var(--a-line); font-size: .8rem; color: var(--a-ink-soft); }
+  @media (max-width: 560px) {
+    .receipt-card { padding: 24px; }
+    .receipt-grid { grid-template-columns: minmax(0,1fr); }
+    .receipt-head .meta { text-align: left; }
+    .receipt-totals { width: 100%; }
+  }
+  @media print {
+    .a-toast, .receipt-actions, .whatsapp-float { display: none !important; }
+    body { background: #fff; }
+    .receipt-page { margin: 0; max-width: none; padding: 0; }
+    .receipt-card { box-shadow: none; border-radius: 0; padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="receipt-page">
+  <div class="receipt-actions">
+    <a href="commandes.html" class="a-btn a-btn-outline">← Retour aux commandes</a>
+    <button class="a-btn a-btn-primary" onclick="window.print()" id="print-btn"></button>
+  </div>
+  <div class="receipt-card" id="receipt-card"></div>
+</div>
+
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+  ubAdminGuard();
+  document.getElementById('print-btn').innerHTML = ubIcon('printer') + ' Imprimer / Télécharger en PDF';
+
+  const params = new URLSearchParams(location.search);
+  const orders = ubAdminGetOrders();
+  const order = orders.find(o => o.id === params.get('id'));
+
+  if (!order) {
+    document.getElementById('receipt-card').innerHTML = `<div class="empty-state">${ubIcon('receipt')}<p>Commande introuvable.</p></div>`;
+  } else {
+    document.getElementById('doc-title').textContent = `Reçu ${order.id} — Urbann Beauty`;
+    const lines = ubOrderLines(order);
+    const total = ubOrderTotal(order);
+    const statusLabel = { livree: 'Livrée', en_cours: 'En préparation / expédiée', en_attente: 'En attente', annulee: 'Annulée' }[order.status] || order.status;
+    const paymentLabel = { paye: 'Payé', en_attente: 'En attente', rembourse: 'Remboursé' }[order.paymentStatus] || order.paymentStatus;
+
+    document.getElementById('receipt-card').innerHTML = `
+      <div class="receipt-head">
+        <div>
+          <div class="brand" id="receipt-logo">Urbann<span>Beauty</span></div>
+          <div class="brand-info">
+            ${UB_CONTACT.city}<br>
+            Tél / WhatsApp : ${UB_CONTACT.phoneDisplay}<br>
+            contact@urbannbeauty.com
+          </div>
+        </div>
+        <div class="meta">
+          <h2>Reçu ${order.id}</h2>
+          <div>Date : ${new Date(order.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+          <div>Paiement : <strong>${paymentLabel}</strong> (${order.payment})</div>
+          <div>Livraison : <strong>${statusLabel}</strong></div>
+        </div>
+      </div>
+
+      <div class="receipt-grid">
+        <div>
+          <div class="receipt-section-title">Client</div>
+          <p><strong>${order.client}</strong></p>
+          <p>${order.phone || '—'}</p>
+        </div>
+        <div>
+          <div class="receipt-section-title">Adresse de livraison</div>
+          <p>${order.address || '—'}</p>
+        </div>
+      </div>
+
+      <table class="receipt-table">
+        <thead><tr><th>Produit</th><th>Qté</th><th>Prix unitaire</th><th>Total</th></tr></thead>
+        <tbody>
+          ${lines.map(l => `
+            <tr>
+              <td>${l.name}</td>
+              <td>${l.qty}</td>
+              <td>${ubFormatPrice(l.price)}</td>
+              <td>${ubFormatPrice(l.price * l.qty)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+
+      <div class="receipt-totals">
+        <div class="row total"><span>Total</span><span>${ubFormatPrice(total)}</span></div>
+      </div>
+
+      <div class="receipt-foot">
+        Merci pour votre confiance — Urbann Beauty 🦄<br>
+        Une question sur cette commande ? Écrivez-nous sur WhatsApp au ${UB_CONTACT.phoneDisplay}.
+      </div>
+    `;
+    ubApplyLogo(document.getElementById('receipt-logo'), '../assets/img/logo.png');
+  }
+</script>
+</body>
+</html>

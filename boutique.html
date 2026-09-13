@@ -83,7 +83,7 @@
   };
 
   function renderCategoryFilters() {
-    const all = [{ id: 'all', name: 'Toutes les catégories' }, ...UB_CATEGORIES];
+    const all = [{ id: 'all', name: 'Toutes les catégories' }, ...ubGetAllCategories()];
     document.getElementById('filter-categories').innerHTML = all.map(c => `
       <label>
         <input type="radio" name="cat" value="${c.id}" ${state.cat === c.id ? 'checked' : ''} onchange="ubOnFilterChange()">
@@ -141,7 +141,7 @@
       : `<p style="grid-column:1/-1;text-align:center;color:var(--ink-soft);padding:40px 0">Aucun produit ne correspond à votre recherche.</p>`;
     document.getElementById('result-count').textContent = `${list.length} produit${list.length > 1 ? 's' : ''} trouvé${list.length > 1 ? 's' : ''}`;
 
-    const cat = UB_CATEGORIES.find(c => c.id === state.cat);
+    const cat = ubGetAllCategories().find(c => c.id === state.cat);
     document.getElementById('page-title').textContent = cat ? cat.name : 'Toute la boutique';
     document.getElementById('bc-current').textContent = cat ? cat.name : 'Boutique';
     ubInitReveal();

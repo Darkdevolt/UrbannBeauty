@@ -17,13 +17,13 @@
 <script src="assets/admin.js"></script>
 <script>
   ubAdminGuard();
-  ubAdminRenderShell('commandes', 'Commandes & Ventes', 'Suivez et gérez toutes les commandes de votre boutique');
+  ubAdminRenderShell('commandes', 'Commandes & Ventes', 'Suivez les commandes, les livraisons et les paiements de votre boutique');
 
   let orders = ubAdminGetOrders();
-  let filterState = { q: '', status: 'all' };
+  let filterState = { q: '', status: 'all', payment: 'all' };
 
   function renderContent() {
-    const revenue = orders.filter(o => o.status !== 'annulee').reduce((s, o) => s + o.total, 0);
+    const revenue = orders.filter(o => o.status !== 'annulee').reduce((s, o) => s + ubOrderTotal(o), 0);
     const counts = {
       livree: orders.filter(o => o.status === 'livree').length,
       en_cours: orders.filter(o => o.status === 'en_cours').length,
@@ -62,12 +62,19 @@
             <option value="livree">Livrée</option>
             <option value="annulee">Annulée</option>
           </select>
+          <select class="a-select" id="filter-payment">
+            <option value="all">Tous les paiements</option>
+            <option value="paye">Payé</option>
+            <option value="en_attente">En attente</option>
+            <option value="rembourse">Remboursé</option>
+          </select>
+          <button class="a-btn a-btn-outline" onclick="ubExportOrders()">${ubIcon('upload')} Exporter (Excel/CSV)</button>
         </div>
       </div>
       <div class="a-panel">
         <div class="a-table-wrap">
           <table class="a-table">
-            <thead><tr><th>Commande</th><th>Client</th><th>Date</th><th>Articles</th><th>Paiement</th><th>Total</th><th>Statut</th><th>Action</th></tr></thead>
+            <thead><tr><th>Commande</th><th>Client</th><th>Date</th><th>Articles</th><th>Paiement</th><th>Statut paiement</th><th>Total</th><th>Livraison</th><th>Reçu</th></tr></thead>
             <tbody id="orders-tbody"></tbody>
           </table>
         </div>
@@ -76,37 +83,58 @@
 
     document.getElementById('search-input').addEventListener('input', e => { filterState.q = e.target.value.toLowerCase(); renderTable(); });
     document.getElementById('filter-status').addEventListener('change', e => { filterState.status = e.target.value; renderTable(); });
+    document.getElementById('filter-payment').addEventListener('change', e => { filterState.payment = e.target.value; renderTable(); });
     renderTable();
   }
 
   function renderTable() {
     let list = orders.filter(o =>
       (o.id.toLowerCase().includes(filterState.q) || o.client.toLowerCase().includes(filterState.q)) &&
-      (filterState.status === 'all' || o.status === filterState.status)
+      (filterState.status === 'all' || o.status === filterState.status) &&
+      (filterState.payment === 'all' || o.paymentStatus === filterState.payment)
     );
     document.getElementById('orders-tbody').innerHTML = list.length ? list.map(o => `
       <tr>
         <td><strong>${o.id}</strong></td>
         <td>${o.client}</td>
         <td>${new Date(o.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-        <td>${o.items} article${o.items > 1 ? 's' : ''}</td>
+        <td>${ubOrderItemCount(o)} article${ubOrderItemCount(o) > 1 ? 's' : ''}</td>
         <td>${o.payment}</td>
-        <td><strong>${ubFormatPrice(o.total)}</strong></td>
+        <td>
+          <select class="a-select" style="padding:6px 10px;font-size:.78rem" onchange="ubUpdatePayment('${o.id}', this.value)">
+            <option value="paye" ${o.paymentStatus === 'paye' ? 'selected' : ''}>Payé</option>
+            <option value="en_attente" ${o.paymentStatus === 'en_attente' ? 'selected' : ''}>En attente</option>
+            <option value="rembourse" ${o.paymentStatus === 'rembourse' ? 'selected' : ''}>Remboursé</option>
+          </select>
+        </td>
+        <td><strong>${ubFormatPrice(ubOrderTotal(o))}</strong></td>
         <td>
           <select class="a-select" style="padding:6px 10px;font-size:.78rem" onchange="ubUpdateStatus('${o.id}', this.value)">
             <option value="en_attente" ${o.status === 'en_attente' ? 'selected' : ''}>En attente</option>
-            <option value="en_cours" ${o.status === 'en_cours' ? 'selected' : ''}>En cours</option>
+            <option value="en_cours" ${o.status === 'en_cours' ? 'selected' : ''}>En préparation / expédiée</option>
             <option value="livree" ${o.status === 'livree' ? 'selected' : ''}>Livrée</option>
             <option value="annulee" ${o.status === 'annulee' ? 'selected' : ''}>Annulée</option>
           </select>
         </td>
-        <td><button class="a-icon-action" title="Voir détail" onclick="alert('Détail de la commande ${o.id} (maquette de démonstration)')">${ubIcon('edit')}</button></td>
-      </tr>`).join('') : `<tr><td colspan="8"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
+        <td><a class="a-icon-action" style="display:inline-flex" href="recu.html?id=${o.id}" target="_blank" title="Voir / imprimer le reçu">${ubIcon('receipt')}</a></td>
+      </tr>`).join('') : `<tr><td colspan="9"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
   }
 
   function ubUpdateStatus(id, status) {
     const o = orders.find(x => x.id === id);
     if (o) { o.status = status; ubAdminSaveOrders(orders); ubAToast(`Statut de ${id} mis à jour`); renderContent(); }
+  }
+  function ubUpdatePayment(id, paymentStatus) {
+    const o = orders.find(x => x.id === id);
+    if (o) { o.paymentStatus = paymentStatus; ubAdminSaveOrders(orders); ubAToast(`Paiement de ${id} mis à jour`); renderContent(); }
+  }
+
+  function ubExportOrders() {
+    const headers = ['Commande', 'Client', 'Téléphone', 'Adresse', 'Date', 'Articles', 'Mode de paiement', 'Statut paiement', 'Statut livraison', 'Total (FCFA)'];
+    const rows = orders.map(o => [
+      o.id, o.client, o.phone || '', o.address || '', o.date, ubOrderItemCount(o), o.payment, o.paymentStatus, o.status, ubOrderTotal(o),
+    ]);
+    ubExportCSV('urbann-beauty-commandes.csv', headers, rows);
   }
 
   renderContent();

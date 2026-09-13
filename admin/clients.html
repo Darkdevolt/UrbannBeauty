@@ -17,45 +17,68 @@
 <script src="assets/admin.js"></script>
 <script>
   ubAdminGuard();
-  ubAdminRenderShell('clients', 'Clients', 'Retrouvez toutes les clientes ayant commandé sur votre boutique');
+  ubAdminRenderShell('clients', 'Clients', 'Retrouvez toutes les clientes ayant commandé sur votre boutique, et identifiez vos meilleures clientes');
 
   const orders = ubAdminGetOrders();
   const clientsMap = {};
   orders.forEach(o => {
-    if (!clientsMap[o.client]) clientsMap[o.client] = { name: o.client, orders: 0, total: 0, lastDate: o.date };
-    clientsMap[o.client].orders += 1;
-    clientsMap[o.client].total += o.total;
+    if (!clientsMap[o.client]) clientsMap[o.client] = { name: o.client, phone: o.phone, orders: 0, total: 0, lastDate: o.date };
+    if (o.status !== 'annulee') {
+      clientsMap[o.client].orders += 1;
+      clientsMap[o.client].total += ubOrderTotal(o);
+    }
     if (new Date(o.date) > new Date(clientsMap[o.client].lastDate)) clientsMap[o.client].lastDate = o.date;
   });
-  const clients = Object.values(clientsMap).sort((a, b) => b.total - a.total);
+  let clients = Object.values(clientsMap).sort((a, b) => b.total - a.total);
+  let searchQ = '';
 
-  document.getElementById('a-content').innerHTML = `
-    <div class="a-toolbar">
-      <div class="a-search">${ubIcon('search')}<input type="text" placeholder="Rechercher une cliente..."></div>
-    </div>
-    <div class="a-panel">
-      <div class="a-table-wrap">
-        <table class="a-table">
-          <thead><tr><th>Cliente</th><th>Commandes</th><th>Total dépensé</th><th>Dernière commande</th><th>Statut</th></tr></thead>
-          <tbody>
-            ${clients.map(c => `
-              <tr>
-                <td>
-                  <div class="a-prod-cell">
-                    <div class="avatar" style="width:38px;height:38px;border-radius:50%;background:var(--a-mauve-light);color:var(--a-mauve);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem">${c.name.split(' ').map(n=>n[0]).join('')}</div>
-                    <div><strong>${c.name}</strong><span>Cliente depuis 2025</span></div>
-                  </div>
-                </td>
-                <td>${c.orders} commande${c.orders > 1 ? 's' : ''}</td>
-                <td><strong>${ubFormatPrice(c.total)}</strong></td>
-                <td>${new Date(c.lastDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                <td>${c.total > 80000 ? '<span class="a-badge success">VIP</span>' : '<span class="a-badge neutral">Régulière</span>'}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
+  function renderContent() {
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-toolbar">
+        <div class="a-search">${ubIcon('search')}<input type="text" id="search-input" placeholder="Rechercher une cliente..."></div>
+        <button class="a-btn a-btn-outline" onclick="ubExportClients()">${ubIcon('upload')} Exporter (Excel/CSV)</button>
       </div>
-    </div>
-  `;
+      <div class="a-panel">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Cliente</th><th>Téléphone</th><th>Commandes</th><th>Panier moyen</th><th>Total dépensé</th><th>Dernière commande</th><th>Statut</th></tr></thead>
+            <tbody id="clients-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    document.getElementById('search-input').addEventListener('input', e => { searchQ = e.target.value.toLowerCase(); renderTable(); });
+    renderTable();
+  }
+
+  function renderTable() {
+    const list = clients.filter(c => c.name.toLowerCase().includes(searchQ));
+    document.getElementById('clients-tbody').innerHTML = list.length ? list.map(c => `
+      <tr>
+        <td>
+          <div class="a-prod-cell">
+            <div class="avatar" style="width:38px;height:38px;border-radius:50%;background:var(--a-mauve-light);color:var(--a-mauve);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem">${c.name.split(' ').map(n=>n[0]).join('')}</div>
+            <div><strong>${c.name}</strong></div>
+          </div>
+        </td>
+        <td>${c.phone || '—'}</td>
+        <td>${c.orders} commande${c.orders > 1 ? 's' : ''}</td>
+        <td>${ubFormatPrice(c.orders ? Math.round(c.total / c.orders) : 0)}</td>
+        <td><strong>${ubFormatPrice(c.total)}</strong></td>
+        <td>${new Date(c.lastDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+        <td>${c.total > 80000 ? '<span class="a-badge success">VIP</span>' : '<span class="a-badge neutral">Régulière</span>'}</td>
+      </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('users')}<p>Aucune cliente ne correspond à votre recherche.</p></div></td></tr>`;
+  }
+
+  function ubExportClients() {
+    const headers = ['Cliente', 'Téléphone', 'Nombre de commandes', 'Panier moyen (FCFA)', 'Total dépensé (FCFA)', 'Dernière commande', 'Statut'];
+    const rows = clients.map(c => [
+      c.name, c.phone || '', c.orders, c.orders ? Math.round(c.total / c.orders) : 0, c.total, c.lastDate, c.total > 80000 ? 'VIP' : 'Régulière',
+    ]);
+    ubExportCSV('urbann-beauty-clients.csv', headers, rows);
+  }
+
+  renderContent();
 </script>
 </body>
 </html>

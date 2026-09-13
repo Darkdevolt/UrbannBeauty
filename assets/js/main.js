@@ -70,7 +70,7 @@ function ubRenderHeader(active) {
     <header class="site-header">
       <nav class="nav">
         <button class="burger" aria-label="Menu" id="ub-burger">${ubIcon('menu')}</button>
-        <a href="index.html" class="logo">Urbann<span>Beauty</span></a>
+        <a href="index.html" class="logo" id="ub-logo">Urbann<span>Beauty</span></a>
         <ul class="nav-links" id="ub-nav-links">
           ${links.map(l => `<li><a href="${l.href}" class="${l.key === active ? 'active' : ''}">${l.label}</a></li>`).join('')}
         </ul>
@@ -95,6 +95,7 @@ function ubRenderHeader(active) {
     burger.innerHTML = navLinks.classList.contains('open') ? ubIcon('close') : ubIcon('menu');
   });
   ubUpdateCartCount();
+  ubApplyLogo(document.getElementById('ub-logo'), 'assets/img/logo.png');
 }
 
 function ubRenderFooter() {
@@ -105,7 +106,7 @@ function ubRenderFooter() {
       <div class="container">
         <div class="footer-grid">
           <div>
-            <a href="index.html" class="logo">Urbann<span>Beauty</span></a>
+            <a href="index.html" class="logo" id="ub-footer-logo">Urbann<span>Beauty</span></a>
             <p class="desc">Votre destination beauté : soins visage, corps, maquillage, accessoires et parfums sélectionnés avec exigence pour révéler votre éclat naturel.</p>
             <p class="desc" style="margin-top:-6px">📍 ${UB_CONTACT.city} · 📞 ${UB_CONTACT.phoneDisplay}</p>
             <div class="social-row">
@@ -150,6 +151,7 @@ function ubRenderFooter() {
       </div>
     </footer>
   `;
+  ubApplyLogo(document.getElementById('ub-footer-logo'), 'assets/img/logo.png');
 }
 
 /* ---------- Reveal on scroll ---------- */

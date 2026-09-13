@@ -32,21 +32,77 @@ function ubAdminSaveProducts(list) {
 }
 
 const UB_DEMO_ORDERS = [
-  { id: 'CMD-1042', client: 'Aïcha Konaté', date: '2026-09-11', items: 3, total: 68500, status: 'livree', payment: 'Wave' },
-  { id: 'CMD-1041', client: 'Fatou Diallo', date: '2026-09-11', items: 1, total: 24000, status: 'en_cours', payment: 'Orange Money' },
-  { id: 'CMD-1040', client: 'Nadège Perreira', date: '2026-09-10', items: 5, total: 142000, status: 'en_cours', payment: 'Carte bancaire' },
-  { id: 'CMD-1039', client: 'Marie Sow', date: '2026-09-10', items: 2, total: 47500, status: 'livree', payment: 'Wave' },
-  { id: 'CMD-1038', client: 'Khady Ba', date: '2026-09-09', items: 1, total: 9500, status: 'annulee', payment: 'Orange Money' },
-  { id: 'CMD-1037', client: 'Rokhaya Fall', date: '2026-09-09', items: 4, total: 98000, status: 'livree', payment: 'Carte bancaire' },
-  { id: 'CMD-1036', client: 'Bineta Ndiaye', date: '2026-09-08', items: 2, total: 33000, status: 'en_attente', payment: 'Wave' },
-  { id: 'CMD-1035', client: 'Aminata Sarr', date: '2026-09-08', items: 1, total: 15500, status: 'livree', payment: 'Orange Money' },
+  { id: 'CMD-1042', client: 'Aïcha Konaté', phone: '77 123 45 67', address: 'Plateau, Dakar', date: '2026-09-11',
+    items: [{ productId: 'p1', qty: 1 }, { productId: 'p3', qty: 1 }, { productId: 'p9', qty: 1 }],
+    status: 'livree', paymentStatus: 'paye', payment: 'Wave' },
+  { id: 'CMD-1041', client: 'Fatou Diallo', phone: '78 234 56 78', address: 'Sacré-Cœur, Dakar', date: '2026-09-11',
+    items: [{ productId: 'p1', qty: 1 }],
+    status: 'en_cours', paymentStatus: 'paye', payment: 'Orange Money' },
+  { id: 'CMD-1040', client: 'Nadège Perreira', phone: '76 345 67 89', address: 'Almadies, Dakar', date: '2026-09-10',
+    items: [{ productId: 'p5', qty: 1 }, { productId: 'p3', qty: 1 }, { productId: 'p11', qty: 1 }],
+    status: 'en_cours', paymentStatus: 'en_attente', payment: 'Carte bancaire' },
+  { id: 'CMD-1039', client: 'Marie Sow', phone: '70 456 78 90', address: 'Ouakam, Dakar', date: '2026-09-10',
+    items: [{ productId: 'p2', qty: 1 }, { productId: 'p10', qty: 1 }],
+    status: 'livree', paymentStatus: 'paye', payment: 'Wave' },
+  { id: 'CMD-1038', client: 'Khady Ba', phone: '77 567 89 01', address: 'Yoff, Dakar', date: '2026-09-09',
+    items: [{ productId: 'p9', qty: 1 }],
+    status: 'annulee', paymentStatus: 'rembourse', payment: 'Orange Money' },
+  { id: 'CMD-1037', client: 'Rokhaya Fall', phone: '78 678 90 12', address: 'Mermoz, Dakar', date: '2026-09-09',
+    items: [{ productId: 'p3', qty: 1 }, { productId: 'p1', qty: 1 }, { productId: 'p6', qty: 1 }, { productId: 'p12', qty: 1 }],
+    status: 'livree', paymentStatus: 'paye', payment: 'Carte bancaire' },
+  { id: 'CMD-1036', client: 'Bineta Ndiaye', phone: '76 789 01 23', address: 'Parcelles Assainies, Dakar', date: '2026-09-08',
+    items: [{ productId: 'p7', qty: 1 }, { productId: 'p8', qty: 2 }],
+    status: 'en_attente', paymentStatus: 'en_attente', payment: 'Paiement à la livraison' },
+  { id: 'CMD-1035', client: 'Aminata Sarr', phone: '70 890 12 34', address: 'Grand Yoff, Dakar', date: '2026-09-08',
+    items: [{ productId: 'p2', qty: 1 }],
+    status: 'livree', paymentStatus: 'paye', payment: 'Orange Money' },
 ];
+
+function ubOrderLines(order) {
+  return order.items.map(l => {
+    const p = ubGetProduct(l.productId);
+    return { productId: l.productId, name: p ? p.name : 'Produit supprimé', qty: l.qty, price: p ? p.price : 0 };
+  });
+}
+function ubOrderTotal(order) {
+  return ubOrderLines(order).reduce((s, l) => s + l.qty * l.price, 0);
+}
+function ubOrderItemCount(order) {
+  return order.items.reduce((s, l) => s + l.qty, 0);
+}
+
 function ubAdminGetOrders() {
   const overrides = JSON.parse(localStorage.getItem(UB_ADMIN_ORDERS_KEY) || 'null');
   return overrides || JSON.parse(JSON.stringify(UB_DEMO_ORDERS));
 }
 function ubAdminSaveOrders(list) {
   localStorage.setItem(UB_ADMIN_ORDERS_KEY, JSON.stringify(list));
+}
+
+/* ---------- Analytics : meilleures ventes & meilleurs clients ---------- */
+function ubComputeBestSellers(orders, limit = 5) {
+  const sales = {};
+  orders.forEach(o => {
+    if (o.status === 'annulee') return;
+    o.items.forEach(l => {
+      sales[l.productId] = (sales[l.productId] || 0) + l.qty;
+    });
+  });
+  return Object.entries(sales)
+    .map(([productId, qty]) => ({ product: ubGetProduct(productId), qty }))
+    .filter(x => x.product)
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, limit);
+}
+function ubComputeBestClients(orders, limit = 5) {
+  const map = {};
+  orders.forEach(o => {
+    if (o.status === 'annulee') return;
+    if (!map[o.client]) map[o.client] = { name: o.client, total: 0, orders: 0 };
+    map[o.client].total += ubOrderTotal(o);
+    map[o.client].orders += 1;
+  });
+  return Object.values(map).sort((a, b) => b.total - a.total).slice(0, limit);
 }
 
 /* ---------- Toast ---------- */
@@ -75,6 +131,7 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
     { href: 'dashboard.html', key: 'dashboard', label: 'Tableau de bord', icon: 'dashboard' },
     { group: 'Boutique' },
     { href: 'produits.html', key: 'produits', label: 'Produits & Stock', icon: 'box' },
+    { href: 'categories.html', key: 'categories', label: 'Catégories', icon: 'filter' },
     { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders' },
     { href: 'clients.html', key: 'clients', label: 'Clients', icon: 'users' },
     { group: 'Compte' },
@@ -83,7 +140,7 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
 
   shell.innerHTML = `
     <aside class="a-sidebar" id="a-sidebar">
-      <a href="dashboard.html" class="brand">Urbann<span>Beauty</span></a>
+      <a href="dashboard.html" class="brand" id="a-brand-logo">Urbann<span>Beauty</span></a>
       <nav class="a-nav">
         ${nav.map(n => n.group
           ? `<div class="group-label">${n.group}</div>`
@@ -91,6 +148,7 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
         ).join('')}
       </nav>
       <div class="a-sidebar-footer">
+        <a href="https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent('Bonjour, j\'ai besoin d\'aide sur mon espace admin Urbann Beauty.')}" target="_blank" rel="noopener" class="a-btn a-btn-sm a-btn-block" style="background:#25D366;color:#fff;margin-bottom:10px">${ubIcon('whatsapp')} Assistance WhatsApp</a>
         <div class="a-user-chip">
           <div class="avatar">UB</div>
           <div><strong>Admin Urbann</strong><span>admin@urbannbeauty.com</span></div>
@@ -108,6 +166,7 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
           </div>
         </div>
         <div class="a-topbar-actions">
+          <a href="https://wa.me/${UB_CONTACT.whatsapp}" target="_blank" rel="noopener" class="a-icon-btn" title="Assistance WhatsApp en cas de pépin" style="color:#25D366">${ubIcon('whatsapp')}</a>
           <button class="a-icon-btn">${ubIcon('bell')}<span class="dot"></span></button>
           <a href="../index.html" class="a-btn a-btn-outline a-btn-sm" target="_blank">Voir le site</a>
         </div>
@@ -115,6 +174,8 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
       <div class="a-content" id="a-content"></div>
     </main>
   `;
+
+  ubApplyLogo(document.getElementById('a-brand-logo'), '../assets/img/logo.png');
 
   const burger = document.getElementById('a-burger');
   const sidebar = document.getElementById('a-sidebar');
@@ -137,4 +198,53 @@ function ubOrderStatusBadge(status) {
   };
   const s = map[status] || map.en_attente;
   return `<span class="a-badge ${s.cls}">${s.label}</span>`;
+}
+function ubPaymentStatusBadge(status) {
+  const map = {
+    paye: { cls: 'success', label: 'Payé' },
+    en_attente: { cls: 'warning', label: 'En attente' },
+    rembourse: { cls: 'danger', label: 'Remboursé' },
+  };
+  const s = map[status] || map.en_attente;
+  return `<span class="a-badge ${s.cls}">${s.label}</span>`;
+}
+
+/* ---------- Export CSV (compatible Excel) ---------- */
+function ubExportCSV(filename, headers, rows) {
+  const escape = (v) => {
+    const s = String(v ?? '');
+    return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers.map(escape).join(';'), ...rows.map(r => r.map(escape).join(';'))];
+  const csv = '﻿' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  ubAToast('Export téléchargé : ' + filename);
+}
+
+/* ---------- Mise en promo rapide ---------- */
+function ubQuickPromo(id, products, onSaved) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const input = prompt(`Remise en % pour "${p.name}" (prix actuel : ${ubFormatPrice(p.price)}). Laisser vide pour retirer la promo.`, '');
+  if (input === null) return;
+  if (input.trim() === '') {
+    p.oldPrice = null;
+  } else {
+    const pct = Number(input);
+    if (!pct || pct <= 0 || pct >= 100) { alert('Merci de saisir un pourcentage entre 1 et 99.'); return; }
+    p.oldPrice = p.oldPrice || p.price;
+    const base = p.oldPrice;
+    p.price = Math.round(base * (1 - pct / 100));
+  }
+  ubAdminSaveProducts(products);
+  ubAToast('Promotion mise à jour pour ' + p.name);
+  if (onSaved) onSaved();
 }

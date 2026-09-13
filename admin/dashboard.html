@@ -22,8 +22,11 @@
   const products = ubAdminGetProducts();
   const orders = ubAdminGetOrders();
   const lowStock = products.filter(p => p.stock <= 5);
-  const revenue = orders.filter(o => o.status !== 'annulee').reduce((s, o) => s + o.total, 0);
-  const avgBasket = Math.round(revenue / orders.filter(o => o.status !== 'annulee').length);
+  const activeOrders = orders.filter(o => o.status !== 'annulee');
+  const revenue = activeOrders.reduce((s, o) => s + ubOrderTotal(o), 0);
+  const avgBasket = Math.round(revenue / (activeOrders.length || 1));
+  const bestSellers = ubComputeBestSellers(orders, 5);
+  const bestClients = ubComputeBestClients(orders, 5);
 
   document.getElementById('a-content').innerHTML = `
     <div class="a-stats-grid">
@@ -83,12 +86,39 @@
     <div class="a-grid-2" style="margin-top:22px">
       <div class="a-panel">
         <div class="a-panel-head">
+          <h3>Meilleures ventes</h3>
+          <a href="produits.html" class="a-btn a-btn-outline a-btn-sm">Voir les produits</a>
+        </div>
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Produit</th><th>Unités vendues</th><th>Chiffre d'affaires</th></tr></thead>
+            <tbody id="bestsellers-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="a-panel">
+        <div class="a-panel-head">
+          <h3>Meilleurs clients</h3>
+          <a href="clients.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a>
+        </div>
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Cliente</th><th>Commandes</th><th>Total dépensé</th></tr></thead>
+            <tbody id="bestclients-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="a-grid-2" style="margin-top:22px">
+      <div class="a-panel">
+        <div class="a-panel-head">
           <h3>Dernières commandes</h3>
           <a href="commandes.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a>
         </div>
         <div class="a-table-wrap">
           <table class="a-table">
-            <thead><tr><th>Commande</th><th>Client</th><th>Total</th><th>Statut</th></tr></thead>
+            <thead><tr><th>Commande</th><th>Client</th><th>Total</th><th>Paiement</th><th>Statut</th></tr></thead>
             <tbody id="orders-tbody"></tbody>
           </table>
         </div>
@@ -117,7 +147,7 @@
 
   // Répartition par catégorie
   const catColors = ['#8e56bd','#c199e0','#d1495c','#c98a3e','#2f9e63','#6b6478'];
-  const catData = UB_CATEGORIES.map((c, i) => ({
+  const catData = ubGetAllCategories().map((c, i) => ({
     ...c,
     count: products.filter(p => p.category === c.id).length,
     color: catColors[i % catColors.length],
@@ -135,9 +165,29 @@
     <tr>
       <td><strong>${o.id}</strong></td>
       <td>${o.client}</td>
-      <td>${ubFormatPrice(o.total)}</td>
+      <td>${ubFormatPrice(ubOrderTotal(o))}</td>
+      <td>${ubPaymentStatusBadge(o.paymentStatus)}</td>
       <td>${ubOrderStatusBadge(o.status)}</td>
     </tr>`).join('');
+
+  document.getElementById('bestsellers-tbody').innerHTML = bestSellers.length ? bestSellers.map(b => `
+    <tr>
+      <td>
+        <div class="a-prod-cell">
+          <img src="${b.product.img}" alt="">
+          <div><strong>${b.product.name}</strong></div>
+        </div>
+      </td>
+      <td>${b.qty} unité${b.qty > 1 ? 's' : ''}</td>
+      <td><strong>${ubFormatPrice(b.qty * b.product.price)}</strong></td>
+    </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune vente enregistrée.</td></tr>`;
+
+  document.getElementById('bestclients-tbody').innerHTML = bestClients.length ? bestClients.map(c => `
+    <tr>
+      <td><strong>${c.name}</strong></td>
+      <td>${c.orders} commande${c.orders > 1 ? 's' : ''}</td>
+      <td><strong>${ubFormatPrice(c.total)}</strong></td>
+    </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune cliente pour le moment.</td></tr>`;
 
   document.getElementById('low-stock-list').innerHTML = lowStock.length ? lowStock.map(p => `
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--a-line)">
