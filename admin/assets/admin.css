@@ -118,7 +118,7 @@ h1,h2,h3,h4 { font-family: 'Playfair Display', serif; margin: 0; color: var(--a-
   border-bottom: 1px solid rgba(255,255,255,.08);
 }
 .a-sidebar .brand span { color: #c8a4e8; font-style: italic; }
-.a-nav { padding: 18px 14px; flex: 1; }
+.a-nav { padding: 18px 14px; flex: 1; overflow-y: auto; min-height: 0; }
 .a-nav a {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px; border-radius: 10px;
@@ -135,6 +135,7 @@ h1,h2,h3,h4 { font-family: 'Playfair Display', serif; margin: 0; color: var(--a-
 }
 .a-sidebar-footer {
   padding: 18px; border-top: 1px solid rgba(255,255,255,.08);
+  flex-shrink: 0;
 }
 .a-user-chip { display: flex; align-items: center; gap: 10px; }
 .a-user-chip .avatar {
