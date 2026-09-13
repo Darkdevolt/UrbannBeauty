@@ -38,7 +38,7 @@ const UB_PRODUCTS = [
     id: 'p4', name: 'Huile Capillaire Argan & Ricin', category: 'cheveux',
     price: 12000, oldPrice: null, rating: 4.7, reviews: 156, stock: 8,
     tag: 'Stock faible',
-    img: 'https://images.unsplash.com/photo-1626015449444-9d9587782a70?q=80&w=800&auto=format&fit=crop',
+    img: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?q=80&w=800&auto=format&fit=crop',
     desc: "Répare les pointes fourchues, fortifie la fibre capillaire et apporte brillance et douceur."
   },
   {

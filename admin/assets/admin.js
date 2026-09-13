@@ -181,6 +181,7 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
     { group: 'Boutique' },
     { href: 'produits.html', key: 'produits', label: 'Produits & Stock', icon: 'box' },
     { href: 'categories.html', key: 'categories', label: 'Catégories', icon: 'filter' },
+    { href: 'media.html', key: 'media', label: 'Médiathèque', icon: 'image' },
     { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders' },
     { href: 'clients.html', key: 'clients', label: 'Clients', icon: 'users' },
     { group: 'Comptabilite' },
@@ -227,7 +228,7 @@ function ubAdminRenderShell(active, pageTitle, pageSub) {
     </main>
   `;
 
-  ubApplyLogo(document.getElementById('a-brand-logo'), '../assets/img/logo.png');
+  ubApplyLogo(document.getElementById('a-brand-logo'), '/assets/img/logo.png');
 
   const burger = document.getElementById('a-burger');
   const sidebar = document.getElementById('a-sidebar');

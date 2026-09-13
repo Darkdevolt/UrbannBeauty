@@ -14,14 +14,13 @@
       <header class="site-header ub-premium-header">
         <nav class="nav">
           <button class="burger" aria-label="Menu" id="ub-burger-premium">${ubIcon('menu')}</button>
-          <a href="index.html" class="ub-brand" aria-label="Urbann Beauty"><span>Urbann</span> <i>Beauty</i><small>RÉVÉLEZ VOTRE BEAUTÉ</small></a>
+          <a href="index.html" class="ub-brand" id="ub-premium-logo" aria-label="Urbann Beauty"><span>Urbann</span> <i>Beauty</i><small>RÉVÉLEZ VOTRE BEAUTÉ</small></a>
           <ul class="nav-links" id="ub-nav-links-premium">
             ${links.map(l=>`<li><a href="${l[0]}" class="${l[2]==='accueil'?'active':''}">${l[1]}</a></li>`).join('')}
           </ul>
           <div class="nav-actions ub-premium-actions">
             <label class="ub-search">${ubIcon('search')}<input id="ub-search-input" type="search" placeholder="Rechercher un produit..." autocomplete="off"></label>
             <a href="admin/index.html" class="icon-btn ub-circle" title="Mon compte">${ubIcon('user')}</a>
-            <a href="panier.html" class="icon-btn ub-circle ub-wish" title="Favoris">${ubIcon('heart')}<span>0</span></a>
             <a href="panier.html" class="icon-btn ub-circle" title="Panier">${ubIcon('bag')}<span class="cart-count js-cart-count">0</span></a>
           </div>
         </nav>
@@ -32,6 +31,7 @@
     const input=document.getElementById('ub-search-input');
     input.addEventListener('keydown',e=>{if(e.key==='Enter'&&input.value.trim()) location.href='boutique.html?search='+encodeURIComponent(input.value.trim());});
     ubUpdateCartCount();
+    ubApplyLogo(document.getElementById('ub-premium-logo'), '/assets/img/logo.png');
   }
   function init(){
     render();

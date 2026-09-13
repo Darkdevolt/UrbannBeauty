@@ -77,7 +77,7 @@ function ubRenderHeader(active) {
         <div class="nav-actions">
           <div class="search-box">
             ${ubIcon('search')}
-            <input type="text" placeholder="Rechercher un produit...">
+            <input type="search" id="ub-search-input" placeholder="Rechercher un produit..." autocomplete="off">
           </div>
           <a href="admin/index.html" class="icon-btn" title="Espace admin">${ubIcon('user')}</a>
           <a href="panier.html" class="icon-btn" title="Panier">
@@ -94,8 +94,12 @@ function ubRenderHeader(active) {
     navLinks.classList.toggle('open');
     burger.innerHTML = navLinks.classList.contains('open') ? ubIcon('close') : ubIcon('menu');
   });
+  const searchInput = document.getElementById('ub-search-input');
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && searchInput.value.trim()) location.href = 'boutique.html?search=' + encodeURIComponent(searchInput.value.trim());
+  });
   ubUpdateCartCount();
-  ubApplyLogo(document.getElementById('ub-logo'), 'assets/img/logo.png');
+  ubApplyLogo(document.getElementById('ub-logo'), '/assets/img/logo.png');
 }
 
 function ubRenderFooter() {
@@ -151,7 +155,7 @@ function ubRenderFooter() {
       </div>
     </footer>
   `;
-  ubApplyLogo(document.getElementById('ub-footer-logo'), 'assets/img/logo.png');
+  ubApplyLogo(document.getElementById('ub-footer-logo'), '/assets/img/logo.png');
 }
 
 /* ---------- Reveal on scroll ---------- */

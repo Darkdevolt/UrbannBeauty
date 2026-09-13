@@ -23,10 +23,10 @@
       <p>Des soins, du maquillage et des parfums soigneusement sélectionnés pour sublimer chaque peau, chaque jour.</p>
       <div class="hero-actions"><a href="boutique.html" class="btn btn-primary">Découvrir la collection <span>→</span></a><a href="boutique.html" class="btn btn-outline">Voir la boutique</a></div>
       <div class="ub-trust-row">
-        <div><span>${ubIcon('leaf')}</span><b>Produits authentiques</b><small>Sélection rigoureuse</small></div>
-        <div><span>${ubIcon('truck')}</span><b>Livraison rapide</b><small>Partout au Sénégal</small></div>
-        <div><span>${ubIcon('shield')}</span><b>Paiement sécurisé</b><small>100% fiable</small></div>
-        <div><span>${ubIcon('heart')}</span><b>Satisfaction garantie</b><small>Votre confiance d'abord</small></div>
+        <div><span data-icon="leaf"></span><b>Produits authentiques</b><small>Sélection rigoureuse</small></div>
+        <div><span data-icon="truck"></span><b>Livraison rapide</b><small>Partout au Sénégal</small></div>
+        <div><span data-icon="shield"></span><b>Paiement sécurisé</b><small>100% fiable</small></div>
+        <div><span data-icon="heart"></span><b>Satisfaction garantie</b><small>Votre confiance d'abord</small></div>
       </div>
     </div>
     <div class="ub-hero-art">
@@ -34,7 +34,7 @@
       <div class="ub-hero-product"><img id="hero-product-image" src="assets/img/hero-product.webp.png" alt="Parfum Urbann Beauty"><span>NOUVEAUTÉ<br>2026</span></div>
       <div class="ub-hero-script">Plus qu'une<br><i>routine,</i><br>un rituel ♡</div>
       <div class="ub-slider-dots"><b>01</b><i></i><b>02</b><i></i><b>03</b></div>
-      <button class="ub-play" aria-label="Voir la vidéo">${ubIcon('play')}<small>Voir la vidéo</small></button>
+      <button class="ub-play" aria-label="Voir la vidéo"><span data-icon="play"></span><small>Voir la vidéo</small></button>
     </div>
   </div>
 </section>
@@ -55,9 +55,9 @@
     <div class="ub-section-split-head"><div><span class="eyebrow">Nos best-sellers</span><h2>Nos produits <em>préférés</em></h2></div><a href="boutique.html">Voir tous les produits <b>→</b></a></div>
     <div class="ub-products-layout"><div class="product-grid ub-product-grid" id="bestsellers-grid"></div>
       <aside class="ub-commitments"><span class="eyebrow">Nos engagements</span><h2>Une beauté plus <em>responsable</em></h2>
-        <div><span>${ubIcon('leaf')}</span><p><b>Ingrédients de qualité</b><small>Des formules sûres et efficaces</small></p></div>
-        <div><span>${ubIcon('heart')}</span><p><b>Respect de toutes les peaux</b><small>Parce que chaque peau est unique</small></p></div>
-        <div><span>${ubIcon('leaf')}</span><p><b>Une démarche plus responsable</b><small>Pour une beauté durable</small></p></div>
+        <div><span data-icon="leaf"></span><p><b>Ingrédients de qualité</b><small>Des formules sûres et efficaces</small></p></div>
+        <div><span data-icon="heart"></span><p><b>Respect de toutes les peaux</b><small>Parce que chaque peau est unique</small></p></div>
+        <div><span data-icon="leaf"></span><p><b>Une démarche plus responsable</b><small>Pour une beauté durable</small></p></div>
         <a href="a-propos.html" class="btn btn-outline">En savoir plus <b>→</b></a>
       </aside>
     </div>
@@ -88,13 +88,12 @@
   document.getElementById('hero-main-image').src = ubMedia.heroMain;
   document.getElementById('hero-product-image').src = ubMedia.heroProduct;
   document.getElementById('editorial-routine-image').src = ubMedia.editorialRoutine;
-  document.getElementById('welcome-offer').style.setProperty('--ub-offer-image', `url("${ubMedia.welcomeOffer}")`);
 
-  ubRenderHeader('accueil'); ubRenderFooter();
-  document.getElementById('cat-rail').innerHTML=ubGetAllCategories().map(c=>`<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${ubGetCategoryImage(c)}" alt="${c.name}"></span><b>${c.name.replace('Soins ','')}</b></a>`).join('');
+  ubRenderFooter();
+  document.getElementById('cat-rail').innerHTML=ubGetAllCategories().map(c=>{const label=c.name.replace('Soins ','');return `<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${ubGetCategoryImage(c)}" alt="${c.name}"></span><b>${label.charAt(0).toUpperCase()+label.slice(1)}</b></a>`;}).join('');
   document.getElementById('bestsellers-grid').innerHTML=UB_PRODUCTS.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4).map(ubProductCardHTML).join('');
   document.getElementById('new-grid').innerHTML=UB_PRODUCTS.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4).map(ubProductCardHTML).join('');
   document.getElementById('testi-grid').innerHTML=UB_TESTIMONIALS.map(t=>`<div class="testi-card reveal"><div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</div><p>“${t.text}”</p><div class="testi-user"><img src="${t.avatar}" alt="${t.name}"><div><strong>${t.name}</strong><span>${t.role}</span></div></div></div>`).join('');
-  document.querySelectorAll('.usp-item .icon[data-icon]').forEach(el=>el.innerHTML=ubIcon(el.dataset.icon));
+  document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=ubIcon(el.dataset.icon));
 </script><script src="assets/js/premium-enhancements.js"></script><script src="assets/js/premium-home.js"></script>
 </body></html>

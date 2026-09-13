@@ -77,6 +77,7 @@
   const params = new URLSearchParams(location.search);
   let state = {
     cat: params.get('cat') || 'all',
+    search: params.get('search') || '',
     maxPrice: 50000,
     minRating: 0,
     sort: 'pertinence',
@@ -106,7 +107,7 @@
   }
 
   function ubResetFilters() {
-    state = { cat: 'all', maxPrice: 50000, minRating: 0, sort: 'pertinence' };
+    state = { cat: 'all', search: '', maxPrice: 50000, minRating: 0, sort: 'pertinence' };
     document.getElementById('price-range').value = 50000;
     document.getElementById('price-range-value').textContent = '50 000 FCFA';
     document.getElementById('sort-select').value = 'pertinence';
@@ -127,10 +128,12 @@
   });
 
   function renderGrid() {
+    const q = state.search.trim().toLowerCase();
     let list = UB_PRODUCTS.filter(p =>
       (state.cat === 'all' || p.category === state.cat) &&
       p.price <= state.maxPrice &&
-      p.rating >= state.minRating
+      p.rating >= state.minRating &&
+      (!q || p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q))
     );
     if (state.sort === 'price-asc') list.sort((a, b) => a.price - b.price);
     if (state.sort === 'price-desc') list.sort((a, b) => b.price - a.price);
@@ -142,8 +145,8 @@
     document.getElementById('result-count').textContent = `${list.length} produit${list.length > 1 ? 's' : ''} trouvé${list.length > 1 ? 's' : ''}`;
 
     const cat = ubGetAllCategories().find(c => c.id === state.cat);
-    document.getElementById('page-title').textContent = cat ? cat.name : 'Toute la boutique';
-    document.getElementById('bc-current').textContent = cat ? cat.name : 'Boutique';
+    document.getElementById('page-title').textContent = q ? `Résultats pour « ${state.search.trim()} »` : (cat ? cat.name : 'Toute la boutique');
+    document.getElementById('bc-current').textContent = q ? 'Recherche' : (cat ? cat.name : 'Boutique');
     ubInitReveal();
   }
 

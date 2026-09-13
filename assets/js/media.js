@@ -5,9 +5,9 @@
 const UB_MEDIA_KEY = 'ub_home_media';
 
 const UB_DEFAULT_MEDIA = {
-  heroMain: 'assets/img/hero-main.webp.png',
-  heroProduct: 'assets/img/hero-product.webp.png',
-  welcomeOffer: 'assets/img/welcome-offer.webp.png',
+  heroMain: '/assets/img/hero-main.webp.png',
+  heroProduct: '/assets/img/hero-product.webp.png',
+  welcomeOffer: '/assets/img/welcome-offer.webp.png',
   editorialRoutine: 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?q=80&w=900&auto=format&fit=crop',
   brandsEditorial: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=1200&auto=format&fit=crop',
   commitmentBeauty: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=1000&auto=format&fit=crop'
@@ -30,11 +30,11 @@ function ubGetCategoryImage(category) {
   if (category && category.image) return category.image;
   const defaults = {
     visage: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=500&auto=format&fit=crop',
-    maquillage: 'assets/img/cat-maquillage.webp.png',
-    parfums: 'assets/img/cat-parfums.webp.png',
-    corps: 'assets/img/cat-corps.webp.png',
-    cheveux: 'https://images.unsplash.com/photo-1626015449444-9d9587782a70?q=80&w=500&auto=format&fit=crop',
-    accessoires: 'assets/img/cat-accessoires.webp.png'
+    maquillage: '/assets/img/cat-maquillage.webp.png',
+    parfums: '/assets/img/cat-parfums.webp.png',
+    corps: '/assets/img/cat-corps.webp.png',
+    cheveux: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?q=80&w=500&auto=format&fit=crop',
+    accessoires: '/assets/img/cat-accessoires.webp.png'
   };
   return defaults[category?.id] || defaults.visage;
 }
