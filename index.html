@@ -30,8 +30,8 @@
       </div>
     </div>
     <div class="ub-hero-art">
-      <div class="ub-hero-image"><img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=1200&auto=format&fit=crop" alt="Beauté naturelle Urbann Beauty"></div>
-      <div class="ub-hero-product"><img src="https://images.unsplash.com/photo-1547887538-e3a2f32cb1cc?q=80&w=600&auto=format&fit=crop" alt="Parfum Urbann Beauty"><span>NOUVEAUTÉ<br>2026</span></div>
+      <div class="ub-hero-image"><img id="hero-main-image" src="assets/img/hero-main.webp.png" alt="Beauté naturelle Urbann Beauty"></div>
+      <div class="ub-hero-product"><img id="hero-product-image" src="assets/img/hero-product.webp.png" alt="Parfum Urbann Beauty"><span>NOUVEAUTÉ<br>2026</span></div>
       <div class="ub-hero-script">Plus qu'une<br><i>routine,</i><br>un rituel ♡</div>
       <div class="ub-slider-dots"><b>01</b><i></i><b>02</b><i></i><b>03</b></div>
       <button class="ub-play" aria-label="Voir la vidéo">${ubIcon('play')}<small>Voir la vidéo</small></button>
@@ -44,7 +44,7 @@
   <div class="container">
     <div class="ub-category-layout">
       <div class="ub-category-rail" id="cat-rail"></div>
-      <a href="boutique.html" class="ub-welcome-offer"><span>OFFRE DE BIENVENUE</span><strong>−15%</strong><p>sur votre première commande<br>avec le code <b>URBANN15</b></p><button>J'en profite <em>→</em></button><i></i></a>
+      <a href="boutique.html" class="ub-welcome-offer" id="welcome-offer"><span>OFFRE DE BIENVENUE</span><strong>−15%</strong><p>sur votre première commande<br>avec le code <b>URBANN15</b></p><button>J'en profite <em>→</em></button><i></i></a>
     </div>
   </div>
 </section>
@@ -67,7 +67,7 @@
 <!-- ROUTINE + BRANDS -->
 <section class="ub-editorial">
   <div class="container ub-editorial-grid">
-    <a href="boutique.html?cat=visage" class="ub-routine"><div><span class="eyebrow">Conseils personnalisés</span><h2>Votre routine beauté<br><em>sur-mesure</em></h2><p>Des conseils personnalisés pour révéler le meilleur de votre peau.</p><button class="btn btn-primary">Faire le diagnostic <b>→</b></button></div><img src="https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?q=80&w=900&auto=format&fit=crop" alt="Routine beauté"></a>
+    <a href="boutique.html?cat=visage" class="ub-routine"><div><span class="eyebrow">Conseils personnalisés</span><h2>Votre routine beauté<br><em>sur-mesure</em></h2><p>Des conseils personnalisés pour révéler le meilleur de votre peau.</p><button class="btn btn-primary">Faire le diagnostic <b>→</b></button></div><img id="editorial-routine-image" src="assets/img/editorial-routine.webp.png" alt="Routine beauté"></a>
     <div class="ub-brands"><span class="eyebrow">Sélection</span><h2>Des marques qui<br><em>inspirent confiance</em></h2><div><b>Urbann Beauty</b><span>CAUDALIE</span><span>L'ORÉAL</span><span>NIVEA</span><span>MAYBELLINE</span><span>THE BODY SHOP</span></div></div>
   </div>
 </section>
@@ -82,12 +82,25 @@
 <section class="ub-newsletter-section"><div class="container"><div class="newsletter ub-newsletter"><div><span class="eyebrow">Rejoignez notre univers</span><h2>Recevez nos offres <em>exclusives</em></h2><p>Conseils beauté, nouveautés et avantages privés directement dans votre boîte mail.</p></div><form onsubmit="event.preventDefault();ubShowToast('Bienvenue dans l’univers Urbann Beauty !');this.reset();"><input type="email" required placeholder="Votre adresse email"><button class="btn btn-primary">S'inscrire <b>→</b></button></form></div></div></section>
 
 <div id="site-footer"></div>
-<script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/main.js"></script>
+<script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
 <script>
-  // The existing commerce components remain the source of truth for products/cart/admin.
+  // Les médias peuvent être remplacés depuis /admin/media.html sans toucher au HTML.
+  const ubMedia = ubGetMediaConfig();
+  document.getElementById('hero-main-image').src = ubMedia.heroMain;
+  document.getElementById('hero-product-image').src = ubMedia.heroProduct;
+  document.getElementById('editorial-routine-image').src = ubMedia.editorialRoutine;
+  document.getElementById('welcome-offer').style.setProperty('--ub-offer-image', `url("${ubMedia.welcomeOffer}")`);
+
   ubRenderHeader('accueil'); ubRenderFooter();
-  const categoryImages={visage:'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=500&auto=format&fit=crop',maquillage:'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?q=80&w=500&auto=format&fit=crop',parfums:'https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=500&auto=format&fit=crop',corps:'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?q=80&w=500&auto=format&fit=crop',cheveux:'https://images.unsplash.com/photo-1626015449444-9d9587782a70?q=80&w=500&auto=format&fit=crop',accessoires:'https://images.unsplash.com/photo-1583241800698-9c2660433e0f?q=80&w=500&auto=format&fit=crop'};
-  document.getElementById('cat-rail').innerHTML=ubGetAllCategories().map(c=>`<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${categoryImages[c.id]||categoryImages.visage}" alt=""></span><b>${c.name.replace('Soins ','')}</b></a>`).join('');
+  const fallbackCategoryImages={
+    visage:'assets/img/cat-visage.webp.png',
+    maquillage:'assets/img/cat-maquillage.webp.png',
+    parfums:'assets/img/cat-parfums.webp.png',
+    corps:'assets/img/cat-corps.webp.png',
+    cheveux:'assets/img/cat-cheveux.webp.png',
+    accessoires:'assets/img/cat-accessoires.webp.png'
+  };
+  document.getElementById('cat-rail').innerHTML=ubGetAllCategories().map(c=>`<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${c.image || fallbackCategoryImages[c.id] || fallbackCategoryImages.visage}" alt="${c.name}"></span><b>${c.name.replace('Soins ','')}</b></a>`).join('');
   document.getElementById('bestsellers-grid').innerHTML=UB_PRODUCTS.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4).map(ubProductCardHTML).join('');
   document.getElementById('new-grid').innerHTML=UB_PRODUCTS.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4).map(ubProductCardHTML).join('');
   document.getElementById('testi-grid').innerHTML=UB_TESTIMONIALS.map(t=>`<div class="testi-card reveal"><div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</div><p>“${t.text}”</p><div class="testi-user"><img src="${t.avatar}" alt="${t.name}"><div><strong>${t.name}</strong><span>${t.role}</span></div></div></div>`).join('');
