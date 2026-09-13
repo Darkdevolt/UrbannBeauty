@@ -8,12 +8,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/premium-enhancements.css">
 </head>
 <body>
 
 <div id="site-header"></div>
 
-<!-- HERO -->
 <section class="hero">
   <div class="hero-blob"></div>
   <div class="container">
@@ -33,18 +33,11 @@
     </div>
     <div class="hero-visual">
       <img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=1000&auto=format&fit=crop" alt="Produits de beauté Urbann Beauty">
-      <div class="floating-card">
-        <span class="stars">★★★★★</span>
-        <div>
-          <strong>+2 300 avis</strong>
-          <span>Clientes vérifiées</span>
-        </div>
-      </div>
+      <div class="floating-card"><span class="stars">★★★★★</span><div><strong>+2 300 avis</strong><span>Clientes vérifiées</span></div></div>
     </div>
   </div>
 </section>
 
-<!-- USP -->
 <section class="usp-strip" style="padding-top:34px;padding-bottom:34px;">
   <div class="container">
     <div class="usp-item"><span class="icon" data-icon="truck"></span><div><strong>Livraison rapide</strong><span>Partout à Dakar en 24-48h</span></div></div>
@@ -54,89 +47,17 @@
   </div>
 </section>
 
-<!-- CATEGORIES -->
-<section>
-  <div class="container">
-    <div class="section-head reveal">
-      <span class="eyebrow">Nos univers</span>
-      <h2>Achetez par catégorie</h2>
-      <p>Une gamme complète pensée pour prendre soin de vous, de la tête aux pieds.</p>
-    </div>
-    <div class="cat-grid" id="cat-grid"></div>
-  </div>
-</section>
+<section><div class="container"><div class="section-head reveal"><span class="eyebrow">Nos univers</span><h2>Achetez par catégorie</h2><p>Une gamme complète pensée pour prendre soin de vous, de la tête aux pieds.</p></div><div class="cat-grid" id="cat-grid"></div></div></section>
 
-<!-- BEST SELLERS -->
-<section style="background:var(--off-white)">
-  <div class="container">
-    <div class="section-toolbar reveal">
-      <div class="section-head" style="text-align:left;margin:0">
-        <span class="eyebrow">Sélection</span>
-        <h2 style="margin:0">Nos meilleures ventes</h2>
-      </div>
-      <a href="boutique.html" class="btn btn-outline">Voir toute la boutique</a>
-    </div>
-    <div class="product-grid" id="bestsellers-grid"></div>
-  </div>
-</section>
+<section style="background:var(--off-white)"><div class="container"><div class="section-toolbar reveal"><div class="section-head" style="text-align:left;margin:0"><span class="eyebrow">Sélection</span><h2 style="margin:0">Nos meilleures ventes</h2></div><a href="boutique.html" class="btn btn-outline">Voir toute la boutique</a></div><div class="product-grid" id="bestsellers-grid"></div></div></section>
 
-<!-- PROMO BANNER -->
-<section>
-  <div class="container">
-    <div class="promo-banner reveal">
-      <div style="position:relative;z-index:1">
-        <span class="badge badge-gold" style="margin-bottom:14px">Offre limitée</span>
-        <h2>-15% sur votre première commande</h2>
-        <p>Utilisez le code <strong>URBANN15</strong> lors du paiement et profitez d'une réduction immédiate sur toute la boutique.</p>
-        <div class="hero-actions">
-          <a href="boutique.html" class="btn" style="background:#fff;color:var(--mauve-700)">Commencer mes achats</a>
-        </div>
-      </div>
-      <div style="position:relative;z-index:1">
-        <img src="https://images.unsplash.com/photo-1571781926291-c477ebfd024b?q=80&w=800&auto=format&fit=crop" alt="Offre spéciale" style="border-radius:var(--radius-md)">
-      </div>
-    </div>
-  </div>
-</section>
+<section><div class="container"><div class="promo-banner reveal"><div style="position:relative;z-index:1"><span class="badge badge-gold" style="margin-bottom:14px">Offre limitée</span><h2>-15% sur votre première commande</h2><p>Utilisez le code <strong>URBANN15</strong> lors du paiement et profitez d'une réduction immédiate sur toute la boutique.</p><div class="hero-actions"><a href="boutique.html" class="btn" style="background:#fff;color:var(--mauve-700)">Commencer mes achats</a></div></div><div style="position:relative;z-index:1"><img src="https://images.unsplash.com/photo-1571781926291-c477ebfd024b?q=80&w=800&auto=format&fit=crop" alt="Offre spéciale" style="border-radius:var(--radius-md)"></div></div></div></section>
 
-<!-- NOUVEAUTES -->
-<section>
-  <div class="container">
-    <div class="section-head reveal">
-      <span class="eyebrow">Fraîchement arrivé</span>
-      <h2>Nos nouveautés</h2>
-      <p>Les dernières pépites à ajouter à votre routine beauté.</p>
-    </div>
-    <div class="product-grid" id="new-grid"></div>
-  </div>
-</section>
+<section><div class="container"><div class="section-head reveal"><span class="eyebrow">Fraîchement arrivé</span><h2>Nos nouveautés</h2><p>Les dernières pépites à ajouter à votre routine beauté.</p></div><div class="product-grid" id="new-grid"></div></div></section>
 
-<!-- TESTIMONIALS -->
-<section style="background:var(--off-white)">
-  <div class="container">
-    <div class="section-head reveal">
-      <span class="eyebrow">Avis clients</span>
-      <h2>Elles nous font confiance</h2>
-      <p>Plus de 2 300 avis vérifiés partagés par notre communauté.</p>
-    </div>
-    <div class="testi-grid" id="testi-grid"></div>
-  </div>
-</section>
+<section style="background:var(--off-white)"><div class="container"><div class="section-head reveal"><span class="eyebrow">Avis clients</span><h2>Elles nous font confiance</h2><p>Plus de 2 300 avis vérifiés partagés par notre communauté.</p></div><div class="testi-grid" id="testi-grid"></div></div></section>
 
-<!-- NEWSLETTER -->
-<section>
-  <div class="container">
-    <div class="newsletter reveal">
-      <span class="eyebrow" style="justify-content:center">Newsletter</span>
-      <h2>Ne manquez aucune nouveauté</h2>
-      <p>Inscrivez-vous et recevez -10% sur votre prochaine commande.</p>
-      <form onsubmit="event.preventDefault(); ubShowToast('Merci ! Vérifiez votre boîte mail.'); this.reset();">
-        <input type="email" required placeholder="Votre adresse email">
-        <button class="btn btn-primary" type="submit">S'inscrire</button>
-      </form>
-    </div>
-  </div>
-</section>
+<section><div class="container"><div class="newsletter reveal"><span class="eyebrow" style="justify-content:center">Newsletter</span><h2>Ne manquez aucune nouveauté</h2><p>Inscrivez-vous et recevez -10% sur votre prochaine commande.</p><form onsubmit="event.preventDefault(); ubShowToast('Merci ! Vérifiez votre boîte mail.'); this.reset();"><input type="email" required placeholder="Votre adresse email"><button class="btn btn-primary" type="submit">S'inscrire</button></form></div></div></section>
 
 <div id="site-footer"></div>
 
@@ -146,38 +67,16 @@
 <script>
   ubRenderHeader('accueil');
   ubRenderFooter();
-
   document.getElementById('cat-grid').innerHTML = ubGetAllCategories().map(c => `
     <a href="boutique.html?cat=${c.id}" class="cat-card reveal" style="position:relative">
       ${c.id === 'accessoires' ? '<span class="badge badge-gold" style="position:absolute;top:10px;right:10px">Tendance</span>' : ''}
-      <span class="cat-icon">${ubIcon(c.icon)}</span>
-      <strong>${c.name}</strong>
-      <span>${UB_PRODUCTS.filter(p => p.category === c.id).length} produits</span>
+      <span class="cat-icon">${ubIcon(c.icon)}</span><strong>${c.name}</strong><span>${UB_PRODUCTS.filter(p => p.category === c.id).length} produits</span>
     </a>`).join('');
-
-  document.getElementById('bestsellers-grid').innerHTML = UB_PRODUCTS
-    .filter(p => p.tag === 'Best-seller' || p.rating >= 4.7)
-    .slice(0, 4)
-    .map(ubProductCardHTML).join('');
-
-  document.getElementById('new-grid').innerHTML = UB_PRODUCTS
-    .filter(p => p.tag === 'Nouveau' || p.tag === 'Promo' || p.tag === 'Édition limitée')
-    .slice(0, 4)
-    .map(ubProductCardHTML).join('');
-
-  document.getElementById('testi-grid').innerHTML = UB_TESTIMONIALS.map(t => `
-    <div class="testi-card reveal">
-      <div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5 - t.rating)}</div>
-      <p>"${t.text}"</p>
-      <div class="testi-user">
-        <img src="${t.avatar}" alt="${t.name}">
-        <div><strong>${t.name}</strong><span>${t.role}</span></div>
-      </div>
-    </div>`).join('');
-
-  document.querySelectorAll('.usp-item .icon[data-icon]').forEach(el => {
-    el.innerHTML = ubIcon(el.dataset.icon);
-  });
+  document.getElementById('bestsellers-grid').innerHTML = UB_PRODUCTS.filter(p => p.tag === 'Best-seller' || p.rating >= 4.7).slice(0,4).map(ubProductCardHTML).join('');
+  document.getElementById('new-grid').innerHTML = UB_PRODUCTS.filter(p => p.tag === 'Nouveau' || p.tag === 'Promo' || p.tag === 'Édition limitée').slice(0,4).map(ubProductCardHTML).join('');
+  document.getElementById('testi-grid').innerHTML = UB_TESTIMONIALS.map(t => `<div class="testi-card reveal"><div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</div><p>"${t.text}"</p><div class="testi-user"><img src="${t.avatar}" alt="${t.name}"><div><strong>${t.name}</strong><span>${t.role}</span></div></div></div>`).join('');
+  document.querySelectorAll('.usp-item .icon[data-icon]').forEach(el => { el.innerHTML = ubIcon(el.dataset.icon); });
 </script>
+<script src="assets/js/premium-enhancements.js"></script>
 </body>
 </html>
