@@ -3,80 +3,94 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Urbann Beauty — Cosmétiques &amp; Beauté</title>
-<meta name="description" content="Urbann Beauty : soins visage, corps, maquillage, cheveux et parfums. Livraison rapide, paiement sécurisé, produits de qualité.">
+<title>Urbann Beauty — Révélez votre éclat naturel</title>
+<meta name="description" content="Urbann Beauty — soins, maquillage, cheveux, parfums et accessoires sélectionnés pour révéler votre beauté.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/premium-enhancements.css">
 </head>
-<body>
-
+<body class="ub-home">
 <div id="site-header"></div>
 
-<section class="hero">
-  <div class="hero-blob"></div>
-  <div class="container">
-    <div class="hero-copy">
+<!-- HERO EDITORIAL -->
+<section class="ub-hero">
+  <div class="ub-hero-glow"></div><div class="ub-hero-orb ub-orb-a"></div><div class="ub-hero-orb ub-orb-b"></div>
+  <div class="container ub-hero-inner">
+    <div class="ub-hero-copy">
       <span class="eyebrow">Nouvelle collection 2026</span>
       <h1>Révélez votre <em>éclat</em> naturel</h1>
-      <p>Découvrez une sélection exigeante de cosmétiques — soins, maquillage et parfums — pensés pour sublimer chaque peau, chaque jour.</p>
-      <div class="hero-actions">
-        <a href="boutique.html" class="btn btn-primary">Découvrir la boutique</a>
-        <a href="a-propos.html" class="btn btn-outline">Notre histoire</a>
-      </div>
-      <div class="hero-stats">
-        <div><strong>12k+</strong><span>Clientes satisfaites</span></div>
-        <div><strong>4.8/5</strong><span>Note moyenne</span></div>
-        <div><strong>250+</strong><span>Produits soigneusement choisis</span></div>
+      <p>Des soins, du maquillage et des parfums soigneusement sélectionnés pour sublimer chaque peau, chaque jour.</p>
+      <div class="hero-actions"><a href="boutique.html" class="btn btn-primary">Découvrir la collection <span>→</span></a><a href="boutique.html" class="btn btn-outline">Voir la boutique</a></div>
+      <div class="ub-trust-row">
+        <div><span>${ubIcon('leaf')}</span><b>Produits authentiques</b><small>Sélection rigoureuse</small></div>
+        <div><span>${ubIcon('truck')}</span><b>Livraison rapide</b><small>Partout au Sénégal</small></div>
+        <div><span>${ubIcon('shield')}</span><b>Paiement sécurisé</b><small>100% fiable</small></div>
+        <div><span>${ubIcon('heart')}</span><b>Satisfaction garantie</b><small>Votre confiance d'abord</small></div>
       </div>
     </div>
-    <div class="hero-visual">
-      <img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=1000&auto=format&fit=crop" alt="Produits de beauté Urbann Beauty">
-      <div class="floating-card"><span class="stars">★★★★★</span><div><strong>+2 300 avis</strong><span>Clientes vérifiées</span></div></div>
+    <div class="ub-hero-art">
+      <div class="ub-hero-image"><img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=1200&auto=format&fit=crop" alt="Beauté naturelle Urbann Beauty"></div>
+      <div class="ub-hero-product"><img src="https://images.unsplash.com/photo-1547887538-e3a2f32cb1cc?q=80&w=600&auto=format&fit=crop" alt="Parfum Urbann Beauty"><span>NOUVEAUTÉ<br>2026</span></div>
+      <div class="ub-hero-script">Plus qu'une<br><i>routine,</i><br>un rituel ♡</div>
+      <div class="ub-slider-dots"><b>01</b><i></i><b>02</b><i></i><b>03</b></div>
+      <button class="ub-play" aria-label="Voir la vidéo">${ubIcon('play')}<small>Voir la vidéo</small></button>
     </div>
   </div>
 </section>
 
-<section class="usp-strip" style="padding-top:34px;padding-bottom:34px;">
+<!-- CATEGORY RAIL + OFFER -->
+<section class="ub-category-zone">
   <div class="container">
-    <div class="usp-item"><span class="icon" data-icon="truck"></span><div><strong>Livraison rapide</strong><span>Partout à Dakar en 24-48h</span></div></div>
-    <div class="usp-item"><span class="icon" data-icon="shield"></span><div><strong>Paiement sécurisé</strong><span>Orange Money, Wave, carte bancaire</span></div></div>
-    <div class="usp-item"><span class="icon" data-icon="return"></span><div><strong>Retours faciles</strong><span>Sous 7 jours, sans conditions</span></div></div>
-    <div class="usp-item"><span class="icon" data-icon="headset"></span><div><strong>Support dédié</strong><span>Une équipe à votre écoute</span></div></div>
+    <div class="ub-category-layout">
+      <div class="ub-category-rail" id="cat-rail"></div>
+      <a href="boutique.html" class="ub-welcome-offer"><span>OFFRE DE BIENVENUE</span><strong>−15%</strong><p>sur votre première commande<br>avec le code <b>URBANN15</b></p><button>J'en profite <em>→</em></button><i></i></a>
+    </div>
   </div>
 </section>
 
-<section><div class="container"><div class="section-head reveal"><span class="eyebrow">Nos univers</span><h2>Achetez par catégorie</h2><p>Une gamme complète pensée pour prendre soin de vous, de la tête aux pieds.</p></div><div class="cat-grid" id="cat-grid"></div></div></section>
+<!-- BEST SELLERS + COMMITMENTS -->
+<section class="ub-products-section">
+  <div class="container">
+    <div class="ub-section-split-head"><div><span class="eyebrow">Nos best-sellers</span><h2>Nos produits <em>préférés</em></h2></div><a href="boutique.html">Voir tous les produits <b>→</b></a></div>
+    <div class="ub-products-layout"><div class="product-grid ub-product-grid" id="bestsellers-grid"></div>
+      <aside class="ub-commitments"><span class="eyebrow">Nos engagements</span><h2>Une beauté plus <em>responsable</em></h2>
+        <div><span>${ubIcon('leaf')}</span><p><b>Ingrédients de qualité</b><small>Des formules sûres et efficaces</small></p></div>
+        <div><span>${ubIcon('heart')}</span><p><b>Respect de toutes les peaux</b><small>Parce que chaque peau est unique</small></p></div>
+        <div><span>${ubIcon('leaf')}</span><p><b>Une démarche plus responsable</b><small>Pour une beauté durable</small></p></div>
+        <a href="a-propos.html" class="btn btn-outline">En savoir plus <b>→</b></a>
+      </aside>
+    </div>
+  </div>
+</section>
 
-<section style="background:var(--off-white)"><div class="container"><div class="section-toolbar reveal"><div class="section-head" style="text-align:left;margin:0"><span class="eyebrow">Sélection</span><h2 style="margin:0">Nos meilleures ventes</h2></div><a href="boutique.html" class="btn btn-outline">Voir toute la boutique</a></div><div class="product-grid" id="bestsellers-grid"></div></div></section>
+<!-- ROUTINE + BRANDS -->
+<section class="ub-editorial">
+  <div class="container ub-editorial-grid">
+    <a href="boutique.html?cat=visage" class="ub-routine"><div><span class="eyebrow">Conseils personnalisés</span><h2>Votre routine beauté<br><em>sur-mesure</em></h2><p>Des conseils personnalisés pour révéler le meilleur de votre peau.</p><button class="btn btn-primary">Faire le diagnostic <b>→</b></button></div><img src="https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?q=80&w=900&auto=format&fit=crop" alt="Routine beauté"></a>
+    <div class="ub-brands"><span class="eyebrow">Sélection</span><h2>Des marques qui<br><em>inspirent confiance</em></h2><div><b>Urbann Beauty</b><span>CAUDALIE</span><span>L'ORÉAL</span><span>NIVEA</span><span>MAYBELLINE</span><span>THE BODY SHOP</span></div></div>
+  </div>
+</section>
 
-<section><div class="container"><div class="promo-banner reveal"><div style="position:relative;z-index:1"><span class="badge badge-gold" style="margin-bottom:14px">Offre limitée</span><h2>-15% sur votre première commande</h2><p>Utilisez le code <strong>URBANN15</strong> lors du paiement et profitez d'une réduction immédiate sur toute la boutique.</p><div class="hero-actions"><a href="boutique.html" class="btn" style="background:#fff;color:var(--mauve-700)">Commencer mes achats</a></div></div><div style="position:relative;z-index:1"><img src="https://images.unsplash.com/photo-1571781926291-c477ebfd024b?q=80&w=800&auto=format&fit=crop" alt="Offre spéciale" style="border-radius:var(--radius-md)"></div></div></div></section>
+<!-- NEW ARRIVALS -->
+<section class="ub-new-section"><div class="container"><div class="ub-section-split-head"><div><span class="eyebrow">Fraîchement arrivé</span><h2>Les dernières <em>pépites</em></h2></div><a href="boutique.html">Découvrir les nouveautés <b>→</b></a></div><div class="product-grid" id="new-grid"></div></div></section>
 
-<section><div class="container"><div class="section-head reveal"><span class="eyebrow">Fraîchement arrivé</span><h2>Nos nouveautés</h2><p>Les dernières pépites à ajouter à votre routine beauté.</p></div><div class="product-grid" id="new-grid"></div></div></section>
+<!-- TESTIMONIALS -->
+<section class="ub-testimonials"><div class="container"><div class="section-head"><span class="eyebrow">Avis clients</span><h2>Elles nous font <em>confiance</em></h2><p>Plus de 2 300 avis vérifiés partagés par notre communauté.</p></div><div class="testi-grid" id="testi-grid"></div></div></section>
 
-<section style="background:var(--off-white)"><div class="container"><div class="section-head reveal"><span class="eyebrow">Avis clients</span><h2>Elles nous font confiance</h2><p>Plus de 2 300 avis vérifiés partagés par notre communauté.</p></div><div class="testi-grid" id="testi-grid"></div></div></section>
-
-<section><div class="container"><div class="newsletter reveal"><span class="eyebrow" style="justify-content:center">Newsletter</span><h2>Ne manquez aucune nouveauté</h2><p>Inscrivez-vous et recevez -10% sur votre prochaine commande.</p><form onsubmit="event.preventDefault(); ubShowToast('Merci ! Vérifiez votre boîte mail.'); this.reset();"><input type="email" required placeholder="Votre adresse email"><button class="btn btn-primary" type="submit">S'inscrire</button></form></div></div></section>
+<!-- NEWSLETTER -->
+<section class="ub-newsletter-section"><div class="container"><div class="newsletter ub-newsletter"><div><span class="eyebrow">Rejoignez notre univers</span><h2>Recevez nos offres <em>exclusives</em></h2><p>Conseils beauté, nouveautés et avantages privés directement dans votre boîte mail.</p></div><form onsubmit="event.preventDefault();ubShowToast('Bienvenue dans l’univers Urbann Beauty !');this.reset();"><input type="email" required placeholder="Votre adresse email"><button class="btn btn-primary">S'inscrire <b>→</b></button></form></div></div></section>
 
 <div id="site-footer"></div>
-
-<script src="assets/js/icons.js"></script>
-<script src="assets/js/data.js"></script>
-<script src="assets/js/main.js"></script>
+<script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/main.js"></script>
 <script>
-  ubRenderHeader('accueil');
-  ubRenderFooter();
-  document.getElementById('cat-grid').innerHTML = ubGetAllCategories().map(c => `
-    <a href="boutique.html?cat=${c.id}" class="cat-card reveal" style="position:relative">
-      ${c.id === 'accessoires' ? '<span class="badge badge-gold" style="position:absolute;top:10px;right:10px">Tendance</span>' : ''}
-      <span class="cat-icon">${ubIcon(c.icon)}</span><strong>${c.name}</strong><span>${UB_PRODUCTS.filter(p => p.category === c.id).length} produits</span>
-    </a>`).join('');
-  document.getElementById('bestsellers-grid').innerHTML = UB_PRODUCTS.filter(p => p.tag === 'Best-seller' || p.rating >= 4.7).slice(0,4).map(ubProductCardHTML).join('');
-  document.getElementById('new-grid').innerHTML = UB_PRODUCTS.filter(p => p.tag === 'Nouveau' || p.tag === 'Promo' || p.tag === 'Édition limitée').slice(0,4).map(ubProductCardHTML).join('');
-  document.getElementById('testi-grid').innerHTML = UB_TESTIMONIALS.map(t => `<div class="testi-card reveal"><div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</div><p>"${t.text}"</p><div class="testi-user"><img src="${t.avatar}" alt="${t.name}"><div><strong>${t.name}</strong><span>${t.role}</span></div></div></div>`).join('');
-  document.querySelectorAll('.usp-item .icon[data-icon]').forEach(el => { el.innerHTML = ubIcon(el.dataset.icon); });
-</script>
-<script src="assets/js/premium-enhancements.js"></script>
-</body>
-</html>
+  // The existing commerce components remain the source of truth for products/cart/admin.
+  ubRenderHeader('accueil'); ubRenderFooter();
+  const categoryImages={visage:'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=500&auto=format&fit=crop',maquillage:'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?q=80&w=500&auto=format&fit=crop',parfums:'https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=500&auto=format&fit=crop',corps:'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?q=80&w=500&auto=format&fit=crop',cheveux:'https://images.unsplash.com/photo-1626015449444-9d9587782a70?q=80&w=500&auto=format&fit=crop',accessoires:'https://images.unsplash.com/photo-1583241800698-9c2660433e0f?q=80&w=500&auto=format&fit=crop'};
+  document.getElementById('cat-rail').innerHTML=ubGetAllCategories().map(c=>`<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${categoryImages[c.id]||categoryImages.visage}" alt=""></span><b>${c.name.replace('Soins ','')}</b></a>`).join('');
+  document.getElementById('bestsellers-grid').innerHTML=UB_PRODUCTS.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4).map(ubProductCardHTML).join('');
+  document.getElementById('new-grid').innerHTML=UB_PRODUCTS.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4).map(ubProductCardHTML).join('');
+  document.getElementById('testi-grid').innerHTML=UB_TESTIMONIALS.map(t=>`<div class="testi-card reveal"><div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</div><p>“${t.text}”</p><div class="testi-user"><img src="${t.avatar}" alt="${t.name}"><div><strong>${t.name}</strong><span>${t.role}</span></div></div></div>`).join('');
+  document.querySelectorAll('.usp-item .icon[data-icon]').forEach(el=>el.innerHTML=ubIcon(el.dataset.icon));
+</script><script src="assets/js/premium-enhancements.js"></script><script src="assets/js/premium-home.js"></script>
+</body></html>
