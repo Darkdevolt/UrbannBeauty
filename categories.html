@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Catégories — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css"></head><body>
+<div id="site-header"></div>
+<section class="page-hero"><div class="container"><span class="eyebrow" style="justify-content:center">Explorer</span><h1>Nos catégories</h1><p style="max-width:600px;margin:0 auto;color:var(--ink-soft)">Des soins du visage aux parfums, retrouvez toute la sélection Urbann Beauty organisée par univers.</p></div></section>
+<section><div class="container"><div class="categories-grid" id="categories-grid"></div></div></section>
+<section style="background:var(--off-white)"><div class="container shop-confidence"><div><strong>Un doute avant de choisir ?</strong><span>Notre équipe est disponible pour vous conseiller.</span></div><a class="btn" href="contact.html">Nous contacter</a></div></section>
+<div id="site-footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
+<script>
+ubRenderHeader('categories');ubRenderFooter();
+(async () => {
+  const [categories, products] = await Promise.all([ubGetAllCategories(), ubGetAllProducts()]);
+  const counts = {};
+  products.forEach(p => { counts[p.category] = (counts[p.category] || 0) + 1; });
+  document.getElementById('categories-grid').innerHTML = categories.map(c => {
+    const count = counts[c.id] || 0;
+    return `<a class="category-card reveal" href="boutique.html?cat=${c.id}">
+      <div class="category-card-media"><img src="${ubGetCategoryImage(c)}" alt="${c.name}" loading="lazy"></div>
+      <div class="category-card-body">
+        <span class="category-card-icon">${ubIcon(c.icon)}</span>
+        <h3>${c.name}</h3>
+        <span class="category-card-count">${count} produit${count > 1 ? 's' : ''}</span>
+      </div>
+    </a>`;
+  }).join('');
+  ubInitReveal();
+})();
+</script>
+</body></html>

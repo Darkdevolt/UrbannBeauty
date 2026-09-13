@@ -61,7 +61,7 @@ function ubRenderHeader(active) {
   const links = [
     { href: 'index.html', label: 'Accueil', key: 'accueil' },
     { href: 'boutique.html', label: 'Boutique', key: 'boutique' },
-    { href: 'boutique.html?cat=visage', label: 'Catégories', key: 'categories' },
+    { href: 'categories.html', label: 'Catégories', key: 'categories' },
     { href: 'a-propos.html', label: 'À propos', key: 'apropos' },
     { href: 'contact.html', label: 'Contact', key: 'contact' },
   ];
