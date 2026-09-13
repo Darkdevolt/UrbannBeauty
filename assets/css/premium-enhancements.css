@@ -1,0 +1,108 @@
+/* Urbann Beauty — Premium visual layer
+   Keeps the existing mauve / ivory / gold identity. */
+:root{
+  --ub-ease:cubic-bezier(.22,1,.36,1);
+  --ub-fast:.28s var(--ub-ease);
+  --ub-slow:.75s var(--ub-ease);
+}
+
+body{background:var(--white);}
+body::selection{background:var(--mauve-200);color:var(--mauve-900)}
+
+/* Header: elegant glass state + depth */
+.site-header{transition:background .45s ease,box-shadow .45s ease,border-color .45s ease,transform .45s var(--ub-ease)}
+.site-header.ub-scrolled{background:rgba(255,255,255,.82);box-shadow:0 12px 40px rgba(46,25,67,.08);border-bottom-color:rgba(142,86,189,.12)}
+.logo{transition:transform var(--ub-fast),letter-spacing var(--ub-fast)}
+.logo:hover{transform:translateY(-1px);letter-spacing:.045em}
+.nav-links a::after{transform:scaleX(0);transform-origin:right;transition:transform .35s var(--ub-ease)}
+.nav-links a:hover::after{content:'';position:absolute;left:0;right:0;bottom:-3px;height:2px;background:var(--mauve-400);border-radius:2px;transform:scaleX(1);transform-origin:left}
+.nav-actions .icon-btn{transition:transform var(--ub-fast),background var(--ub-fast),box-shadow var(--ub-fast)}
+.nav-actions .icon-btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(69,37,99,.09)}
+.search-box{transition:transform var(--ub-fast),border-color var(--ub-fast),box-shadow var(--ub-fast)}
+.search-box:focus-within{transform:translateY(-1px);border-color:var(--mauve-300);box-shadow:0 8px 24px rgba(69,37,99,.07)}
+
+/* Hero: more editorial depth without changing the palette */
+.hero{isolation:isolate;background:radial-gradient(circle at 85% 18%,rgba(193,153,224,.28),transparent 28%),linear-gradient(160deg,var(--off-white),var(--mauve-50) 58%,var(--white));}
+.hero .container{position:relative;z-index:2}
+.hero-copy{animation:ubHeroCopy .9s var(--ub-ease) both}
+.hero-visual{animation:ubHeroVisual 1.05s .08s var(--ub-ease) both;transform:translateZ(0);will-change:transform}
+.hero-visual::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.14),transparent 38%,rgba(46,25,67,.08));pointer-events:none}
+.hero-visual img{transition:transform 1.2s var(--ub-ease),filter 1.2s ease}
+.hero-visual:hover img{transform:scale(1.035);filter:saturate(1.04)}
+.hero-blob{animation:ubBlob 10s ease-in-out infinite alternate}
+.floating-card{animation:ubFloat 5s ease-in-out infinite;transition:transform var(--ub-fast),box-shadow var(--ub-fast)}
+.floating-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg)}
+.hero-stats div{transition:transform var(--ub-fast)}
+.hero-stats div:hover{transform:translateY(-3px)}
+
+/* Buttons */
+.btn{position:relative;overflow:hidden;transition:transform var(--ub-fast),box-shadow var(--ub-fast),background .3s ease}
+.btn::after{content:'';position:absolute;top:0;left:-120%;width:70%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-18deg);transition:left .65s var(--ub-ease)}
+.btn:hover::after{left:145%}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(92,50,128,.20)}
+
+/* Sections reveal with a little more sophistication */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .8s var(--ub-ease)}
+.reveal.in{opacity:1;transform:none}
+.section-head h2{letter-spacing:-.025em}
+.section-head h2::after{content:'';display:block;width:38px;height:2px;margin:16px auto 0;background:linear-gradient(90deg,var(--mauve-300),var(--gold));border-radius:99px;transform:scaleX(0);transition:transform .7s .18s var(--ub-ease)}
+.section-head.reveal.in h2::after{transform:scaleX(1)}
+
+/* USP */
+.usp-item{transition:transform var(--ub-fast)}
+.usp-item:hover{transform:translateY(-3px)}
+.usp-item .icon{transition:transform .45s var(--ub-ease),background .3s ease,box-shadow .3s ease}
+.usp-item:hover .icon{transform:rotate(-5deg) scale(1.08);background:var(--mauve-100);box-shadow:0 10px 20px rgba(69,37,99,.08)}
+
+/* Category cards */
+.cat-card{position:relative;overflow:hidden;transition:transform .45s var(--ub-ease),box-shadow .45s ease,border-color .35s ease,background .35s ease}
+.cat-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(193,153,224,.24),transparent 58%);opacity:0;transition:opacity .45s ease}
+.cat-card:hover{transform:translateY(-8px);box-shadow:0 18px 38px rgba(69,37,99,.10)}
+.cat-card:hover::before{opacity:1}
+.cat-card .cat-icon{position:relative;transition:transform .5s var(--ub-ease),box-shadow .35s ease}
+.cat-card:hover .cat-icon{transform:translateY(-4px) scale(1.07);box-shadow:0 12px 24px rgba(69,37,99,.10)}
+
+/* Product cards */
+.product-card{transition:transform .5s var(--ub-ease),box-shadow .5s ease}
+.product-card:hover{transform:translateY(-7px)}
+.product-media{overflow:hidden;border-radius:var(--radius-md);background:var(--off-white);box-shadow:0 4px 18px rgba(69,37,99,.05)}
+.product-media::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(46,25,67,.06));opacity:0;transition:opacity .35s ease;pointer-events:none}
+.product-card:hover .product-media::after{opacity:1}
+.product-media img{transition:transform .8s var(--ub-ease),filter .5s ease}
+.product-card:hover .product-media img{transform:scale(1.045);filter:saturate(1.035)}
+.product-fav{transition:transform .3s var(--ub-ease),background .3s ease,box-shadow .3s ease!important}
+.product-fav:hover{transform:scale(1.1)!important;box-shadow:0 10px 20px rgba(69,37,99,.12)}
+.product-quickadd{transform:translateY(12px);opacity:0;transition:opacity .35s ease,transform .45s var(--ub-ease),background .3s ease!important}
+.product-card:hover .product-quickadd{opacity:1;transform:translateY(0)}
+.product-info h3 a{background-image:linear-gradient(var(--mauve-500),var(--mauve-500));background-size:0 1px;background-position:0 100%;background-repeat:no-repeat;transition:background-size .45s var(--ub-ease)}
+.product-card:hover .product-info h3 a{background-size:100% 1px}
+
+/* Promo banner */
+.promo-banner{position:relative;overflow:hidden;isolation:isolate;box-shadow:0 20px 50px rgba(69,37,99,.13)}
+.promo-banner::before{content:'';position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(193,153,224,.22);filter:blur(70px);right:20%;top:-230px;z-index:0;animation:ubBlob 8s ease-in-out infinite alternate}
+.promo-banner img{transition:transform .8s var(--ub-ease),filter .5s ease}
+.promo-banner:hover img{transform:scale(1.04);filter:saturate(1.04)}
+
+/* Testimonials */
+.testi-card{transition:transform .45s var(--ub-ease),box-shadow .45s ease,border-color .3s ease}
+.testi-card:hover{transform:translateY(-6px);box-shadow:0 18px 38px rgba(69,37,99,.09);border-color:var(--mauve-200)}
+
+/* Newsletter */
+.newsletter{position:relative;overflow:hidden}
+.newsletter::before,.newsletter::after{content:'';position:absolute;border-radius:50%;pointer-events:none}
+.newsletter::before{width:260px;height:260px;left:-130px;top:-120px;background:var(--mauve-50);filter:blur(8px)}
+.newsletter::after{width:220px;height:220px;right:-100px;bottom:-120px;background:#faf3e4;filter:blur(10px)}
+.newsletter>*{position:relative;z-index:1}
+
+/* Toast / floating WhatsApp polish */
+.toast{box-shadow:0 18px 45px rgba(46,25,67,.18)!important;backdrop-filter:blur(12px)}
+.whatsapp-float{transition:transform .35s var(--ub-ease),box-shadow .35s ease!important}
+.whatsapp-float:hover{transform:translateY(-4px) scale(1.05)!important;box-shadow:0 16px 34px rgba(46,25,67,.18)!important}
+
+@keyframes ubHeroCopy{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes ubHeroVisual{from{opacity:0;transform:translateY(30px) scale(.975)}to{opacity:1;transform:none}}
+@keyframes ubBlob{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-18px,16px,0) scale(1.06)}}
+@keyframes ubFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
+@media (max-width:768px){.product-quickadd{opacity:1;transform:none}.hero-copy{animation-duration:.65s}.hero-visual{animation-duration:.75s}.floating-card{animation:none}.cat-card:hover,.product-card:hover{transform:translateY(-3px)}}
