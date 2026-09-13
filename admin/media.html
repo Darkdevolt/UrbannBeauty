@@ -8,72 +8,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/admin.css">
 <style>
-.media-intro{margin-bottom:22px;color:var(--a-ink-soft);font-size:.9rem;line-height:1.7}
-.media-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.media-card{background:#fff;border:1px solid var(--a-border);border-radius:18px;overflow:hidden;box-shadow:0 8px 28px rgba(55,31,66,.05)}
-.media-preview{aspect-ratio:16/10;background:linear-gradient(135deg,#f7f0f6,#eee5e7);position:relative;overflow:hidden}
-.media-preview img{width:100%;height:100%;object-fit:cover;display:block}
-.media-preview .empty{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--a-ink-soft);font-size:.8rem}
-.media-body{padding:16px}.media-body h3{font-size:1rem;margin:0 0 5px}.media-key{font-size:.72rem;color:var(--a-ink-soft);font-family:monospace}.media-actions{display:flex;gap:8px;margin-top:13px}.media-upload{flex:1}
-.media-cat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.media-cat{padding:14px;border:1px solid var(--a-border);border-radius:16px;background:#fff}.media-cat img{width:100%;aspect-ratio:1;border-radius:12px;object-fit:cover;background:#f7f2f5}.media-cat h4{margin:10px 0 2px}.media-cat small{color:var(--a-ink-soft)}
-.media-note{margin-top:20px;padding:14px 16px;border-radius:12px;background:var(--a-mauve-light);font-size:.8rem;color:var(--a-ink-soft)}
-@media(max-width:1100px){.media-grid,.media-cat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.media-grid,.media-cat-grid{grid-template-columns:1fr}}
+.media-intro{margin-bottom:22px;color:var(--a-ink-soft);font-size:.9rem;line-height:1.7}.media-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.media-card{background:#fff;border:1px solid var(--a-border);border-radius:18px;overflow:hidden;box-shadow:0 8px 28px rgba(55,31,66,.05)}.media-preview{aspect-ratio:16/10;background:linear-gradient(135deg,#f7f0f6,#eee5e7);position:relative;overflow:hidden}.media-preview img{width:100%;height:100%;object-fit:cover;display:block}.media-preview .empty{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--a-ink-soft);font-size:.8rem}.media-body{padding:16px}.media-body h3{font-size:1rem;margin:0 0 5px}.media-key{font-size:.72rem;color:var(--a-ink-soft);font-family:monospace}.media-actions{display:flex;gap:8px;margin-top:13px}.media-upload{flex:1}.media-cat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.media-cat{padding:14px;border:1px solid var(--a-border);border-radius:16px;background:#fff}.media-cat img{width:100%;aspect-ratio:1;border-radius:12px;object-fit:cover;background:#f7f2f5}.media-cat h4{margin:10px 0 2px}.media-cat small{color:var(--a-ink-soft)}.media-note{margin-top:20px;padding:14px 16px;border-radius:12px;background:var(--a-mauve-light);font-size:.8rem;color:var(--a-ink-soft)}@media(max-width:1100px){.media-grid,.media-cat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.media-grid,.media-cat-grid{grid-template-columns:1fr}}
 </style>
 </head>
-<body>
-<div class="admin-shell" id="admin-shell"></div>
-<script src="../assets/js/icons.js"></script>
-<script src="../assets/js/data.js"></script>
-<script src="../assets/js/media.js"></script>
-<script src="assets/admin.js"></script>
+<body><div class="admin-shell" id="admin-shell"></div>
+<script src="../assets/js/icons.js"></script><script src="../assets/js/data.js"></script><script src="../assets/js/media.js"></script><script src="assets/admin.js"></script>
 <script>
-ubAdminGuard();
-ubAdminRenderShell('media','Médiathèque','Gérez les visuels du site et affectez-les à chaque emplacement');
-
-const MEDIA_SLOTS = [
-  ['heroMain','Hero principal','Visuel principal de la page d’accueil'],
-  ['heroProduct','Produit Hero','Produit flottant dans le Hero'],
-  ['welcomeOffer','Offre de bienvenue','Visuel du bloc −15%'],
-  ['editorialRoutine','Routine beauté','Visuel du bloc conseils personnalisés'],
-  ['brandsEditorial','Sélection marques','Visuel éditorial des marques'],
-  ['commitmentBeauty','Engagements','Visuel de la section engagements']
-];
-
-function renderMedia(){
-  const cfg=ubGetMediaConfig();
-  const cats=ubGetAllCategories();
-  document.getElementById('a-content').innerHTML=`
-    <div class="a-panel" style="padding:20px">
-      <p class="media-intro"><strong>Une seule médiathèque pour tout le site.</strong><br>Vous pouvez importer une image depuis votre ordinateur ou renseigner une URL. Les images affectées ici remplacent immédiatement les visuels par défaut du site dans ce navigateur.</p>
-      <div class="media-grid">${MEDIA_SLOTS.map(([key,title,desc])=>`
-        <article class="media-card">
-          <div class="media-preview">${cfg[key]?`<img src="${cfg[key]}" alt="${title}">`:`<div class="empty">${ubIcon('image')}<span>Aucun visuel</span></div>`}</div>
-          <div class="media-body"><h3>${title}</h3><div class="media-key">${key}</div><small style="color:var(--a-ink-soft)">${desc}</small>
-            <div class="media-actions"><label class="a-btn a-btn-outline media-upload" style="cursor:pointer">${ubIcon('upload')} Importer<input type="file" accept="image/*" data-slot="${key}" hidden></label><button class="a-btn a-btn-outline" onclick="resetSlot('${key}')" title="Restaurer le visuel par défaut">↺</button></div>
-          </div>
-        </article>`).join('')}</div>
-    </div>
-    <div class="a-panel" style="padding:20px;margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px"><div><h2 style="margin:0;font-size:1.15rem">Images des catégories</h2><p style="margin:4px 0 0;color:var(--a-ink-soft);font-size:.82rem">Associez une image spécifique à chaque catégorie.</p></div><a href="categories.html" class="a-btn a-btn-outline a-btn-sm">Gérer les catégories</a></div>
-      <div class="media-cat-grid">${cats.map(c=>{const src=ubGetCategoryImage(c);return `<article class="media-cat"><img src="${src}" alt="${c.name}"><h4>${c.name}</h4><small>${c.id}</small><div style="margin-top:10px"><label class="a-btn a-btn-outline a-btn-sm" style="cursor:pointer">${ubIcon('upload')} Changer<input type="file" accept="image/*" data-cat="${c.id}" hidden></label></div></article>`}).join('')}</div>
-    </div>
-    <div class="media-note">ℹ️ Cette version du site est encore statique : les uploads de l’admin sont compressés puis conservés dans le stockage local du navigateur. Pour une vraie administration multi-appareils avec stockage cloud, il faudra ensuite brancher Supabase Storage/API.</div>`;
-
-  document.querySelectorAll('input[data-slot]').forEach(input=>input.addEventListener('change',e=>{
-    const file=e.target.files[0]; if(!file)return;
-    ubReadImageFile(file,url=>{ubSetMedia(e.target.dataset.slot,url);ubAToast('Visuel mis à jour');renderMedia();});
-  }));
-  document.querySelectorAll('input[data-cat]').forEach(input=>input.addEventListener('change',e=>{
-    const file=e.target.files[0]; if(!file)return;
-    ubReadImageFile(file,url=>{
-      const list=ubGetAllCategories(); const cat=list.find(c=>c.id===e.target.dataset.cat); if(!cat)return;
-      cat.image=url; ubSaveAllCategories(list); ubAToast('Image de catégorie mise à jour'); renderMedia();
-    });
-  }));
-}
-function resetSlot(key){
-  const cfg=ubGetMediaConfig(); cfg[key]=UB_DEFAULT_MEDIA[key]; ubSaveMediaConfig(cfg); ubAToast('Visuel par défaut restauré'); renderMedia();
-}
-renderMedia();
-</script>
-</body>
-</html>
+ubAdminGuard();ubAdminRenderShell('media','Médiathèque','Gérez les visuels du site et affectez-les à chaque emplacement');
+const MEDIA_SLOTS=[['heroMain','Hero principal','Visuel principal de la page d’accueil'],['heroProduct','Produit Hero','Produit flottant dans le Hero'],['welcomeOffer','Offre de bienvenue','Visuel du bloc −15%'],['editorialRoutine','Routine beauté','Visuel du bloc conseils personnalisés'],['brandsEditorial','Sélection marques','Visuel éditorial des marques'],['commitmentBeauty','Engagements','Visuel de la section engagements']];
+function renderMedia(){const cfg=ubGetMediaConfig(),cats=ubGetAllCategories();document.getElementById('a-content').innerHTML=`<div class="a-panel" style="padding:20px"><p class="media-intro"><strong>Une seule médiathèque pour tout le site.</strong><br>Importez une image depuis votre ordinateur. Les images affectées ici remplacent immédiatement les visuels par défaut du site dans ce navigateur.</p><div class="media-grid">${MEDIA_SLOTS.map(([key,title,desc])=>`<article class="media-card"><div class="media-preview">${cfg[key]?`<img src="${cfg[key]}" alt="${title}">`:`<div class="empty">${ubIcon('image')}<span>Aucun visuel</span></div>`}</div><div class="media-body"><h3>${title}</h3><div class="media-key">${key}</div><small style="color:var(--a-ink-soft)">${desc}</small><div class="media-actions"><label class="a-btn a-btn-outline media-upload" style="cursor:pointer">${ubIcon('upload')} Importer<input type="file" accept="image/*" data-slot="${key}" hidden></label><button class="a-btn a-btn-outline" onclick="resetSlot('${key}')" title="Restaurer le visuel par défaut">↺</button></div></div></article>`).join('')}</div></div><div class="a-panel" style="padding:20px;margin-top:20px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px"><div><h2 style="margin:0;font-size:1.15rem">Images des catégories</h2><p style="margin:4px 0 0;color:var(--a-ink-soft);font-size:.82rem">Associez une image spécifique à chaque catégorie.</p></div><a href="categories.html" class="a-btn a-btn-outline a-btn-sm">Gérer les catégories</a></div><div class="media-cat-grid">${cats.map(c=>{const src=ubGetCategoryImage(c);return `<article class="media-cat"><img src="${src}" alt="${c.name}"><h4>${c.name}</h4><small>${c.id}</small><div style="margin-top:10px"><label class="a-btn a-btn-outline a-btn-sm" style="cursor:pointer">${ubIcon('upload')} Changer<input type="file" accept="image/*" data-cat="${c.id}" hidden></label></div></article>`}).join('')}</div></div><div class="media-note">ℹ️ Cette version statique compresse les uploads et les conserve dans le stockage local du navigateur. Pour une gestion centralisée sur plusieurs appareils, il faudra ensuite brancher Supabase Storage/API.</div>`;
+ document.querySelectorAll('input[data-slot]').forEach(input=>input.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;ubReadImageFile(file,url=>{ubSetMedia(e.target.dataset.slot,url);ubAToast('Visuel mis à jour');renderMedia();});}));
+ document.querySelectorAll('input[data-cat]').forEach(input=>input.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;ubReadImageFile(file,url=>{const list=ubGetAllCategories(),cat=list.find(c=>c.id===e.target.dataset.cat);if(!cat)return;cat.image=url;ubSaveAllCategories(list);ubAToast('Image de catégorie mise à jour');renderMedia();});}));}
+function resetSlot(key){const cfg=ubGetMediaConfig();cfg[key]=UB_DEFAULT_MEDIA[key];ubSaveMediaConfig(cfg);ubAToast('Visuel par défaut restauré');renderMedia();}renderMedia();
+</script></body></html>
