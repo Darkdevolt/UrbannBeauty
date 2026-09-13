@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau de bord — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+
+<div class="admin-shell" id="admin-shell"></div>
+
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+  ubAdminGuard();
+  ubAdminRenderShell('dashboard', 'Tableau de bord', 'Aperçu de l\'activité de votre boutique aujourd\'hui');
+
+  const products = ubAdminGetProducts();
+  const orders = ubAdminGetOrders();
+  const lowStock = products.filter(p => p.stock <= 5);
+  const revenue = orders.filter(o => o.status !== 'annulee').reduce((s, o) => s + o.total, 0);
+  const avgBasket = Math.round(revenue / orders.filter(o => o.status !== 'annulee').length);
+
+  document.getElementById('a-content').innerHTML = `
+    <div class="a-stats-grid">
+      <div class="a-panel a-stat-card">
+        <div class="row">
+          <div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('chart')}</div>
+        </div>
+        <div class="value">${ubFormatPrice(revenue)}</div>
+        <div class="label">Chiffre d'affaires (30 jours)</div>
+        <div class="a-trend up">▲ 12.4% vs mois dernier</div>
+      </div>
+      <div class="a-panel a-stat-card">
+        <div class="row">
+          <div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('orders')}</div>
+        </div>
+        <div class="value">${orders.length}</div>
+        <div class="label">Commandes ce mois-ci</div>
+        <div class="a-trend up">▲ 6 nouvelles aujourd'hui</div>
+      </div>
+      <div class="a-panel a-stat-card">
+        <div class="row">
+          <div class="icon" style="background:#fbf1e3;color:#c98a3e">${ubIcon('box')}</div>
+        </div>
+        <div class="value">${products.length}</div>
+        <div class="label">Produits au catalogue</div>
+        <div class="a-trend down">${lowStock.length} en stock faible</div>
+      </div>
+      <div class="a-panel a-stat-card">
+        <div class="row">
+          <div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('users')}</div>
+        </div>
+        <div class="value">${ubFormatPrice(avgBasket)}</div>
+        <div class="label">Panier moyen</div>
+        <div class="a-trend up">▲ 3.1% vs mois dernier</div>
+      </div>
+    </div>
+
+    <div class="a-grid-2">
+      <div class="a-panel">
+        <div class="a-panel-head">
+          <h3>Ventes des 7 derniers jours</h3>
+          <select class="a-select"><option>7 derniers jours</option><option>30 derniers jours</option></select>
+        </div>
+        <div class="a-panel-body">
+          <div class="chart-bars" id="chart-bars"></div>
+        </div>
+      </div>
+      <div class="a-panel">
+        <div class="a-panel-head"><h3>Ventes par catégorie</h3></div>
+        <div class="a-panel-body">
+          <div id="cat-bars"></div>
+          <div class="donut-legend" id="cat-legend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="a-grid-2" style="margin-top:22px">
+      <div class="a-panel">
+        <div class="a-panel-head">
+          <h3>Dernières commandes</h3>
+          <a href="commandes.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a>
+        </div>
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Commande</th><th>Client</th><th>Total</th><th>Statut</th></tr></thead>
+            <tbody id="orders-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="a-panel">
+        <div class="a-panel-head">
+          <h3>Alertes stock faible</h3>
+          <a href="produits.html" class="a-btn a-btn-outline a-btn-sm">Gérer le stock</a>
+        </div>
+        <div class="a-panel-body" style="padding-top:8px">
+          <div id="low-stock-list"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Chart barres ventes 7 jours (données démo)
+  const days = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  const values = [42, 58, 39, 71, 65, 88, 54];
+  const max = Math.max(...values);
+  document.getElementById('chart-bars').innerHTML = days.map((d, i) => `
+    <div class="bar-col">
+      <div class="bar" style="height:${(values[i]/max*100)}%"></div>
+      <span class="bar-label">${d}</span>
+    </div>`).join('');
+
+  // Répartition par catégorie
+  const catColors = ['#8e56bd','#c199e0','#d1495c','#c98a3e','#2f9e63','#6b6478'];
+  const catData = UB_CATEGORIES.map((c, i) => ({
+    ...c,
+    count: products.filter(p => p.category === c.id).length,
+    color: catColors[i % catColors.length],
+  }));
+  const totalCount = catData.reduce((s,c) => s + c.count, 0) || 1;
+  document.getElementById('cat-bars').innerHTML = `
+    <div style="display:flex;height:16px;border-radius:999px;overflow:hidden">
+      ${catData.map(c => `<div style="width:${c.count/totalCount*100}%;background:${c.color}"></div>`).join('')}
+    </div>`;
+  document.getElementById('cat-legend').innerHTML = catData.map(c => `
+    <div class="item"><span class="dot" style="background:${c.color}"></span> ${c.name} <span style="color:var(--a-ink-soft);margin-left:auto">${c.count} produits</span></div>
+  `).join('');
+
+  document.getElementById('orders-tbody').innerHTML = orders.slice(0, 5).map(o => `
+    <tr>
+      <td><strong>${o.id}</strong></td>
+      <td>${o.client}</td>
+      <td>${ubFormatPrice(o.total)}</td>
+      <td>${ubOrderStatusBadge(o.status)}</td>
+    </tr>`).join('');
+
+  document.getElementById('low-stock-list').innerHTML = lowStock.length ? lowStock.map(p => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--a-line)">
+      <img src="${p.img}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">
+      <div style="flex:1">
+        <strong style="display:block;font-size:.85rem">${p.name}</strong>
+        <span style="font-size:.76rem;color:var(--a-ink-soft)">${p.stock} unités restantes</span>
+      </div>
+      ${ubStockBadge(p.stock)}
+    </div>`).join('') : `<p style="color:var(--a-ink-soft);font-size:.86rem">Aucune alerte de stock pour le moment.</p>`;
+</script>
+</body>
+</html>

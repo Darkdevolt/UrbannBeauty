@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion Admin — Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+
+<div class="login-page">
+  <div class="login-visual">
+    <div class="logo">Urbann<span>Beauty</span></div>
+    <h2>Gérez votre boutique en toute simplicité</h2>
+    <p>Produits, stock, ventes et clients : pilotez toute votre activité depuis un tableau de bord unique, pensé pour aller à l'essentiel.</p>
+  </div>
+  <div class="login-form-wrap">
+    <div class="login-form">
+      <h1>Espace administration</h1>
+      <p class="sub">Connectez-vous pour accéder à votre tableau de bord.</p>
+      <form id="login-form">
+        <div class="a-field">
+          <label>Adresse email</label>
+          <input type="email" id="login-email" value="admin@urbannbeauty.com" required>
+        </div>
+        <div class="a-field">
+          <label>Mot de passe</label>
+          <input type="password" id="login-password" value="demo1234" required>
+        </div>
+        <div class="remember-row">
+          <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" checked> Se souvenir de moi</label>
+          <a href="#" style="color:var(--a-mauve)">Mot de passe oublié ?</a>
+        </div>
+        <button class="a-btn a-btn-primary a-btn-block" type="submit">Se connecter</button>
+      </form>
+      <div class="demo-hint">Maquette de démonstration : les identifiants sont pré-remplis, cliquez simplement sur « Se connecter ».</div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+  document.getElementById('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    ubAdminLogin();
+    location.href = 'dashboard.html';
+  });
+</script>
+</body>
+</html>
