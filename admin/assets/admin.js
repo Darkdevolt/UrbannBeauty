@@ -241,6 +241,29 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
   if (window.innerWidth <= 980) burger.style.display = 'flex';
   window.addEventListener('resize', () => { burger.style.display = window.innerWidth <= 980 ? 'flex' : 'none'; });
   burger.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+  const content = document.getElementById('a-content');
+  if (content) {
+    ubInitTableScrollShadows(content);
+    new MutationObserver(() => ubInitTableScrollShadows(content)).observe(content, { childList: true, subtree: true });
+  }
+}
+
+/* ---------- Ombres de defilement horizontal des tableaux (mobile) ---------- */
+function ubWireTableScrollShadow(wrap) {
+  if (wrap.dataset.scrollShadowWired) return;
+  wrap.dataset.scrollShadowWired = '1';
+  const update = () => {
+    const max = wrap.scrollWidth - wrap.clientWidth;
+    wrap.classList.toggle('has-scroll-left', wrap.scrollLeft > 4);
+    wrap.classList.toggle('has-scroll-right', max > 4 && wrap.scrollLeft < max - 4);
+  };
+  wrap.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+}
+function ubInitTableScrollShadows(scope) {
+  (scope || document).querySelectorAll('.a-table-wrap').forEach(ubWireTableScrollShadow);
 }
 
 function ubStockBadge(stock) {

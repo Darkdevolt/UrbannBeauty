@@ -209,7 +209,15 @@ h1,h2,h3,h4 { font-family: 'Playfair Display', serif; margin: 0; color: var(--a-
 .donut-legend .dot { width: 10px; height: 10px; border-radius: 3px; }
 
 /* ---------- Tables ---------- */
-.a-table-wrap { overflow-x: auto; }
+.a-table-wrap { position: relative; overflow-x: auto; }
+.a-table-wrap::before, .a-table-wrap::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 28px;
+  pointer-events: none; opacity: 0; transition: opacity .2s ease; z-index: 1;
+}
+.a-table-wrap::before { left: 0; background: linear-gradient(to right, rgba(46,25,67,.14), rgba(46,25,67,0)); }
+.a-table-wrap::after { right: 0; background: linear-gradient(to left, rgba(46,25,67,.14), rgba(46,25,67,0)); }
+.a-table-wrap.has-scroll-left::before { opacity: 1; }
+.a-table-wrap.has-scroll-right::after { opacity: 1; }
 .a-table { width: 100%; border-collapse: collapse; }
 .a-table th {
   text-align: left; font-size: .74rem; text-transform: uppercase; letter-spacing: .04em;
