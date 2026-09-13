@@ -59,7 +59,7 @@ async function ubGetCategory(id) {
 /* ---------- Produits ---------- */
 function ubMapProduct(p) {
   return {
-    id: p.id, name: p.name, category: p.category_id, price: p.price, oldPrice: p.old_price,
+    id: p.id, name: p.name, category: p.category_id, gender: p.gender || 'mixte', price: p.price, oldPrice: p.old_price,
     stock: p.stock, rating: Number(p.rating), reviews: p.reviews, tag: p.tag,
     desc: p.description, img: p.image_url, video: p.video_url,
   };

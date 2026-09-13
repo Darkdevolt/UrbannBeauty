@@ -26,7 +26,7 @@ async function ubAdminGuard() {
 async function ubAdminGetProducts() { return ubGetAllProducts(); }
 async function ubAdminSaveProduct(p) {
   const { error } = await ubSupabase.from('products').upsert({
-    id: p.id, name: p.name, category_id: p.category, price: p.price, old_price: p.oldPrice || null,
+    id: p.id, name: p.name, category_id: p.category, gender: p.gender || 'mixte', price: p.price, old_price: p.oldPrice || null,
     stock: p.stock, rating: p.rating, reviews: p.reviews, tag: p.tag || null, description: p.desc,
     image_url: p.img, video_url: p.video || null, updated_at: new Date().toISOString(),
   });

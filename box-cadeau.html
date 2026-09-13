@@ -1,0 +1,117 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Box Cadeau — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css"></head><body>
+<div id="site-header"></div>
+<section class="page-hero"><div class="container"><span class="eyebrow" style="justify-content:center">Cadeau sur mesure</span><h1>Composez votre box cadeau</h1><p style="max-width:600px;margin:0 auto;color:var(--ink-soft)">Choisissez un budget et un destinataire, puis sélectionnez les produits qui composeront votre box.</p></div></section>
+<section><div class="container">
+  <div class="giftbox-controls">
+    <div class="giftbox-field">
+      <label>Pour qui ?</label>
+      <div class="giftbox-recipient">
+        <button type="button" class="giftbox-recipient-btn active" data-gender="tous">Tous</button>
+        <button type="button" class="giftbox-recipient-btn" data-gender="femme">Femme</button>
+        <button type="button" class="giftbox-recipient-btn" data-gender="homme">Homme</button>
+      </div>
+    </div>
+    <div class="giftbox-field">
+      <label for="giftbox-budget">Budget maximum</label>
+      <input type="number" id="giftbox-budget" min="0" step="1000" value="25000" placeholder="25000">
+    </div>
+  </div>
+  <div class="giftbox-layout">
+    <div class="product-grid" id="giftbox-grid"></div>
+    <aside class="giftbox-summary">
+      <h3>Votre box</h3>
+      <div class="giftbox-budget-bar"><div class="giftbox-budget-fill" id="giftbox-budget-fill"></div></div>
+      <div class="giftbox-total-row"><span id="giftbox-total">0 FCFA</span><span id="giftbox-budget-label">/ 25 000 FCFA</span></div>
+      <div id="giftbox-selected-list" class="giftbox-selected-list"></div>
+      <button class="btn btn-primary btn-block" id="giftbox-add-btn" disabled>Ajouter la box au panier</button>
+      <p id="giftbox-empty-msg" style="font-size:.76rem;color:var(--ink-soft);text-align:center;margin-top:10px">Sélectionnez au moins un produit.</p>
+    </aside>
+  </div>
+</div></section>
+<div id="site-footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
+<script>
+ubRenderHeader('boutique');ubRenderFooter();
+
+let giftboxProducts = [], giftboxCatsById = {};
+let giftboxGender = 'tous';
+let giftboxSelected = {}; // id -> product
+
+function giftboxBudget(){ return Math.max(0, Number(document.getElementById('giftbox-budget').value) || 0); }
+function giftboxTotal(){ return Object.values(giftboxSelected).reduce((s,p)=>s+p.price,0); }
+
+function giftboxRenderGrid(){
+  const eligible = giftboxProducts.filter(p => giftboxGender === 'tous' || p.gender === 'mixte' || p.gender === giftboxGender);
+  const budget = giftboxBudget();
+  const total = giftboxTotal();
+  document.getElementById('giftbox-grid').innerHTML = eligible.length ? eligible.map(p => {
+    const selected = !!giftboxSelected[p.id];
+    const wouldExceed = !selected && (total + p.price) > budget;
+    return `<div class="product-card giftbox-card ${selected?'selected':''} ${wouldExceed?'disabled':''}">
+      <div class="product-media"><img src="${p.img}" alt="${p.name}" loading="lazy"></div>
+      <div class="product-info">
+        <span class="product-cat">${giftboxCatsById[p.category]?.name||''}</span>
+        <h3>${p.name}</h3>
+        <div class="product-price"><span class="price-now">${ubFormatPrice(p.price)}</span></div>
+        <button type="button" class="btn ${selected?'btn-primary':'btn-outline'} btn-sm btn-block" style="margin-top:10px" ${wouldExceed?'disabled':''} onclick="giftboxToggle('${p.id}')">${selected?'Retirer':(wouldExceed?'Dépasse le budget':'Ajouter à la box')}</button>
+      </div>
+    </div>`;
+  }).join('') : `<div class="shop-empty"><span>♡</span><h3>Aucun produit disponible</h3><p>Essayez un autre destinataire ou budget.</p></div>`;
+}
+
+function giftboxRenderSummary(){
+  const total = giftboxTotal();
+  const budget = giftboxBudget();
+  const items = Object.values(giftboxSelected);
+  document.getElementById('giftbox-total').textContent = ubFormatPrice(total);
+  document.getElementById('giftbox-budget-label').textContent = '/ ' + ubFormatPrice(budget);
+  const pct = budget > 0 ? Math.min(100, (total/budget)*100) : 0;
+  const fill = document.getElementById('giftbox-budget-fill');
+  fill.style.width = pct + '%';
+  fill.classList.toggle('over', total > budget);
+  document.getElementById('giftbox-selected-list').innerHTML = items.map(p =>
+    `<div class="giftbox-selected-item"><span>${p.name}</span><strong>${ubFormatPrice(p.price)}</strong><button type="button" aria-label="Retirer" onclick="giftboxToggle('${p.id}')">${ubIcon('close')}</button></div>`
+  ).join('');
+  document.getElementById('giftbox-add-btn').disabled = items.length === 0;
+  document.getElementById('giftbox-empty-msg').style.display = items.length === 0 ? 'block' : 'none';
+}
+
+window.giftboxToggle = function(id){
+  if(giftboxSelected[id]) delete giftboxSelected[id];
+  else {
+    const p = giftboxProducts.find(x=>x.id===id);
+    if(!p) return;
+    if(giftboxTotal() + p.price > giftboxBudget()) return;
+    giftboxSelected[id] = p;
+  }
+  giftboxRenderGrid();
+  giftboxRenderSummary();
+};
+
+document.querySelectorAll('.giftbox-recipient-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.giftbox-recipient-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    giftboxGender = btn.dataset.gender;
+    giftboxRenderGrid();
+  });
+});
+document.getElementById('giftbox-budget').addEventListener('input', () => {
+  giftboxSelected = {};
+  giftboxRenderGrid();
+  giftboxRenderSummary();
+});
+document.getElementById('giftbox-add-btn').addEventListener('click', () => {
+  Object.keys(giftboxSelected).forEach(id => ubAddToCart(id, 1));
+  location.href = 'panier.html';
+});
+
+(async () => {
+  const [products, categories] = await Promise.all([ubGetAllProducts(), ubGetAllCategories()]);
+  giftboxProducts = products;
+  giftboxCatsById = ubCatsById(categories);
+  giftboxRenderGrid();
+  giftboxRenderSummary();
+})();
+</script>
+</body></html>

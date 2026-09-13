@@ -62,6 +62,7 @@ function ubRenderHeader(active) {
     { href: 'index.html', label: 'Accueil', key: 'accueil' },
     { href: 'boutique.html', label: 'Boutique', key: 'boutique' },
     { href: 'categories.html', label: 'Catégories', key: 'categories' },
+    { href: 'box-cadeau.html', label: 'Box Cadeau', key: 'boxcadeau' },
     { href: 'a-propos.html', label: 'À propos', key: 'apropos' },
     { href: 'contact.html', label: 'Contact', key: 'contact' },
   ];

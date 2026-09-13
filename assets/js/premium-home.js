@@ -5,7 +5,7 @@
     const root=document.getElementById('site-header');
     if(!root) return;
     const links=[
-      ['index.html','Accueil','accueil'],['boutique.html','Boutique','boutique'],['categories.html','Catégories','categories'],['boutique.html?cat=parfums','Nos marques','marques'],['a-propos.html','À propos','apropos'],['contact.html','Contact','contact']
+      ['index.html','Accueil','accueil'],['boutique.html','Boutique','boutique'],['categories.html','Catégories','categories'],['box-cadeau.html','Box Cadeau','boxcadeau'],['a-propos.html','À propos','apropos'],['contact.html','Contact','contact']
     ];
     root.innerHTML=`
       <div class="ub-topline">
