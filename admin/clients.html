@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clients — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+
+<div class="admin-shell" id="admin-shell"></div>
+
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+  ubAdminGuard();
+  ubAdminRenderShell('clients', 'Clients', 'Retrouvez toutes les clientes ayant commandé sur votre boutique');
+
+  const orders = ubAdminGetOrders();
+  const clientsMap = {};
+  orders.forEach(o => {
+    if (!clientsMap[o.client]) clientsMap[o.client] = { name: o.client, orders: 0, total: 0, lastDate: o.date };
+    clientsMap[o.client].orders += 1;
+    clientsMap[o.client].total += o.total;
+    if (new Date(o.date) > new Date(clientsMap[o.client].lastDate)) clientsMap[o.client].lastDate = o.date;
+  });
+  const clients = Object.values(clientsMap).sort((a, b) => b.total - a.total);
+
+  document.getElementById('a-content').innerHTML = `
+    <div class="a-toolbar">
+      <div class="a-search">${ubIcon('search')}<input type="text" placeholder="Rechercher une cliente..."></div>
+    </div>
+    <div class="a-panel">
+      <div class="a-table-wrap">
+        <table class="a-table">
+          <thead><tr><th>Cliente</th><th>Commandes</th><th>Total dépensé</th><th>Dernière commande</th><th>Statut</th></tr></thead>
+          <tbody>
+            ${clients.map(c => `
+              <tr>
+                <td>
+                  <div class="a-prod-cell">
+                    <div class="avatar" style="width:38px;height:38px;border-radius:50%;background:var(--a-mauve-light);color:var(--a-mauve);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem">${c.name.split(' ').map(n=>n[0]).join('')}</div>
+                    <div><strong>${c.name}</strong><span>Cliente depuis 2025</span></div>
+                  </div>
+                </td>
+                <td>${c.orders} commande${c.orders > 1 ? 's' : ''}</td>
+                <td><strong>${ubFormatPrice(c.total)}</strong></td>
+                <td>${new Date(c.lastDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                <td>${c.total > 80000 ? '<span class="a-badge success">VIP</span>' : '<span class="a-badge neutral">Régulière</span>'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+</script>
+</body>
+</html>

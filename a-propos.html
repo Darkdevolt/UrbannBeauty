@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>À propos — Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div id="site-header"></div>
+
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow" style="justify-content:center">Notre histoire</span>
+    <h1>La beauté, révélée avec exigence</h1>
+    <p style="max-width:600px;margin:0 auto;color:var(--ink-soft)">Urbann Beauty est née d'une conviction simple : chaque peau mérite des produits sûrs, efficaces et sélectionnés avec soin.</p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="contact-layout">
+      <div>
+        <span class="eyebrow">Depuis 2019</span>
+        <h2>Une passion devenue une marque de confiance</h2>
+        <p style="color:var(--ink-soft)">Urbann Beauty a démarré avec une seule idée en tête : rendre accessibles des cosmétiques de qualité, rigoureusement sélectionnés, sans compromis sur la sécurité ni l'efficacité. Aujourd'hui, nous accompagnons plus de 12 000 clientes à travers tout le pays.</p>
+        <p style="color:var(--ink-soft)">Chaque produit de notre catalogue est testé, approuvé et choisi pour sa qualité, ses ingrédients et son impact réel sur la peau et les cheveux.</p>
+      </div>
+      <div class="hero-visual" style="aspect-ratio:4/3.4">
+        <img src="https://images.unsplash.com/photo-1522337194846-cc6b8ba3b7ff?q=80&w=900&auto=format&fit=crop" alt="Notre équipe">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--off-white)">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Nos valeurs</span>
+      <h2>Ce qui nous engage</h2>
+    </div>
+    <div class="value-grid">
+      <div class="value-card">{{leaf}}<h3 style="font-size:1rem">Ingrédients sûrs</h3><p style="color:var(--ink-soft);font-size:.88rem">Formules testées, sans composants controversés.</p></div>
+      <div class="value-card">{{shield}}<h3 style="font-size:1rem">Qualité garantie</h3><p style="color:var(--ink-soft);font-size:.88rem">Chaque référence passe un contrôle qualité strict.</p></div>
+      <div class="value-card">{{truck}}<h3 style="font-size:1rem">Livraison fiable</h3><p style="color:var(--ink-soft);font-size:.88rem">Suivi de commande en temps réel, partout au pays.</p></div>
+      <div class="value-card">{{headset}}<h3 style="font-size:1rem">Accompagnement</h3><p style="color:var(--ink-soft);font-size:.88rem">Une équipe disponible pour vous conseiller.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Chiffres clés</span>
+      <h2>Urbann Beauty en quelques chiffres</h2>
+    </div>
+    <div class="hero-stats" style="justify-content:center;border:none;padding:0">
+      <div><strong>12k+</strong><span>Clientes satisfaites</span></div>
+      <div><strong>250+</strong><span>Produits référencés</span></div>
+      <div><strong>4.8/5</strong><span>Note moyenne</span></div>
+      <div><strong>7</strong><span>Ans d'expérience</span></div>
+    </div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+  ubRenderHeader('apropos');
+  ubRenderFooter();
+  document.querySelectorAll('.value-card').forEach(card => {
+    const m = card.innerHTML.match(/\{\{(\w+)\}\}/);
+    if (m) card.innerHTML = card.innerHTML.replace(m[0], ubIcon(m[1]));
+  });
+</script>
+</body>
+</html>

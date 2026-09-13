@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="doc-title">Produit — Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div id="site-header"></div>
+
+<div class="breadcrumb">
+  <div class="container">
+    <a href="index.html">Accueil</a><span>/</span>
+    <a href="boutique.html">Boutique</a><span>/</span>
+    <span id="bc-current">Produit</span>
+  </div>
+</div>
+
+<section style="padding-top:48px" id="product-section"></section>
+
+<section style="background:var(--off-white)">
+  <div class="container">
+    <div class="section-toolbar reveal">
+      <div class="section-head" style="text-align:left;margin:0">
+        <span class="eyebrow">Vous aimerez aussi</span>
+        <h2 style="margin:0">Produits similaires</h2>
+      </div>
+    </div>
+    <div class="product-grid" id="related-grid"></div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+  ubRenderHeader('boutique');
+  ubRenderFooter();
+
+  const params = new URLSearchParams(location.search);
+  const product = ubGetProduct(params.get('id')) || UB_PRODUCTS[0];
+  const cat = ubGetCategory(product.category);
+  let qty = 1;
+
+  document.title = product.name + ' — Urbann Beauty';
+  document.getElementById('bc-current').textContent = product.name;
+
+  const gallery = [
+    { type: 'image', src: product.img },
+    { type: 'image', src: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop' },
+    { type: 'video', src: '', poster: product.img },
+  ];
+
+  document.getElementById('product-section').innerHTML = `
+    <div class="container">
+      <div class="product-detail">
+        <div>
+          <div class="pd-gallery-main" id="pd-gallery-main">
+            <img src="${gallery[0].src}" alt="${product.name}">
+          </div>
+          <div class="pd-thumbs">
+            ${gallery.map((g, i) => `
+              <div class="thumb ${i === 0 ? 'active' : ''}" onclick="ubSwitchMedia(${i})">
+                <img src="${g.poster || g.src}" alt="">
+                ${g.type === 'video' ? `<span class="play">${ubIcon('play')}</span>` : ''}
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="pd-info">
+          <span class="product-cat">${cat.name}</span>
+          <h1>${product.name}</h1>
+          <div class="pd-rating">
+            <span class="stars">${'★'.repeat(Math.round(product.rating))}${'☆'.repeat(5 - Math.round(product.rating))}</span>
+            <span>${product.rating} / 5 · ${product.reviews} avis</span>
+          </div>
+          <div class="pd-price">
+            <span class="price-now">${ubFormatPrice(product.price)}</span>
+            ${product.oldPrice ? `<span class="price-old">${ubFormatPrice(product.oldPrice)}</span>` : ''}
+            ${product.oldPrice ? `<span class="badge badge-danger">-${Math.round((1 - product.price / product.oldPrice) * 100)}%</span>` : ''}
+          </div>
+          <p class="pd-desc">${product.desc}</p>
+          <div class="pd-stock">
+            <span class="dot"></span>
+            ${product.stock > 5 ? `En stock (${product.stock} unités disponibles)` : `Stock faible — ${product.stock} unités restantes`}
+          </div>
+          <div class="pd-actions">
+            <div class="qty-selector">
+              <button onclick="ubChangeQty(-1)">−</button>
+              <span id="qty-value">1</span>
+              <button onclick="ubChangeQty(1)">+</button>
+            </div>
+            <button class="btn btn-primary" onclick="ubAddToCart('${product.id}', qty); ">${ubIcon('bag')} Ajouter au panier</button>
+            <button class="icon-btn" style="border:1px solid var(--line)" onclick="ubShowToast('Ajouté aux favoris')">${ubIcon('heart')}</button>
+          </div>
+          <div class="pd-meta">
+            <div><strong>Référence :</strong> UB-${product.id.toUpperCase()}</div>
+            <div><strong>Catégorie :</strong> ${cat.name}</div>
+            <div><strong>Livraison :</strong> Expédié sous 24h ouvrées</div>
+          </div>
+          <div class="pd-usp">
+            <div>${ubIcon('truck')}<div>Livraison rapide</div></div>
+            <div>${ubIcon('shield')}<div>Paiement sécurisé</div></div>
+            <div>${ubIcon('return')}<div>Retour sous 7 jours</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-tabs">
+        <button class="active" onclick="ubSwitchTab(0)">Description</button>
+        <button onclick="ubSwitchTab(1)">Ingrédients</button>
+        <button onclick="ubSwitchTab(2)">Avis (${product.reviews})</button>
+      </div>
+      <div class="pd-tab-panel active" id="tab-0">
+        <p>${product.desc} Formulé avec des actifs sélectionnés pour leur efficacité et leur tolérance, ce produit s'intègre facilement à votre routine beauté quotidienne. Convient à tous types de peau, dermatologiquement testé.</p>
+      </div>
+      <div class="pd-tab-panel" id="tab-1">
+        <p>Aqua, Glycerin, Sodium Hyaluronate, Ascorbic Acid, Tocopherol, Panthenol, Citrus Aurantium Dulcis Oil, Parfum. Sans paraben, sans sulfate, non testé sur les animaux.</p>
+      </div>
+      <div class="pd-tab-panel" id="tab-2">
+        <div class="testi-grid" style="grid-template-columns:1fr">
+          ${UB_TESTIMONIALS.slice(0, 2).map(t => `
+            <div class="testi-card" style="background:var(--off-white)">
+              <div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5 - t.rating)}</div>
+              <p>"${t.text}"</p>
+              <div class="testi-user"><img src="${t.avatar}" alt=""><div><strong>${t.name}</strong><span>${t.role}</span></div></div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  function ubChangeQty(delta) {
+    qty = Math.max(1, qty + delta);
+    document.getElementById('qty-value').textContent = qty;
+  }
+  function ubSwitchMedia(i) {
+    document.querySelectorAll('.pd-thumbs .thumb').forEach((t, idx) => t.classList.toggle('active', idx === i));
+    document.getElementById('pd-gallery-main').innerHTML = `<img src="${gallery[i].src || gallery[i].poster}" alt="${product.name}">`;
+  }
+  function ubSwitchTab(i) {
+    document.querySelectorAll('.pd-tabs button').forEach((b, idx) => b.classList.toggle('active', idx === i));
+    document.querySelectorAll('.pd-tab-panel').forEach((p, idx) => p.classList.toggle('active', idx === i));
+  }
+
+  document.getElementById('related-grid').innerHTML = UB_PRODUCTS
+    .filter(p => p.category === product.category && p.id !== product.id)
+    .slice(0, 4)
+    .map(ubProductCardHTML).join('');
+
+  ubInitReveal();
+</script>
+</body>
+</html>
