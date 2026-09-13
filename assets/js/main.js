@@ -19,7 +19,7 @@ function ubAddToCart(id, qty = 1) {
   if (line) line.qty += qty;
   else cart.push({ id, qty });
   ubSaveCart(cart);
-  ubShowToast('Ajouté au panier avec succès');
+  ubShowToast('Produit ajouté au panier');
 }
 function ubRemoveFromCart(id) {
   ubSaveCart(ubGetCart().filter(l => l.id !== id));
@@ -168,34 +168,44 @@ function ubInitReveal() {
   items.forEach(i => obs.observe(i));
 }
 
-/* ---------- Rendu carte produit ---------- */
+/* ---------- Carte produit — direction éditoriale premium ---------- */
 function ubStars(rating) {
   const full = Math.round(rating);
-  return Array.from({ length: 5 }, (_, i) => `<span style="opacity:${i < full ? 1 : .3}">★</span>`).join('');
+  return Array.from({ length: 5 }, (_, i) => `<span style="opacity:${i < full ? 1 : .25}">★</span>`).join('');
 }
 
 function ubProductCardHTML(p, catsById) {
   const cat = catsById ? catsById[p.category] : null;
+  const tag = p.tag ? `<span class="editorial-tag ${p.tag === 'Stock faible' ? 'is-danger' : p.tag === 'Promo' ? 'is-gold' : ''}">${p.tag}</span>` : '';
   return `
-  <div class="product-card reveal">
-    <a href="produit.html?id=${p.id}" class="product-media" style="position:relative;display:block">
-      <img src="${p.img}" alt="${p.name}" loading="lazy">
-      <div class="product-tags">
-        ${p.tag ? `<span class="badge ${p.tag === 'Stock faible' ? 'badge-danger' : (p.tag === 'Promo' ? 'badge-gold' : 'badge-mauve')}">${p.tag}</span>` : ''}
+  <article class="product-card editorial-product reveal">
+    <div class="editorial-product-media">
+      <a href="produit.html?id=${p.id}" class="editorial-product-image" aria-label="Voir ${p.name}">
+        <img src="${p.img}" alt="${p.name}" loading="lazy">
+      </a>
+      <div class="editorial-product-top">
+        ${tag}
+        <button class="editorial-fav" type="button" onclick="event.preventDefault(); ubShowToast('Ajouté aux favoris');" aria-label="Ajouter ${p.name} aux favoris">${ubIcon('heart')}</button>
       </div>
-      <button class="product-fav" onclick="event.preventDefault(); ubShowToast('Ajouté aux favoris');" aria-label="Favori">${ubIcon('heart')}</button>
-      <button class="product-quickadd" onclick="event.preventDefault(); ubAddToCart('${p.id}',1);">${ubIcon('bag')} Ajouter au panier</button>
-    </a>
-    <div class="product-info">
-      <span class="product-cat">${cat ? cat.name : ''}</span>
+      <a class="editorial-view" href="produit.html?id=${p.id}">Découvrir <span>↗</span></a>
+    </div>
+    <div class="editorial-product-info">
+      <div class="editorial-product-meta">
+        <span>${cat ? cat.name : 'Urbann Beauty'}</span>
+        <span>${ubStars(p.rating)} <b>${p.rating.toFixed(1)}</b></span>
+      </div>
       <h3><a href="produit.html?id=${p.id}">${p.name}</a></h3>
-      <div class="product-rating"><span class="stars">${ubStars(p.rating)}</span> (${p.reviews})</div>
-      <div class="product-price">
-        <span class="price-now">${ubFormatPrice(p.price)}</span>
-        ${p.oldPrice ? `<span class="price-old">${ubFormatPrice(p.oldPrice)}</span>` : ''}
+      <div class="editorial-product-bottom">
+        <div class="editorial-price">
+          <strong>${ubFormatPrice(p.price)}</strong>
+          ${p.oldPrice ? `<del>${ubFormatPrice(p.oldPrice)}</del>` : ''}
+        </div>
+        <button class="editorial-add" type="button" onclick="ubAddToCart('${p.id}',1)" aria-label="Ajouter ${p.name} au panier">
+          <span>Ajouter</span>${ubIcon('bag')}
+        </button>
       </div>
     </div>
-  </div>`;
+  </article>`;
 }
 
 function ubRenderWhatsAppButton() {
