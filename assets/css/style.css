@@ -267,6 +267,7 @@ section { padding: 88px 0; }
 }
 @media (max-width: 980px) {
   .search-box { display: none; }
+  .site-header { backdrop-filter: none; }
   .nav-links {
     position: fixed;
     top: 73px; left: 0; right: 0; bottom: 0;
@@ -280,7 +281,8 @@ section { padding: 88px 0; }
   }
   .nav-links.open { transform: translateX(0); }
   .nav-links a { display: block; padding: 14px 4px; border-bottom: 1px solid var(--line); }
-  .burger { display: flex; }
+  .burger { display: flex; position: relative; z-index: 95; }
+  .logo, .nav-actions { position: relative; z-index: 95; }
 }
 
 /* ---------- Hero ---------- */
