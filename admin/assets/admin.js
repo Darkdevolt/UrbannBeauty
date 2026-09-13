@@ -56,8 +56,8 @@ async function ubAdminGetOrders() {
   const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty)').order('order_date', { ascending: false });
   if (error) { console.error('ubAdminGetOrders', error); return []; }
   return data.map(o => ({
-    id: o.id, client: o.client_name, phone: o.phone, address: o.address, date: o.order_date,
-    payment: o.payment_method, paymentStatus: o.payment_status, status: o.status,
+    id: o.id, client: ubEscapeHtml(o.client_name), phone: ubEscapeHtml(o.phone), address: ubEscapeHtml(o.address), date: o.order_date,
+    payment: ubEscapeHtml(o.payment_method), paymentStatus: o.payment_status, status: o.status,
     items: (o.order_items || []).map(it => ({ productId: it.product_id, qty: it.qty })),
   }));
 }

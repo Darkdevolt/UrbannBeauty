@@ -26,6 +26,12 @@ function ubFormatPrice(v) {
 function ubNormalize(s) {
   return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
+/* Echappement HTML : indispensable pour tout texte saisi par un client (nom, telephone,
+   adresse, mode de paiement...) avant de l'inserer via innerHTML dans l'admin -- ces
+   champs sont ecrits par n'importe quel visiteur via le checkout public. */
+function ubEscapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 function ubProductMatchesSearch(p, search, categoryName) {
   const q = ubNormalize(search);
   if (!q) return true;
