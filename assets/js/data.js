@@ -105,6 +105,12 @@ const UB_TESTIMONIALS = [
   { name: 'Nadège P.', role: 'Cliente vérifiée', text: "Service client à l'écoute, produits de qualité, exactement ce que je cherchais pour ma routine.", rating: 4, avatar: 'https://i.pravatar.cc/80?img=25' },
 ];
 
+const UB_CONTACT = {
+  phoneDisplay: '+221 78 305 36 57',
+  whatsapp: '221783053657',
+  city: 'Dakar, Sénégal',
+};
+
 function ubFormatPrice(v) {
   return new Intl.NumberFormat('fr-FR').format(v) + ' FCFA';
 }

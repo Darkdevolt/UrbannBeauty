@@ -106,7 +106,8 @@ function ubRenderFooter() {
         <div class="footer-grid">
           <div>
             <a href="index.html" class="logo">Urbann<span>Beauty</span></a>
-            <p class="desc">Votre destination beauté : soins visage, corps, maquillage et parfums sélectionnés avec exigence pour révéler votre éclat naturel.</p>
+            <p class="desc">Votre destination beauté : soins visage, corps, maquillage, accessoires et parfums sélectionnés avec exigence pour révéler votre éclat naturel.</p>
+            <p class="desc" style="margin-top:-6px">📍 ${UB_CONTACT.city} · 📞 ${UB_CONTACT.phoneDisplay}</p>
             <div class="social-row">
               <a href="#" aria-label="Instagram">${ubIcon('instagram')}</a>
               <a href="#" aria-label="Facebook">${ubIcon('facebook')}</a>
@@ -191,7 +192,20 @@ function ubProductCardHTML(p) {
   </div>`;
 }
 
+function ubRenderWhatsAppButton() {
+  if (document.querySelector('.whatsapp-float')) return;
+  const a = document.createElement('a');
+  a.href = `https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent('Bonjour Urbann Beauty, j\'aimerais avoir des informations sur vos produits.')}`;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.className = 'whatsapp-float';
+  a.title = 'Discuter sur WhatsApp';
+  a.innerHTML = ubIcon('whatsapp');
+  document.body.appendChild(a);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   ubInitReveal();
   ubUpdateCartCount();
+  ubRenderWhatsAppButton();
 });

@@ -895,6 +895,30 @@ section { padding: 88px 0; }
 .toast.show { transform: translateY(0); opacity: 1; }
 .toast svg { width: 18px; height: 18px; color: #7ee0a0; }
 
+/* ---------- WhatsApp floating button ---------- */
+.whatsapp-float {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25D366;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, .4);
+  z-index: 998;
+  transition: transform .2s ease;
+}
+.whatsapp-float:hover { transform: scale(1.08); }
+.whatsapp-float svg { width: 28px; height: 28px; }
+@media (max-width: 560px) {
+  .whatsapp-float { width: 50px; height: 50px; bottom: 16px; left: 16px; }
+  .whatsapp-float svg { width: 24px; height: 24px; }
+}
+
 /* fade-in on scroll */
 .reveal { opacity: 0; transform: translateY(24px); transition: all .6s ease; }
 .reveal.in { opacity: 1; transform: translateY(0); }

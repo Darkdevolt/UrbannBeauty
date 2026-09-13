@@ -148,7 +148,8 @@
   ubRenderFooter();
 
   document.getElementById('cat-grid').innerHTML = UB_CATEGORIES.map(c => `
-    <a href="boutique.html?cat=${c.id}" class="cat-card reveal">
+    <a href="boutique.html?cat=${c.id}" class="cat-card reveal" style="position:relative">
+      ${c.id === 'accessoires' ? '<span class="badge badge-gold" style="position:absolute;top:10px;right:10px">Tendance</span>' : ''}
       <span class="cat-icon">${ubIcon(c.icon)}</span>
       <strong>${c.name}</strong>
       <span>${UB_PRODUCTS.filter(p => p.category === c.id).length} produits</span>

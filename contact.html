@@ -45,10 +45,11 @@
       <div>
         <div class="contact-info-card">
           <h3>Nos coordonnées</h3>
-          <div class="contact-info-item"><span class="icon">{{pin}}</span><div><strong>Adresse</strong><span>Dakar, Sénégal</span></div></div>
-          <div class="contact-info-item"><span class="icon">{{phone}}</span><div><strong>Téléphone</strong><span>+221 77 000 00 00</span></div></div>
+          <div class="contact-info-item"><span class="icon">{{pin}}</span><div><strong>Adresse</strong><span id="contact-city"></span></div></div>
+          <div class="contact-info-item"><span class="icon">{{phone}}</span><div><strong>Téléphone / WhatsApp</strong><span id="contact-phone"></span></div></div>
           <div class="contact-info-item"><span class="icon">{{mail}}</span><div><strong>Email</strong><span>contact@urbannbeauty.com</span></div></div>
           <div class="contact-info-item"><span class="icon">{{clock}}</span><div><strong>Horaires</strong><span>Lun - Sam, 9h - 19h</span></div></div>
+          <a href="#" id="contact-whatsapp-btn" target="_blank" rel="noopener" class="btn btn-block" style="background:#25D366;color:#fff;margin-top:8px">{{whatsapp}} Discuter sur WhatsApp</a>
         </div>
         <div class="hero-visual" style="aspect-ratio:16/10;margin-top:24px">
           <img src="https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?q=80&w=900&auto=format&fit=crop" alt="Notre boutique">
@@ -70,6 +71,12 @@
     const m = el.innerHTML.match(/\{\{(\w+)\}\}/);
     if (m) el.innerHTML = ubIcon(m[1]);
   });
+
+  document.getElementById('contact-city').textContent = UB_CONTACT.city;
+  document.getElementById('contact-phone').textContent = UB_CONTACT.phoneDisplay;
+  const waBtn = document.getElementById('contact-whatsapp-btn');
+  waBtn.href = `https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent("Bonjour Urbann Beauty, j'aimerais avoir des informations sur vos produits.")}`;
+  waBtn.innerHTML = waBtn.innerHTML.replace('{{whatsapp}}', ubIcon('whatsapp'));
 </script>
 </body>
 </html>
