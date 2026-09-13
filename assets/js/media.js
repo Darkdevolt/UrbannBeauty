@@ -57,3 +57,20 @@ function ubReadImageFile(file, callback) {
   };
   reader.readAsDataURL(file);
 }
+
+function ubApplyManagedMedia() {
+  const cfg = ubGetMediaConfig();
+  const setSrc = (id, src) => { const el = document.getElementById(id); if (el && src) el.src = src; };
+  setSrc('hero-main-image', cfg.heroMain);
+  setSrc('hero-product-image', cfg.heroProduct);
+  setSrc('editorial-routine-image', cfg.editorialRoutine);
+  const offer = document.getElementById('welcome-offer');
+  if (offer && cfg.welcomeOffer) offer.style.backgroundImage = `linear-gradient(90deg, rgba(39,24,42,.18), rgba(39,24,42,.42)), url("${cfg.welcomeOffer}")`;
+  const brands = document.querySelector('.ub-brands');
+  if (brands && cfg.brandsEditorial) brands.style.backgroundImage = `linear-gradient(90deg, rgba(255,250,247,.94), rgba(255,250,247,.55)), url("${cfg.brandsEditorial}")`;
+  const commitments = document.querySelector('.ub-commitments');
+  if (commitments && cfg.commitmentBeauty) commitments.style.backgroundImage = `linear-gradient(180deg, rgba(255,250,247,.94), rgba(255,250,247,.72)), url("${cfg.commitmentBeauty}")`;
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ubApplyManagedMedia);
+else ubApplyManagedMedia();
