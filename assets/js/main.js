@@ -79,7 +79,6 @@ function ubRenderHeader(active) {
             ${ubIcon('search')}
             <input type="search" id="ub-search-input" placeholder="Rechercher un produit..." autocomplete="off">
           </div>
-          <a href="admin/index.html" class="icon-btn" title="Espace admin">${ubIcon('user')}</a>
           <a href="panier.html" class="icon-btn" title="Panier">
             ${ubIcon('bag')}
             <span class="cart-count js-cart-count">0</span>
@@ -134,7 +133,6 @@ function ubRenderFooter() {
               <li><a href="contact.html">Contact</a></li>
               <li><a href="#">Livraison &amp; retours</a></li>
               <li><a href="#">FAQ</a></li>
-              <li><a href="admin/index.html">Espace admin</a></li>
             </ul>
           </div>
           <div>

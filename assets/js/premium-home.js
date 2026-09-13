@@ -20,7 +20,6 @@
           </ul>
           <div class="nav-actions ub-premium-actions">
             <label class="ub-search">${ubIcon('search')}<input id="ub-search-input" type="search" placeholder="Rechercher un produit..." autocomplete="off"></label>
-            <a href="admin/index.html" class="icon-btn ub-circle" title="Mon compte">${ubIcon('user')}</a>
             <a href="panier.html" class="icon-btn ub-circle" title="Panier">${ubIcon('bag')}<span class="cart-count js-cart-count">0</span></a>
           </div>
         </nav>
