@@ -75,6 +75,25 @@ async function ubAdminDeleteTestimonial(id) {
   return !error;
 }
 
+/* ---------- Zones de livraison ---------- */
+async function ubAdminGetZones() {
+  const { data, error } = await ubSupabase.from('delivery_zones').select('*').order('sort_order', { ascending: true });
+  if (error) { console.error('ubAdminGetZones', error); return []; }
+  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee, active: z.active, sortOrder: z.sort_order }));
+}
+async function ubAdminSaveZone(z) {
+  const { error } = await ubSupabase.from('delivery_zones').upsert({
+    id: z.id || undefined, name: z.name, fee: z.fee, active: z.active !== false, sort_order: z.sortOrder || 0,
+  });
+  if (error) console.error('ubAdminSaveZone', error);
+  return !error;
+}
+async function ubAdminDeleteZone(id) {
+  const { error } = await ubSupabase.from('delivery_zones').delete().eq('id', id);
+  if (error) console.error('ubAdminDeleteZone', error);
+  return !error;
+}
+
 /* ---------- Commandes ---------- */
 async function ubAdminGetOrders() {
   const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty)').order('order_date', { ascending: false });

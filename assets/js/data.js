@@ -22,6 +22,14 @@ async function ubGetTestimonials() {
   }));
 }
 
+/* Zones de livraison : gérées depuis l'admin (nom + frais associés) */
+const UB_DELIVERY_ZONES_FALLBACK = [{ id: null, name: 'Dakar et environs', fee: 2500 }];
+async function ubGetDeliveryZones() {
+  const { data, error } = await ubSupabase.from('delivery_zones').select('*').eq('active', true).order('sort_order', { ascending: true });
+  if (error || !data || !data.length) { console.error('ubGetDeliveryZones', error); return UB_DELIVERY_ZONES_FALLBACK; }
+  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee }));
+}
+
 const UB_CONTACT = {
   phoneDisplay: '+221 78 305 36 57',
   whatsapp: '221783053657',

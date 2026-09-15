@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zones de livraison — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>.a-checkbox-row{display:flex;align-items:center;gap:9px}.a-checkbox-row input{width:auto}</style>
+</head>
+<body>
+<div class="admin-shell" id="admin-shell"></div>
+
+<div class="a-modal-overlay" id="zone-modal">
+  <div class="a-modal" style="max-width:480px">
+    <div class="a-modal-head"><h3 id="zone-modal-title">Ajouter une zone</h3><button class="a-modal-close" onclick="ubCloseZoneModal()"></button></div>
+    <div class="a-modal-body">
+      <form id="zone-form">
+        <input type="hidden" id="z-id">
+        <div class="a-field"><label>Nom de la zone</label><input type="text" id="z-name" required placeholder="Ex : Plateau / Centre-ville"></div>
+        <div class="a-field"><label>Frais de livraison (FCFA)</label><input type="number" id="z-fee" required min="0" step="100" placeholder="2000"></div>
+        <div class="a-field"><label>Ordre d'affichage</label><input type="number" id="z-order" min="0" value="0"></div>
+        <div class="a-field"><div class="a-checkbox-row"><input type="checkbox" id="z-active" checked><label for="z-active" style="margin:0">Zone active (proposée au client)</label></div></div>
+      </form>
+    </div>
+    <div class="a-modal-foot"><button class="a-btn a-btn-outline" onclick="ubCloseZoneModal()">Annuler</button><button class="a-btn a-btn-primary" onclick="ubSaveZone()">Enregistrer</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script><script src="../assets/js/data.js"></script><script src="../assets/js/media.js"></script><script src="assets/admin.js"></script>
+<script>
+function addOpsNav(){const nav=document.querySelector('.a-nav');if(!nav)return;nav.insertAdjacentHTML('beforeend',`<div class="group-label">Logistique</div><a href="livraison.html">${ubIcon('truck')} Livraisons</a><a href="zones.html" class="active">${ubIcon('filter')} Zones de livraison</a><a href="retours.html">${ubIcon('refresh')} Retours</a>`)}
+
+let zones = [];
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('zones', 'Zones de livraison', "Définissez les zones proposées au client au moment du paiement, avec leurs frais de livraison");
+  addOpsNav();
+  const close = document.querySelector('.a-modal-close'); if (close) close.innerHTML = ubIcon('close');
+
+  zones = await ubAdminGetZones();
+  renderContent();
+
+  function renderContent() {
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-toolbar">
+        <p style="color:var(--a-ink-soft);font-size:.88rem;margin:0">${zones.length} zone${zones.length > 1 ? 's' : ''} · affichées dans le panier pour calculer les frais de livraison</p>
+        <button class="a-btn a-btn-primary" onclick="ubOpenZoneModal()">${ubIcon('plus')} Ajouter une zone</button>
+      </div>
+      <div class="a-panel">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Zone</th><th>Frais</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="zone-tbody"></tbody>
+          </table>
+        </div>
+      </div>`;
+    renderTable();
+  }
+
+  function renderTable() {
+    const sorted = [...zones].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    document.getElementById('zone-tbody').innerHTML = sorted.length ? sorted.map(z => `
+      <tr>
+        <td><strong>${z.name}</strong></td>
+        <td>${ubFormatPrice(z.fee)}</td>
+        <td>${z.active ? '<span class="a-badge success">Active</span>' : '<span class="a-badge neutral">Désactivée</span>'}</td>
+        <td>
+          <div class="a-actions-cell">
+            <button class="a-icon-action" onclick="ubOpenZoneModal('${z.id}')" title="Modifier">${ubIcon('edit')}</button>
+            <button class="a-icon-action" onclick="ubDeleteZone('${z.id}')" title="Supprimer">${ubIcon('trash')}</button>
+          </div>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="4"><div class="empty-state">${ubIcon('truck')}<p>Aucune zone pour le moment. Le panier utilisera une zone par défaut.</p></div></td></tr>`;
+  }
+
+  function ubOpenZoneModal(id) {
+    if (id) {
+      const z = zones.find(x => x.id === id);
+      document.getElementById('zone-modal-title').textContent = 'Modifier la zone';
+      document.getElementById('z-id').value = z.id;
+      document.getElementById('z-name').value = z.name;
+      document.getElementById('z-fee').value = z.fee;
+      document.getElementById('z-order').value = z.sortOrder || 0;
+      document.getElementById('z-active').checked = z.active !== false;
+    } else {
+      document.getElementById('zone-modal-title').textContent = 'Ajouter une zone';
+      document.getElementById('zone-form').reset();
+      document.getElementById('z-id').value = '';
+      document.getElementById('z-order').value = zones.length;
+      document.getElementById('z-active').checked = true;
+    }
+    document.getElementById('zone-modal').classList.add('open');
+  }
+  function ubCloseZoneModal() { document.getElementById('zone-modal').classList.remove('open'); }
+
+  window.ubSaveZone = async function () {
+    const form = document.getElementById('zone-form');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const data = {
+      id: document.getElementById('z-id').value || undefined,
+      name: document.getElementById('z-name').value.trim(),
+      fee: Number(document.getElementById('z-fee').value),
+      sortOrder: Number(document.getElementById('z-order').value) || 0,
+      active: document.getElementById('z-active').checked,
+    };
+    const ok = await ubAdminSaveZone(data);
+    if (!ok) { ubAToast('Erreur lors de l\'enregistrement'); return; }
+    ubAToast(data.id ? 'Zone mise à jour' : 'Zone ajoutée');
+    ubCloseZoneModal();
+    zones = await ubAdminGetZones();
+    renderTable();
+  };
+
+  window.ubDeleteZone = async function (id) {
+    if (!confirm('Supprimer définitivement cette zone ?')) return;
+    const ok = await ubAdminDeleteZone(id);
+    if (!ok) { ubAToast('Erreur lors de la suppression'); return; }
+    zones = zones.filter(z => z.id !== id);
+    ubAToast('Zone supprimée');
+    renderTable();
+  };
+
+  window.ubOpenZoneModal = ubOpenZoneModal;
+  window.ubCloseZoneModal = ubCloseZoneModal;
+}
+main();
+</script>
+</body>
+</html>

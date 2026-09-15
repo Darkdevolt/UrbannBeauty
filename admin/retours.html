@@ -16,7 +16,7 @@
 <script>
 const RETURN_STATUSES={demande:'Demandé',valide:'Validé',recuperation:'En attente de récupération',recu:'Reçu',rembourse:'Remboursé',echange:'Échangé',refuse:'Refusé'};
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-function addOpsNav(){const nav=document.querySelector('.a-nav');if(!nav)return;nav.insertAdjacentHTML('beforeend',`<div class="group-label">Logistique</div><a href="livraison.html">${ubIcon('truck')} Livraisons</a><a href="retours.html" class="active">${ubIcon('truck')} Retours</a>`)}
+function addOpsNav(){const nav=document.querySelector('.a-nav');if(!nav)return;nav.insertAdjacentHTML('beforeend',`<div class="group-label">Logistique</div><a href="livraison.html">${ubIcon('truck')} Livraisons</a><a href="zones.html">${ubIcon('filter')} Zones de livraison</a><a href="retours.html" class="active">${ubIcon('truck')} Retours</a>`)}
 async function loadReturns(){const {data,error}=await ubSupabase.from('returns').select('*').order('requested_at',{ascending:false});if(error){console.error(error);alert(error.message);return []}return data||[]}
 async function loadOrders(){const {data}=await ubSupabase.from('orders').select('id,client_name,phone');return data||[]}
 async function loadProducts(){return await ubGetAllProducts()}
