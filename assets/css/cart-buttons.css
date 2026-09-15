@@ -1,72 +1,26 @@
-/* Urbann Beauty — Cart buttons uniformisation */
+/* Urbann Beauty — Uniformisation des cartes produit + boutons panier */
 
-.editorial-product-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
-}
+.editorial-product{display:flex!important;flex-direction:column!important;height:100%!important}
+.editorial-product-media{flex:0 0 auto}
+.editorial-product-info{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0;padding:9px 5px 5px}
+.editorial-product-meta{min-height:22px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.editorial-product-info h3{min-height:42px;max-height:42px;display:flex;align-items:flex-start;margin:4px 0 8px!important;overflow:hidden;line-height:1.4}
+.editorial-product-info h3 a{display:-webkit-box;width:100%;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 
-.editorial-add {
-  appearance: none;
-  -webkit-appearance: none;
-  box-sizing: border-box;
-  width: 92px;
-  min-width: 92px;
-  height: 42px;
-  padding: 0 10px;
-  margin: 0;
-  display: inline-flex;
-  flex: 0 0 92px;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border: 1px solid #d8bced;
-  border-radius: 10px;
-  background: #fff;
-  color: #2e1943;
-  font-family: var(--font-body, 'Poppins', sans-serif);
-  font-size: .62rem;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(69,37,99,.06);
-  transition: background .25s ease, color .25s ease, border-color .25s ease, transform .25s ease, box-shadow .25s ease;
-}
+/* Prix + panier restent sur une seule ligne et sur exactement la même hauteur. */
+.editorial-product-bottom{width:100%;min-height:44px;margin-top:auto;padding-top:4px;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:12px}
+.editorial-price{min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;line-height:1.2}
+.editorial-price strong,.editorial-price del{display:block}
+.editorial-price del{margin-top:3px;line-height:1}
 
-.editorial-add svg {
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  min-height: 20px;
-  display: block;
-  flex: 0 0 20px;
-  stroke-width: 1.9;
-}
+.editorial-add{appearance:none;-webkit-appearance:none;box-sizing:border-box;width:92px;min-width:92px;height:42px;padding:0 10px;margin:0;display:inline-flex!important;flex:0 0 92px;align-items:center!important;justify-content:center!important;gap:7px;border:1px solid #d8bced;border-radius:10px;background:#fff;color:#2e1943;font-family:var(--font-body,'Poppins',sans-serif);font-size:.62rem;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:0 4px 12px rgba(69,37,99,.06);transition:background .25s ease,color .25s ease,border-color .25s ease,transform .25s ease,box-shadow .25s ease}
+.editorial-add span{display:inline-block;line-height:1}
+.editorial-add svg{width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;display:block!important;flex:0 0 20px!important;stroke-width:1.9}
+.editorial-add:hover{background:#2e1943;border-color:#2e1943;color:#fff;transform:translateY(-2px);box-shadow:0 9px 20px rgba(46,25,67,.16)}
+.editorial-add:focus-visible{outline:2px solid #c199e0;outline-offset:3px}
+.editorial-add:active{transform:translateY(0)}
 
-.editorial-add:hover {
-  background: #2e1943;
-  border-color: #2e1943;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 9px 20px rgba(46,25,67,.16);
-}
+.ub-product-grid .product-card,.ub-new-section .product-card{height:100%}
+.ub-product-grid .editorial-product-media,.ub-new-section .editorial-product-media{flex:0 0 auto}
 
-.editorial-add:focus-visible {
-  outline: 2px solid #c199e0;
-  outline-offset: 3px;
-}
-
-.editorial-add:active {
-  transform: translateY(0);
-}
-
-@media (max-width: 520px) {
-  .editorial-add {
-    width: 88px;
-    min-width: 88px;
-    flex-basis: 88px;
-  }
-}
+@media(max-width:520px){.editorial-add{width:88px;min-width:88px;flex-basis:88px}}
