@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messages & Newsletter — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+.a-tabs{display:flex;gap:8px;margin-bottom:16px}
+.a-tabs button{padding:9px 16px;border-radius:999px;border:1px solid var(--a-line);background:#fff;font:inherit;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--a-ink-soft)}
+.a-tabs button.active{background:var(--a-mauve);color:#fff;border-color:var(--a-mauve)}
+.msg-body{max-width:340px;white-space:pre-wrap;font-size:.82rem;color:var(--a-ink-soft)}
+</style>
+</head>
+<body>
+<div class="admin-shell" id="admin-shell"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script><script src="../assets/js/data.js"></script><script src="../assets/js/media.js"></script><script src="assets/admin.js"></script>
+<script>
+let messages = [];
+let subscribers = [];
+let tab = 'messages';
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('messages', 'Messages & Newsletter', "Demandes reçues via le formulaire de contact et inscriptions à la newsletter");
+
+  [messages, subscribers] = await Promise.all([ubAdminGetContactMessages(), ubAdminGetNewsletterSubscribers()]);
+  render();
+
+  function render() {
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-tabs">
+        <button id="tab-messages" class="${tab === 'messages' ? 'active' : ''}">Messages (${messages.length})</button>
+        <button id="tab-subscribers" class="${tab === 'subscribers' ? 'active' : ''}">Newsletter (${subscribers.length})</button>
+      </div>
+      ${tab === 'messages' ? renderMessages() : renderSubscribers()}
+    `;
+    document.getElementById('tab-messages').onclick = () => { tab = 'messages'; render(); };
+    document.getElementById('tab-subscribers').onclick = () => { tab = 'subscribers'; render(); };
+    document.querySelectorAll('.msg-status').forEach(sel => sel.onchange = async () => {
+      const ok = await ubAdminSetMessageStatus(sel.dataset.id, sel.value);
+      if (!ok) { ubAToast('Erreur lors de la mise à jour'); return; }
+      const m = messages.find(x => x.id === sel.dataset.id); if (m) m.status = sel.value;
+      ubAToast('Statut mis à jour');
+    });
+  }
+
+  function renderMessages() {
+    if (!messages.length) return `<div class="a-panel"><div class="empty-state">${ubIcon('mail')}<p>Aucun message reçu pour le moment.</p></div></div>`;
+    return `<div class="a-panel"><div class="a-table-wrap"><table class="a-table"><thead><tr><th>Date</th><th>Client</th><th>Sujet</th><th>Message</th><th>Statut</th></tr></thead><tbody>${messages.map(m => `
+      <tr>
+        <td>${new Date(m.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><strong>${ubEscapeHtml(m.name)}</strong><br><span style="font-size:.76rem;color:var(--a-ink-soft)">${ubEscapeHtml(m.email)}</span></td>
+        <td>${ubEscapeHtml(m.subject || '—')}</td>
+        <td class="msg-body">${ubEscapeHtml(m.message)}</td>
+        <td><select class="a-select msg-status" data-id="${m.id}"><option value="nouveau" ${m.status === 'nouveau' ? 'selected' : ''}>Nouveau</option><option value="traite" ${m.status === 'traite' ? 'selected' : ''}>Traité</option></select></td>
+      </tr>`).join('')}</tbody></table></div></div>`;
+  }
+
+  function renderSubscribers() {
+    if (!subscribers.length) return `<div class="a-panel"><div class="empty-state">${ubIcon('mail')}<p>Aucun inscrit à la newsletter pour le moment.</p></div></div>`;
+    return `<div class="a-toolbar"><p style="color:var(--a-ink-soft);font-size:.88rem;margin:0">${subscribers.length} inscrit${subscribers.length > 1 ? 's' : ''}</p><button class="a-btn a-btn-outline" onclick="ubExportSubscribers()">${ubIcon('upload')} Exporter (CSV)</button></div><div class="a-panel"><div class="a-table-wrap"><table class="a-table"><thead><tr><th>Email</th><th>Source</th><th>Date</th></tr></thead><tbody>${subscribers.map(s => `<tr><td>${ubEscapeHtml(s.email)}</td><td>${ubEscapeHtml(s.source || '—')}</td><td>${new Date(s.created_at).toLocaleDateString('fr-FR')}</td></tr>`).join('')}</tbody></table></div></div>`;
+  }
+
+  window.ubExportSubscribers = function () {
+    ubExportCSV('urbann-beauty-newsletter.csv', ['Email', 'Source', 'Date'], subscribers.map(s => [s.email, s.source || '', s.created_at]));
+  };
+}
+main();
+</script>
+</body>
+</html>

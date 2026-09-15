@@ -30,6 +30,18 @@ async function ubGetDeliveryZones() {
   return data.map(z => ({ id: z.id, name: z.name, fee: z.fee }));
 }
 
+/* Messages de contact et inscriptions newsletter : enregistres reellement
+   (auparavant les formulaires affichaient un succes sans rien sauvegarder). */
+async function ubSubmitContactMessage({ name, email, subject, message }) {
+  const { error } = await ubSupabase.from('contact_messages').insert({ name, email, subject: subject || null, message });
+  return !error;
+}
+async function ubSubscribeNewsletter(email, source) {
+  const { error } = await ubSupabase.from('newsletter_subscribers').insert({ email, source: source || null });
+  if (error && error.code === '23505') return true; // deja inscrit : pas une erreur
+  return !error;
+}
+
 const UB_CONTACT = {
   phoneDisplay: '+221 78 305 36 57',
   whatsapp: '221783053657',

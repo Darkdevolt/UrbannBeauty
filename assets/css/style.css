@@ -258,6 +258,7 @@ section { padding: 88px 0; }
   cursor: pointer;
 }
 .burger svg { width: 24px; height: 24px; }
+.nav-search-mobile { display: none; }
 
 @media (max-width: 420px) {
   .nav { padding: 14px 16px; gap: 8px; }
@@ -282,6 +283,8 @@ section { padding: 88px 0; }
   .nav-links.open { transform: translateX(0); }
   .nav-links a { display: block; padding: 14px 4px; border-bottom: 1px solid var(--line); }
   .burger { display: flex; position: relative; z-index: 95; }
+  .nav-search-mobile { display: block; list-style: none; margin-bottom: 18px; }
+  .nav-search-mobile .search-box { min-width: 0; width: 100%; padding: 12px 16px; }
   .logo, .nav-actions { position: relative; z-index: 95; }
 }
 
@@ -546,7 +549,7 @@ section { padding: 88px 0; }
 /* ---------- Testimonials ---------- */
 .testi-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
 }
 .testi-card {
@@ -849,6 +852,9 @@ section { padding: 88px 0; }
 }
 .empty-cart { text-align: center; padding: 60px 20px; }
 .empty-cart svg { width: 64px; height: 64px; color: var(--mauve-200); margin-bottom: 20px; }
+.ub-grid-empty { grid-column: 1/-1; text-align: center; padding: 48px 20px; color: var(--ink-soft); background: var(--off-white); border-radius: var(--radius-md); border: 1px dashed var(--line); }
+.ub-grid-empty svg { width: 40px; height: 40px; color: var(--mauve-200); margin-bottom: 14px; }
+.ub-grid-empty p { margin: 0 0 16px; font-size: .88rem; }
 @media (max-width: 900px) { .cart-layout { grid-template-columns: minmax(0,1fr); } .cart-summary { position: static; } }
 
 /* ---------- Contact / About ---------- */

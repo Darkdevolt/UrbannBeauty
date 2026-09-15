@@ -73,6 +73,12 @@ function ubRenderHeader(active) {
         <button class="burger" aria-label="Menu" id="ub-burger">${ubIcon('menu')}</button>
         <a href="index.html" class="logo" id="ub-logo">Urbann<span>Beauty</span></a>
         <ul class="nav-links" id="ub-nav-links">
+          <li class="nav-search-mobile">
+            <div class="search-box">
+              ${ubIcon('search')}
+              <input type="search" id="ub-search-input-mobile" placeholder="Rechercher un produit..." autocomplete="off">
+            </div>
+          </li>
           ${links.map(l => `<li><a href="${l.href}" class="${l.key === active ? 'active' : ''}">${l.label}</a></li>`).join('')}
         </ul>
         <div class="nav-actions">
@@ -94,10 +100,11 @@ function ubRenderHeader(active) {
     navLinks.classList.toggle('open');
     burger.innerHTML = navLinks.classList.contains('open') ? ubIcon('close') : ubIcon('menu');
   });
+  const goSearch = (value) => { if (value.trim()) location.href = 'boutique.html?search=' + encodeURIComponent(value.trim()); };
   const searchInput = document.getElementById('ub-search-input');
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && searchInput.value.trim()) location.href = 'boutique.html?search=' + encodeURIComponent(searchInput.value.trim());
-  });
+  searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') goSearch(searchInput.value); });
+  const searchInputMobile = document.getElementById('ub-search-input-mobile');
+  searchInputMobile.addEventListener('keydown', (e) => { if (e.key === 'Enter') goSearch(searchInputMobile.value); });
   ubUpdateCartCount();
   ubApplyLogo(document.getElementById('ub-logo'));
 }
@@ -132,14 +139,14 @@ function ubRenderFooter() {
             <h4>Aide</h4>
             <ul>
               <li><a href="contact.html">Contact</a></li>
-              <li><a href="#">Livraison &amp; retours</a></li>
-              <li><a href="#">FAQ</a></li>
+              <li><a href="infos.html#livraison">Livraison &amp; retours</a></li>
+              <li><a href="infos.html#faq">FAQ</a></li>
             </ul>
           </div>
           <div>
             <h4>Restons en contact</h4>
             <p class="desc" style="margin-bottom:14px">Recevez nos nouveautés et offres exclusives.</p>
-            <form class="coupon-row" onsubmit="event.preventDefault(); ubShowToast('Merci pour votre inscription !');" style="margin:0">
+            <form class="coupon-row" id="footer-newsletter-form" style="margin:0">
               <input type="email" required placeholder="Votre email" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff">
               <button class="btn btn-primary btn-sm" type="submit">OK</button>
             </form>
@@ -155,6 +162,18 @@ function ubRenderFooter() {
     </footer>
   `;
   ubApplyLogo(document.getElementById('ub-footer-logo'));
+  document.getElementById('footer-newsletter-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = e.target.querySelector('input[type="email"]');
+    const btn = e.target.querySelector('button');
+    const email = input.value.trim();
+    if (!email) return;
+    btn.disabled = true;
+    const ok = await ubSubscribeNewsletter(email, 'footer');
+    btn.disabled = false;
+    ubShowToast(ok ? 'Merci pour votre inscription !' : "Une erreur est survenue, réessayez.");
+    if (ok) e.target.reset();
+  });
 }
 
 /* ---------- Reveal on scroll ---------- */

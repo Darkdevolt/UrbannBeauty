@@ -79,7 +79,7 @@
 <section class="ub-testimonials"><div class="container"><div class="section-head"><span class="eyebrow">Avis clients</span><h2>Elles nous font <em>confiance</em></h2><p>Plus de 2 300 avis vérifiés partagés par notre communauté.</p></div><div class="testi-grid" id="testi-grid"></div></div></section>
 
 <!-- NEWSLETTER -->
-<section class="ub-newsletter-section"><div class="container"><div class="newsletter ub-newsletter"><div><span class="eyebrow">Rejoignez notre univers</span><h2>Recevez nos offres <em>exclusives</em></h2><p>Conseils beauté, nouveautés et avantages privés directement dans votre boîte mail.</p></div><form onsubmit="event.preventDefault();ubShowToast('Bienvenue dans l’univers Urbann Beauty !');this.reset();"><input type="email" required placeholder="Votre adresse email"><button class="btn btn-primary">S'inscrire <b>→</b></button></form></div></div></section>
+<section class="ub-newsletter-section"><div class="container"><div class="newsletter ub-newsletter"><div><span class="eyebrow">Rejoignez notre univers</span><h2>Recevez nos offres <em>exclusives</em></h2><p>Conseils beauté, nouveautés et avantages privés directement dans votre boîte mail.</p></div><form id="newsletter-form-home"><input type="email" required placeholder="Votre adresse email"><button class="btn btn-primary" type="submit">S'inscrire <b>→</b></button></form></div></div></section>
 
 <div id="site-footer"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -92,10 +92,24 @@ async function main() {
 
   ubRenderFooter();
   document.getElementById('cat-rail').innerHTML=categories.map(c=>{const label=c.name.replace('Soins ','');return `<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${ubGetCategoryImage(c)}" alt="${c.name}"></span><b>${label.charAt(0).toUpperCase()+label.slice(1)}</b></a>`;}).join('');
-  document.getElementById('bestsellers-grid').innerHTML=products.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4).map(p=>ubProductCardHTML(p,catsById)).join('');
-  document.getElementById('new-grid').innerHTML=products.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4).map(p=>ubProductCardHTML(p,catsById)).join('');
+  const bestsellers=products.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4);
+  document.getElementById('bestsellers-grid').innerHTML=bestsellers.length?bestsellers.map(p=>ubProductCardHTML(p,catsById)).join(''):`<div class="ub-grid-empty">${ubIcon('bag')}<p>Nos produits arrivent très bientôt.</p><a href="boutique.html" class="btn btn-outline btn-sm">Voir la boutique</a></div>`;
+  const newArrivals=products.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4);
+  document.getElementById('new-grid').innerHTML=newArrivals.length?newArrivals.map(p=>ubProductCardHTML(p,catsById)).join(''):`<div class="ub-grid-empty">${ubIcon('bag')}<p>De nouvelles pépites arrivent très bientôt.</p><a href="boutique.html" class="btn btn-outline btn-sm">Voir la boutique</a></div>`;
   document.getElementById('testi-grid').innerHTML=testimonials.map(t=>ubTestimonialCardHTML(t)).join('');
   document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=ubIcon(el.dataset.icon));
+  document.getElementById('newsletter-form-home').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = e.target.querySelector('input[type="email"]');
+    const btn = e.target.querySelector('button');
+    const email = input.value.trim();
+    if (!email) return;
+    btn.disabled = true;
+    const ok = await ubSubscribeNewsletter(email, 'home');
+    btn.disabled = false;
+    ubShowToast(ok ? 'Bienvenue dans l’univers Urbann Beauty !' : 'Une erreur est survenue, réessayez.');
+    if (ok) e.target.reset();
+  });
   ubInitReveal();
 }
 main();

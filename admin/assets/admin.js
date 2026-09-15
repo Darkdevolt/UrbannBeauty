@@ -94,6 +94,22 @@ async function ubAdminDeleteZone(id) {
   return !error;
 }
 
+/* ---------- Messages de contact & newsletter ---------- */
+async function ubAdminGetContactMessages() {
+  const { data, error } = await ubSupabase.from('contact_messages').select('*').order('created_at', { ascending: false });
+  if (error) { console.error('ubAdminGetContactMessages', error); return []; }
+  return data;
+}
+async function ubAdminSetMessageStatus(id, status) {
+  const { error } = await ubSupabase.from('contact_messages').update({ status }).eq('id', id);
+  return !error;
+}
+async function ubAdminGetNewsletterSubscribers() {
+  const { data, error } = await ubSupabase.from('newsletter_subscribers').select('*').order('created_at', { ascending: false });
+  if (error) { console.error('ubAdminGetNewsletterSubscribers', error); return []; }
+  return data;
+}
+
 /* ---------- Commandes ---------- */
 async function ubAdminGetOrders() {
   const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty)').order('order_date', { ascending: false });
@@ -233,6 +249,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
     { href: 'media.html', key: 'media', label: 'Médiathèque', icon: 'image' },
     { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders' },
     { href: 'avis.html', key: 'avis', label: 'Avis clients', icon: 'heart' },
+    { href: 'messages.html', key: 'messages', label: 'Messages & Newsletter', icon: 'mail' },
     { href: 'clients.html', key: 'clients', label: 'Clients', icon: 'users' },
     { group: 'Comptabilite' },
     { href: 'finances.html', key: 'finances', label: 'Finances', icon: 'chart' },
