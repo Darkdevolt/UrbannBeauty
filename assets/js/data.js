@@ -6,11 +6,21 @@ const UB_SUPABASE_URL = 'https://tbowuuxvjaadawhmpumr.supabase.co';
 const UB_SUPABASE_KEY = 'sb_publishable_zuRyWQ_kmc-Vzg6umBBM8Q_bMo2uBwd';
 const ubSupabase = window.supabase.createClient(UB_SUPABASE_URL, UB_SUPABASE_KEY);
 
-const UB_TESTIMONIALS = [
-  { name: 'Aïcha K.', role: 'Cliente vérifiée', text: "Le sérum vitamine C a changé ma peau en un mois. Livraison rapide et packaging soigné !", rating: 5, avatar: 'https://i.pravatar.cc/80?img=47' },
-  { name: 'Fatou D.', role: 'Cliente vérifiée', text: "Je recommande la palette nude à toutes mes copines, les couleurs sont sublimes et tiennent toute la journée.", rating: 5, avatar: 'https://i.pravatar.cc/80?img=32' },
-  { name: 'Nadège P.', role: 'Cliente vérifiée', text: "Service client à l'écoute, produits de qualité, exactement ce que je cherchais pour ma routine.", rating: 4, avatar: 'https://i.pravatar.cc/80?img=25' },
+const UB_TESTIMONIALS_FALLBACK = [
+  { type: 'texte', name: 'Aïcha K.', role: 'Cliente vérifiée', text: "Le sérum vitamine C a changé ma peau en un mois. Livraison rapide et packaging soigné !", rating: 5, avatar: 'https://i.pravatar.cc/80?img=47' },
+  { type: 'texte', name: 'Fatou D.', role: 'Cliente vérifiée', text: "Je recommande la palette nude à toutes mes copines, les couleurs sont sublimes et tiennent toute la journée.", rating: 5, avatar: 'https://i.pravatar.cc/80?img=32' },
+  { type: 'texte', name: 'Nadège P.', role: 'Cliente vérifiée', text: "Service client à l'écoute, produits de qualité, exactement ce que je cherchais pour ma routine.", rating: 4, avatar: 'https://i.pravatar.cc/80?img=25' },
 ];
+
+/* Avis clients : gérés depuis l'admin (texte ou capture d'écran de conversation) */
+async function ubGetTestimonials() {
+  const { data, error } = await ubSupabase.from('testimonials').select('*').eq('published', true).order('sort_order', { ascending: true });
+  if (error || !data) { console.error('ubGetTestimonials', error); return UB_TESTIMONIALS_FALLBACK; }
+  return data.map(t => ({
+    id: t.id, type: t.type, name: t.name, role: t.role, text: t.text, rating: t.rating,
+    avatar: t.avatar_url, screenshot: t.screenshot_url,
+  }));
+}
 
 const UB_CONTACT = {
   phoneDisplay: '+221 78 305 36 57',

@@ -52,15 +52,12 @@ function ubIcon(name) { return UB_ICONS[name] || ''; }
 
 /* Affiche le logo (géré depuis l'admin -> Médiathèque, stocké dans
    Supabase). Si aucun logo n'est configuré, garde le logo texte déjà
-   en place. */
-async function ubApplyLogo(el) {
-  if (!el || typeof ubGetMediaConfig !== 'function') return;
-  let srcPath;
-  try {
-    const cfg = await ubGetMediaConfig();
-    srcPath = cfg.logo;
-  } catch (e) { return; }
-  if (!srcPath) return;
+   en place. Le dernier logo chargé est mis en cache localement pour
+   l'appliquer immédiatement (sans attendre l'appel réseau) et éviter
+   que le texte "Urbann Beauty" s'affiche un instant avant l'image. */
+const UB_LOGO_CACHE_KEY = 'ub_logo_cache_v1';
+
+function ubPaintLogoImg(el, srcPath) {
   const img = new Image();
   img.onload = () => {
     el.innerHTML = '';
@@ -73,4 +70,22 @@ async function ubApplyLogo(el) {
   };
   img.onerror = () => { /* logo invalide : on garde le logo texte */ };
   img.src = srcPath;
+}
+
+async function ubApplyLogo(el) {
+  if (!el || typeof ubGetMediaConfig !== 'function') return;
+  let cached = null;
+  try { cached = localStorage.getItem(UB_LOGO_CACHE_KEY); } catch (e) { /* stockage indisponible */ }
+  if (cached) ubPaintLogoImg(el, cached);
+
+  let srcPath;
+  try {
+    const cfg = await ubGetMediaConfig();
+    srcPath = cfg.logo;
+  } catch (e) { return; }
+  if (!srcPath) return;
+  if (srcPath !== cached) {
+    ubPaintLogoImg(el, srcPath);
+    try { localStorage.setItem(UB_LOGO_CACHE_KEY, srcPath); } catch (e) { /* stockage indisponible */ }
+  }
 }

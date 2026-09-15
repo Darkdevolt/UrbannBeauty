@@ -148,7 +148,7 @@ function ubRenderFooter() {
         <div class="footer-bottom">
           <span>© 2026 Urbann Beauty. Tous droits réservés.</span>
           <div class="payment-icons">
-            <span>Orange Money</span><span>Wave</span><span>Visa</span><span>MasterCard</span>
+            <span>Wave</span>
           </div>
         </div>
       </div>
@@ -205,6 +205,26 @@ function ubProductCardHTML(p, catsById) {
       </div>
     </div>
   </article>`;
+}
+
+function ubTestimonialCardHTML(t) {
+  if (t.type === 'capture' && t.screenshot) {
+    return `
+    <div class="testi-card is-shot reveal">
+      <div class="testi-shot-badge">${ubIcon('whatsapp')} Conversation client</div>
+      <img src="${t.screenshot}" alt="Échange avec ${t.name || 'un client'}" loading="lazy">
+      ${t.name || t.text ? `<div class="testi-shot-cap">${t.name ? `<strong>${t.name}</strong>` : ''}${t.text ? `<span>${t.text}</span>` : ''}</div>` : ''}
+    </div>`;
+  }
+  return `
+  <div class="testi-card reveal">
+    <div class="stars">${'★'.repeat(t.rating || 5)}${'☆'.repeat(5 - (t.rating || 5))}</div>
+    <p>“${t.text || ''}”</p>
+    <div class="testi-user">
+      <img src="${t.avatar || 'https://i.pravatar.cc/80'}" alt="${t.name || ''}">
+      <div><strong>${t.name || ''}</strong><span>${t.role || ''}</span></div>
+    </div>
+  </div>`;
 }
 
 function ubRenderWhatsAppButton() {

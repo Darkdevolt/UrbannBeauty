@@ -51,6 +51,30 @@ async function ubAdminDeleteCategory(id) {
   return !error;
 }
 
+/* ---------- Avis clients (texte ou capture d'écran de conversation) ---------- */
+async function ubAdminGetTestimonials() {
+  const { data, error } = await ubSupabase.from('testimonials').select('*').order('sort_order', { ascending: true });
+  if (error) { console.error('ubAdminGetTestimonials', error); return []; }
+  return data.map(t => ({
+    id: t.id, type: t.type, name: t.name, role: t.role, text: t.text, rating: t.rating,
+    avatar: t.avatar_url, screenshot: t.screenshot_url, published: t.published, sortOrder: t.sort_order,
+  }));
+}
+async function ubAdminSaveTestimonial(t) {
+  const { error } = await ubSupabase.from('testimonials').upsert({
+    id: t.id || undefined, type: t.type, name: t.name, role: t.role || null, text: t.text || null,
+    rating: t.rating || null, avatar_url: t.avatar || null, screenshot_url: t.screenshot || null,
+    published: t.published !== false, sort_order: t.sortOrder || 0,
+  });
+  if (error) console.error('ubAdminSaveTestimonial', error);
+  return !error;
+}
+async function ubAdminDeleteTestimonial(id) {
+  const { error } = await ubSupabase.from('testimonials').delete().eq('id', id);
+  if (error) console.error('ubAdminDeleteTestimonial', error);
+  return !error;
+}
+
 /* ---------- Commandes ---------- */
 async function ubAdminGetOrders() {
   const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty)').order('order_date', { ascending: false });
@@ -189,6 +213,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
     { href: 'categories.html', key: 'categories', label: 'Catégories', icon: 'filter' },
     { href: 'media.html', key: 'media', label: 'Médiathèque', icon: 'image' },
     { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders' },
+    { href: 'avis.html', key: 'avis', label: 'Avis clients', icon: 'heart' },
     { href: 'clients.html', key: 'clients', label: 'Clients', icon: 'users' },
     { group: 'Comptabilite' },
     { href: 'finances.html', key: 'finances', label: 'Finances', icon: 'chart' },

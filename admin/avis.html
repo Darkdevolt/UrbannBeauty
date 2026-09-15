@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avis clients — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+.t-type-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px}
+.t-type-option{display:flex;align-items:flex-start;gap:10px;padding:14px;border:1px solid var(--a-line);border-radius:14px;cursor:pointer;transition:.2s}
+.t-type-option:hover{border-color:var(--a-mauve)}
+.t-type-option input{margin-top:3px}
+.t-type-option strong{display:block;font-size:.86rem}
+.t-type-option small{color:var(--a-ink-soft);font-size:.74rem}
+.t-type-option.active{border-color:var(--a-mauve);background:var(--a-mauve-light)}
+.a-checkbox-row{display:flex;align-items:center;gap:9px}
+.a-checkbox-row input{width:auto}
+.avis-thumb{width:52px;height:52px;border-radius:12px;object-fit:cover;background:var(--a-mauve-light)}
+.avis-thumb-wrap{display:flex;align-items:center;gap:12px}
+</style>
+</head>
+<body>
+<div class="admin-shell" id="admin-shell"></div>
+
+<div class="a-modal-overlay" id="t-modal">
+  <div class="a-modal" style="max-width:560px">
+    <div class="a-modal-head"><h3 id="t-modal-title">Ajouter un avis</h3><button class="a-modal-close" onclick="ubCloseTModal()"></button></div>
+    <div class="a-modal-body">
+      <form id="t-form">
+        <input type="hidden" id="t-id">
+        <div class="t-type-choice">
+          <label class="t-type-option" id="t-type-texte-label">
+            <input type="radio" name="ttype" value="texte" id="t-type-texte" checked>
+            <span><strong>Avis texte</strong><small>Note en étoiles + commentaire</small></span>
+          </label>
+          <label class="t-type-option" id="t-type-capture-label">
+            <input type="radio" name="ttype" value="capture" id="t-type-capture">
+            <span><strong>Capture d'écran</strong><small>Conversation WhatsApp / SMS d'une cliente satisfaite</small></span>
+          </label>
+        </div>
+
+        <div class="a-field"><label>Nom du client (affiché publiquement, optionnel)</label><input type="text" id="t-name" placeholder="Ex : Aïcha K."></div>
+
+        <div id="t-fields-texte">
+          <div class="a-field"><label>Rôle / statut</label><input type="text" id="t-role" placeholder="Ex : Cliente vérifiée"></div>
+          <div class="a-field"><label>Note</label>
+            <select id="t-rating">
+              <option value="5">5 étoiles</option>
+              <option value="4">4 étoiles</option>
+              <option value="3">3 étoiles</option>
+              <option value="2">2 étoiles</option>
+              <option value="1">1 étoile</option>
+            </select>
+          </div>
+          <div class="a-field"><label>Avis</label><textarea id="t-text-avis" rows="3" placeholder="Le sérum vitamine C a changé ma peau en un mois..."></textarea></div>
+          <div class="a-field">
+            <label>Photo du client (optionnel)</label>
+            <div class="upload-zone" id="t-avatar-zone" onclick="document.getElementById('t-avatar-input').click()">{{upload}}<p><strong>Importer une photo</strong> (JPG, PNG)</p></div>
+            <input type="file" id="t-avatar-input" accept="image/*" hidden>
+            <div class="upload-preview" id="t-avatar-preview"></div>
+          </div>
+        </div>
+
+        <div id="t-fields-capture" style="display:none">
+          <div class="a-field">
+            <label>Capture d'écran de la conversation</label>
+            <div class="upload-zone" id="t-shot-zone" onclick="document.getElementById('t-shot-input').click()">{{upload}}<p><strong>Importer la capture</strong> (JPG, PNG) — ex : discussion WhatsApp</p></div>
+            <input type="file" id="t-shot-input" accept="image/*" hidden>
+            <div class="upload-preview" id="t-shot-preview"></div>
+          </div>
+          <div class="a-field"><label>Légende (optionnel)</label><input type="text" id="t-text-caption" placeholder="Ex : Cliente à Dakar, commande du 12 mars"></div>
+        </div>
+
+        <div class="a-field"><label>Ordre d'affichage</label><input type="number" id="t-order" min="0" value="0"></div>
+        <div class="a-field"><div class="a-checkbox-row"><input type="checkbox" id="t-published" checked><label for="t-published" style="margin:0">Visible sur le site</label></div></div>
+      </form>
+    </div>
+    <div class="a-modal-foot"><button class="a-btn a-btn-outline" onclick="ubCloseTModal()">Annuler</button><button class="a-btn a-btn-primary" onclick="ubSaveTestimonial()">Enregistrer</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+let testimonials = [];
+let currentAvatar = null;
+let currentShot = null;
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('avis', 'Avis clients', "Gérez les avis affichés sur le site : témoignages texte ou captures d'écran de conversations clients");
+
+  const close = document.querySelector('.a-modal-close'); if (close) close.innerHTML = ubIcon('close');
+  document.querySelectorAll('.upload-zone').forEach(z => { z.innerHTML = z.innerHTML.replace('{{upload}}', ubIcon('upload')); });
+
+  testimonials = await ubAdminGetTestimonials();
+  renderContent();
+
+  function renderContent() {
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-toolbar">
+        <p style="color:var(--a-ink-soft);font-size:.88rem;margin:0">${testimonials.length} avis au total · affichés sur la page d'accueil et les fiches produits</p>
+        <button class="a-btn a-btn-primary" onclick="ubOpenTModal()">${ubIcon('plus')} Ajouter un avis</button>
+      </div>
+      <div class="a-panel">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Aperçu</th><th>Client</th><th>Type</th><th>Contenu</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="t-tbody"></tbody>
+          </table>
+        </div>
+      </div>`;
+    renderTable();
+  }
+
+  function renderTable() {
+    const sorted = [...testimonials].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    document.getElementById('t-tbody').innerHTML = sorted.length ? sorted.map(t => `
+      <tr>
+        <td><div class="avis-thumb-wrap"><img class="avis-thumb" src="${t.type === 'capture' ? (t.screenshot || '') : (t.avatar || 'https://i.pravatar.cc/80')}" alt=""></div></td>
+        <td><strong>${t.name || 'Anonyme'}</strong>${t.role ? `<br><span style="font-size:.76rem;color:var(--a-ink-soft)">${t.role}</span>` : ''}</td>
+        <td>${t.type === 'capture' ? `<span class="a-badge neutral">${ubIcon('whatsapp')} Capture</span>` : `<span class="a-badge neutral">${ubIcon('star')} Texte</span>`}</td>
+        <td style="max-width:280px"><span style="font-size:.82rem;color:var(--a-ink-soft)">${(t.text || '').slice(0, 90) || '—'}</span></td>
+        <td>${t.published ? '<span class="a-badge success">Visible</span>' : '<span class="a-badge neutral">Masqué</span>'}</td>
+        <td>
+          <div class="a-actions-cell">
+            <button class="a-icon-action" onclick="ubOpenTModal('${t.id}')" title="Modifier">${ubIcon('edit')}</button>
+            <button class="a-icon-action" onclick="ubDeleteTestimonial('${t.id}')" title="Supprimer">${ubIcon('trash')}</button>
+          </div>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="6"><div class="empty-state">${ubIcon('heart')}<p>Aucun avis pour le moment. Ajoutez le premier témoignage client.</p></div></td></tr>`;
+  }
+
+  function updateTypeUI(type) {
+    document.getElementById('t-fields-texte').style.display = type === 'texte' ? '' : 'none';
+    document.getElementById('t-fields-capture').style.display = type === 'capture' ? '' : 'none';
+    document.getElementById('t-type-texte-label').classList.toggle('active', type === 'texte');
+    document.getElementById('t-type-capture-label').classList.toggle('active', type === 'capture');
+  }
+  document.querySelectorAll('input[name="ttype"]').forEach(r => r.addEventListener('change', e => updateTypeUI(e.target.value)));
+
+  function ubOpenTModal(id) {
+    currentAvatar = null; currentShot = null;
+    document.getElementById('t-avatar-preview').innerHTML = '';
+    document.getElementById('t-shot-preview').innerHTML = '';
+    if (id) {
+      const t = testimonials.find(x => x.id === id);
+      document.getElementById('t-modal-title').textContent = 'Modifier l\'avis';
+      document.getElementById('t-id').value = t.id;
+      document.getElementById('t-name').value = t.name || '';
+      document.getElementById('t-role').value = t.role || '';
+      document.getElementById('t-rating').value = t.rating || 5;
+      document.getElementById('t-text-avis').value = t.type === 'texte' ? (t.text || '') : '';
+      document.getElementById('t-text-caption').value = t.type === 'capture' ? (t.text || '') : '';
+      document.getElementById('t-order').value = t.sortOrder || 0;
+      document.getElementById('t-published').checked = t.published !== false;
+      document.getElementById(t.type === 'capture' ? 't-type-capture' : 't-type-texte').checked = true;
+      updateTypeUI(t.type === 'capture' ? 'capture' : 'texte');
+      if (t.avatar) { currentAvatar = t.avatar; document.getElementById('t-avatar-preview').innerHTML = `<div class="item"><img src="${t.avatar}"></div>`; }
+      if (t.screenshot) { currentShot = t.screenshot; document.getElementById('t-shot-preview').innerHTML = `<div class="item"><img src="${t.screenshot}"></div>`; }
+    } else {
+      document.getElementById('t-modal-title').textContent = 'Ajouter un avis';
+      document.getElementById('t-form').reset();
+      document.getElementById('t-id').value = '';
+      document.getElementById('t-order').value = testimonials.length;
+      document.getElementById('t-type-texte').checked = true;
+      updateTypeUI('texte');
+    }
+    document.getElementById('t-modal').classList.add('open');
+  }
+  function ubCloseTModal() { document.getElementById('t-modal').classList.remove('open'); }
+
+  document.getElementById('t-avatar-input').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    document.getElementById('t-avatar-preview').innerHTML = `<div class="item" style="display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--a-ink-soft)">Envoi...</div>`;
+    const url = await ubUploadImage(file, 'testimonials');
+    if (!url) { ubAToast('Échec de l\'envoi'); document.getElementById('t-avatar-preview').innerHTML = ''; return; }
+    currentAvatar = url;
+    document.getElementById('t-avatar-preview').innerHTML = `<div class="item"><img src="${url}"><button type="button" onclick="event.stopPropagation();currentAvatar=null;document.getElementById('t-avatar-preview').innerHTML=''">✕</button></div>`;
+  });
+  document.getElementById('t-shot-input').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    document.getElementById('t-shot-preview').innerHTML = `<div class="item" style="display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--a-ink-soft)">Envoi...</div>`;
+    const url = await ubUploadImage(file, 'testimonials');
+    if (!url) { ubAToast('Échec de l\'envoi'); document.getElementById('t-shot-preview').innerHTML = ''; return; }
+    currentShot = url;
+    document.getElementById('t-shot-preview').innerHTML = `<div class="item"><img src="${url}"><button type="button" onclick="event.stopPropagation();currentShot=null;document.getElementById('t-shot-preview').innerHTML=''">✕</button></div>`;
+  });
+
+  window.ubSaveTestimonial = async function () {
+    const type = document.querySelector('input[name="ttype"]:checked').value;
+    const id = document.getElementById('t-id').value || undefined;
+    const name = document.getElementById('t-name').value.trim();
+
+    if (type === 'capture' && !currentShot) { ubAToast('Merci d\'importer la capture d\'écran'); return; }
+    if (type === 'texte' && !document.getElementById('t-text-avis').value.trim()) { ubAToast('Merci de saisir le texte de l\'avis'); return; }
+
+    const data = {
+      id, type, name,
+      role: type === 'texte' ? document.getElementById('t-role').value.trim() : null,
+      text: type === 'texte' ? document.getElementById('t-text-avis').value.trim() : document.getElementById('t-text-caption').value.trim(),
+      rating: type === 'texte' ? Number(document.getElementById('t-rating').value) : null,
+      avatar: type === 'texte' ? currentAvatar : null,
+      screenshot: type === 'capture' ? currentShot : null,
+      sortOrder: Number(document.getElementById('t-order').value) || 0,
+      published: document.getElementById('t-published').checked,
+    };
+
+    const ok = await ubAdminSaveTestimonial(data);
+    if (!ok) { ubAToast('Erreur lors de l\'enregistrement'); return; }
+    ubAToast(id ? 'Avis mis à jour' : 'Avis ajouté');
+    ubCloseTModal();
+    testimonials = await ubAdminGetTestimonials();
+    renderTable();
+  };
+
+  window.ubDeleteTestimonial = async function (id) {
+    if (!confirm('Supprimer définitivement cet avis ?')) return;
+    const ok = await ubAdminDeleteTestimonial(id);
+    if (!ok) { ubAToast('Erreur lors de la suppression'); return; }
+    testimonials = testimonials.filter(t => t.id !== id);
+    ubAToast('Avis supprimé');
+    renderTable();
+  };
+
+  window.ubOpenTModal = ubOpenTModal;
+  window.ubCloseTModal = ubCloseTModal;
+}
+main();
+</script>
+</body>
+</html>
