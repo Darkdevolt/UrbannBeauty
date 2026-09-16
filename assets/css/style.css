@@ -847,6 +847,10 @@ section { padding: 88px 0; }
 }
 .summary-row { display: flex; justify-content: space-between; margin-bottom: 14px; font-size: .92rem; color: var(--ink-soft); }
 .summary-row.total { font-size: 1.15rem; font-weight: 700; color: var(--ink); border-top: 1px solid var(--line); padding-top: 16px; margin-top: 10px; }
+.deposit-box { background: var(--mauve-50); border: 1px solid var(--mauve-200); border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+.deposit-box .summary-row { margin-bottom: 8px; font-size: .84rem; }
+.deposit-box .summary-row:last-of-type { margin-bottom: 0; }
+.deposit-box strong { color: var(--mauve-700); }
 .coupon-row { display: flex; gap: 8px; margin: 18px 0; flex-wrap: wrap; }
 .coupon-row input {
   flex: 1; min-width: 120px; padding: 11px 14px; border-radius: var(--radius-pill); border: 1px solid var(--line); outline: none;

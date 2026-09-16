@@ -23,15 +23,29 @@ function ubDiscountAmount(){
   return appliedPromo ? Math.round(currentSubtotal * appliedPromo.percent / 100) : 0;
 }
 
+const UB_DEPOSIT_RATE = 0.2;
+function ubCurrentTotal(){
+  const discount = ubDiscountAmount();
+  const shipping = (currentSubtotal - discount) >= 50000 ? 0 : ubCurrentZoneFee();
+  return currentSubtotal - discount + shipping;
+}
+function ubDepositAmount(total){
+  return Math.ceil((total != null ? total : ubCurrentTotal()) * UB_DEPOSIT_RATE);
+}
+
 function ubRecalcSummary(){
   const discount = ubDiscountAmount();
   const shipping = (currentSubtotal - discount) >= 50000 ? 0 : ubCurrentZoneFee();
   const total = currentSubtotal - discount + shipping;
+  const deposit = ubDepositAmount(total);
   const shipEl = document.getElementById('ship-value'), totalEl = document.getElementById('total-value'), hintEl = document.getElementById('ship-hint');
   const discountRow = document.getElementById('discount-row'), discountValueEl = document.getElementById('discount-value'), discountLabelEl = document.getElementById('discount-code-label');
+  const depositEl = document.getElementById('deposit-value'), remainderEl = document.getElementById('remainder-value');
   if(shipEl) shipEl.textContent = shipping === 0 ? 'Offerte' : ubFormatPrice(shipping);
   if(totalEl) totalEl.textContent = ubFormatPrice(total);
   if(hintEl) hintEl.textContent = shipping > 0 ? 'Livraison offerte dès 50 000 FCFA.' : 'Vous bénéficiez de la livraison offerte.';
+  if(depositEl) depositEl.textContent = ubFormatPrice(deposit);
+  if(remainderEl) remainderEl.textContent = ubFormatPrice(total - deposit);
   if(discountRow){
     if(appliedPromo){
       discountRow.style.display='flex';
@@ -41,6 +55,7 @@ function ubRecalcSummary(){
       discountRow.style.display='none';
     }
   }
+  ubTogglePaymentNote();
 }
 
 function ubApplyPromo(){
@@ -59,19 +74,14 @@ function ubTogglePaymentNote(){
   const selected = document.querySelector('input[name="payment"]:checked')?.value;
   const note = document.getElementById('wave-pay-note');
   if(!note) return;
-  if(selected === 'Wave'){
-    note.style.display='flex';
-    if(!note.dataset.filled){
-      const link=document.createElement('a');
-      link.href=UB_WAVE_PAYMENT_LINK; link.target='_blank'; link.rel='noopener'; link.textContent=UB_WAVE_PAYMENT_LINK;
-      const span=document.createElement('span'); span.textContent='Veuillez payer avec Wave en cliquant sur ce lien : ';
-      const confirmRow=document.createElement('label'); confirmRow.className='wave-confirm-row';
-      confirmRow.innerHTML='<input type="checkbox" id="co-wave-confirm"> <span>Je confirme avoir effectué le paiement Wave</span>';
-      note.appendChild(span); note.appendChild(link); note.appendChild(confirmRow);
-      note.dataset.filled='1';
-    }
+  const wasChecked = document.getElementById('co-wave-confirm')?.checked || false;
+  const total = ubCurrentTotal();
+  const deposit = ubDepositAmount(total);
+  note.style.display='flex';
+  if(selected === 'Paiement à la livraison'){
+    note.innerHTML = `<span>Un acompte de <strong>${ubFormatPrice(deposit)}</strong> (20% minimum, obligatoire pour valider la commande) est à régler maintenant via Wave. Le solde de <strong>${ubFormatPrice(total-deposit)}</strong> sera réglé à la livraison. Payez l'acompte en cliquant sur ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a><label class="wave-confirm-row"><input type="checkbox" id="co-wave-confirm" ${wasChecked?'checked':''}> <span>Je confirme avoir payé l'acompte de ${ubFormatPrice(deposit)} via Wave</span></label>`;
   } else {
-    note.style.display='none';
+    note.innerHTML = `<span>Réglez le montant total de <strong>${ubFormatPrice(total)}</strong> via Wave en cliquant sur ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a><label class="wave-confirm-row"><input type="checkbox" id="co-wave-confirm" ${wasChecked?'checked':''}> <span>Je confirme avoir payé ${ubFormatPrice(total)} via Wave</span></label>`;
   }
 }
 
@@ -90,7 +100,7 @@ async function renderCart(){
   const subtotal=lines.reduce((s,l)=>s+l.product.price*l.qty,0);
   currentSubtotal=subtotal;
   const shipping=subtotal>=50000?0:(zones[0]?zones[0].fee:2500), total=subtotal+shipping;
-  container.innerHTML=`<div class="cart-layout"><div><div class="cart-table-wrap"><table class="cart-table"><thead><tr><th>Produit</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th></tr></thead><tbody>${lines.map(l=>`<tr><td><a href="produit.html?id=${l.product.id}" class="cart-product"><img src="${l.product.img}" alt="${l.product.name}"><div><strong>${l.product.name}</strong><span>${catsById[l.product.category]?.name||''}</span></div></a></td><td>${ubFormatPrice(l.product.price)}</td><td><div class="qty-selector"><button onclick="ubUpdateLine('${l.product.id}',${l.qty-1})">−</button><span>${l.qty}</span><button onclick="ubUpdateLine('${l.product.id}',${l.qty+1})">+</button></div></td><td><strong>${ubFormatPrice(l.product.price*l.qty)}</strong></td><td><button class="remove-btn" aria-label="Supprimer" onclick="ubRemoveFromCart('${l.product.id}');renderCart();">${ubIcon('trash')}</button></td></tr>`).join('')}</tbody></table></div><a href="boutique.html" style="display:inline-block;margin-top:18px;font-size:.82rem;color:var(--mauve-600)">← Continuer mes achats</a></div><div class="cart-summary"><h3>Récapitulatif</h3><div class="summary-row"><span>Sous-total</span><span>${ubFormatPrice(subtotal)}</span></div><div class="summary-row"><span>Livraison</span><span id="ship-value">${shipping===0?'Offerte':ubFormatPrice(shipping)}</span></div><p id="ship-hint" style="font-size:.72rem;color:${shipping>0?'var(--ink-soft)':'var(--success)'}">${shipping>0?'Livraison offerte dès 50 000 FCFA.':'Vous bénéficiez de la livraison offerte.'}</p><div class="summary-row" id="discount-row" style="display:none;color:var(--success)"><span>Réduction (<span id="discount-code-label"></span>)</span><span id="discount-value"></span></div><div class="coupon-row"><input type="text" id="co-promo" placeholder="Code promo" value="${appliedPromo?appliedPromo.code:''}"><button class="btn btn-outline btn-sm" onclick="ubApplyPromo()">Appliquer</button></div><p id="promo-msg" style="font-size:.72rem;margin:2px 0 0"></p><div class="summary-row total"><span>Total</span><span id="total-value">${ubFormatPrice(total)}</span></div><div class="checkout-form"><div class="field"><label>Nom complet *</label><input id="co-name" type="text" placeholder="Votre nom"></div><div class="field"><label>Téléphone *</label><input id="co-phone" type="tel" placeholder="77 000 00 00"></div><div class="field"><label>Zone de livraison *</label><select id="co-zone" onchange="ubRecalcSummary()">${zones.map((z,i)=>`<option value="${z.id}" ${i===0?'selected':''}>${z.name} — ${z.fee===0?'Gratuit':ubFormatPrice(z.fee)}</option>`).join('')}</select></div><div class="field"><label>Adresse précise (quartier, repère...)</label><input id="co-address" type="text" placeholder="Ex : Villa 12, Cité Keur Gorgui"></div><div class="field"><label>Mode de paiement *</label><div class="payment-methods">${UB_PAYMENT_METHODS.map((m,i)=>`<label class="payment-option"><input type="radio" name="payment" value="${m}" ${i===0?'checked':''} onchange="ubTogglePaymentNote()"><span>${m}</span></label>`).join('')}</div><div id="wave-pay-note" class="wave-pay-note" style="display:none"></div></div><div id="checkout-error" class="checkout-error" style="display:none"></div></div><button class="btn btn-primary btn-block" style="margin-top:16px" id="checkout-submit" onclick="ubSubmitOrder()">Passer la commande</button><p style="font-size:.7rem;color:var(--ink-soft);text-align:center;margin-top:12px">Paiement sécurisé · Commande préparée avec soin</p></div></div>`;
+  container.innerHTML=`<div class="cart-layout"><div><div class="cart-table-wrap"><table class="cart-table"><thead><tr><th>Produit</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th></tr></thead><tbody>${lines.map(l=>`<tr><td><a href="produit.html?id=${l.product.id}" class="cart-product"><img src="${l.product.img}" alt="${l.product.name}"><div><strong>${l.product.name}</strong><span>${catsById[l.product.category]?.name||''}</span></div></a></td><td>${ubFormatPrice(l.product.price)}</td><td><div class="qty-selector"><button onclick="ubUpdateLine('${l.product.id}',${l.qty-1})">−</button><span>${l.qty}</span><button onclick="ubUpdateLine('${l.product.id}',${l.qty+1})">+</button></div></td><td><strong>${ubFormatPrice(l.product.price*l.qty)}</strong></td><td><button class="remove-btn" aria-label="Supprimer" onclick="ubRemoveFromCart('${l.product.id}');renderCart();">${ubIcon('trash')}</button></td></tr>`).join('')}</tbody></table></div><a href="boutique.html" style="display:inline-block;margin-top:18px;font-size:.82rem;color:var(--mauve-600)">← Continuer mes achats</a></div><div class="cart-summary"><h3>Récapitulatif</h3><div class="summary-row"><span>Sous-total</span><span>${ubFormatPrice(subtotal)}</span></div><div class="summary-row"><span>Livraison</span><span id="ship-value">${shipping===0?'Offerte':ubFormatPrice(shipping)}</span></div><p id="ship-hint" style="font-size:.72rem;color:${shipping>0?'var(--ink-soft)':'var(--success)'}">${shipping>0?'Livraison offerte dès 50 000 FCFA.':'Vous bénéficiez de la livraison offerte.'}</p><div class="summary-row" id="discount-row" style="display:none;color:var(--success)"><span>Réduction (<span id="discount-code-label"></span>)</span><span id="discount-value"></span></div><div class="coupon-row"><input type="text" id="co-promo" placeholder="Code promo" value="${appliedPromo?appliedPromo.code:''}"><button class="btn btn-outline btn-sm" onclick="ubApplyPromo()">Appliquer</button></div><p id="promo-msg" style="font-size:.72rem;margin:2px 0 0"></p><div class="summary-row total"><span>Total</span><span id="total-value">${ubFormatPrice(total)}</span></div><div class="deposit-box"><div class="summary-row"><span>Acompte obligatoire (20%)</span><strong id="deposit-value">${ubFormatPrice(ubDepositAmount(total))}</strong></div><div class="summary-row"><span>Solde restant</span><span id="remainder-value">${ubFormatPrice(total-ubDepositAmount(total))}</span></div><p style="font-size:.7rem;color:var(--ink-soft);margin:4px 0 0">Un acompte minimum de 20% est requis pour valider toute commande, y compris en paiement à la livraison.</p></div><div class="checkout-form"><div class="field"><label>Nom complet *</label><input id="co-name" type="text" placeholder="Votre nom"></div><div class="field"><label>Téléphone *</label><input id="co-phone" type="tel" placeholder="77 000 00 00"></div><div class="field"><label>Zone de livraison *</label><select id="co-zone" onchange="ubRecalcSummary()">${zones.map((z,i)=>`<option value="${z.id}" ${i===0?'selected':''}>${z.name} — ${z.fee===0?'Gratuit':ubFormatPrice(z.fee)}</option>`).join('')}</select></div><div class="field"><label>Adresse précise (quartier, repère...)</label><input id="co-address" type="text" placeholder="Ex : Villa 12, Cité Keur Gorgui"></div><div class="field"><label>Mode de paiement *</label><div class="payment-methods">${UB_PAYMENT_METHODS.map((m,i)=>`<label class="payment-option"><input type="radio" name="payment" value="${m}" ${i===0?'checked':''} onchange="ubTogglePaymentNote()"><span>${m}</span></label>`).join('')}</div><div id="wave-pay-note" class="wave-pay-note"></div></div><div id="checkout-error" class="checkout-error" style="display:none"></div></div><button class="btn btn-primary btn-block" style="margin-top:16px" id="checkout-submit" onclick="ubSubmitOrder()">Passer la commande</button><p style="font-size:.7rem;color:var(--ink-soft);text-align:center;margin-top:12px">Paiement sécurisé · Commande préparée avec soin</p></div></div>`;
   ubTogglePaymentNote();
   ubRecalcSummary();
 }
@@ -113,8 +123,11 @@ async function ubSubmitOrder(){
   if(!name) return showError('Merci de renseigner votre nom complet.');
   if(!phone || phone.replace(/\D/g,'').length < 9) return showError('Merci de renseigner un numéro de téléphone valide.');
   if(!zone) return showError('Merci de choisir votre zone de livraison.');
-  if(payment==='Wave' && !document.getElementById('co-wave-confirm')?.checked){
-    return showError('Merci de confirmer votre paiement Wave (case à cocher) avant de valider la commande, ou choisissez le paiement à la livraison.');
+  if(!document.getElementById('co-wave-confirm')?.checked){
+    const depositNow = ubDepositAmount();
+    return showError(payment==='Paiement à la livraison'
+      ? `Un acompte de ${ubFormatPrice(depositNow)} (20% minimum) doit être payé via Wave pour valider la commande. Merci de cocher la case de confirmation après paiement.`
+      : 'Merci de confirmer votre paiement Wave (case à cocher) avant de valider la commande.');
   }
 
   btn.disabled=true; btn.textContent='Traitement en cours...';
@@ -140,12 +153,15 @@ async function ubSubmitOrder(){
     return;
   }
 
-  const discount=ubDiscountAmount();
-  const shipping=(currentSubtotal-discount)>=50000?0:ubCurrentZoneFee();
-  const finalTotal=currentSubtotal-discount+shipping;
+  const finalTotal=ubCurrentTotal();
+  const depositPaid=ubDepositAmount(finalTotal);
+  const remainderDue=finalTotal-depositPaid;
   ubSaveCart([]);
   appliedPromo=null;
-  document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée pour un total de <strong>${ubFormatPrice(finalTotal)}</strong>${payment==='Paiement à la livraison'?' (à régler à la livraison)':''}. Nous vous contacterons au ${phone} pour la confirmer.</p><a href="boutique.html" class="btn btn-primary">Continuer mes achats</a></div>`;
+  const balanceNote = payment==='Paiement à la livraison'
+    ? ` Acompte de <strong>${ubFormatPrice(depositPaid)}</strong> réglé via Wave — solde de <strong>${ubFormatPrice(remainderDue)}</strong> à régler à la livraison.`
+    : ` Montant total de <strong>${ubFormatPrice(finalTotal)}</strong> réglé via Wave.`;
+  document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée.${balanceNote} Nous vous contacterons au ${phone} pour la confirmer.</p><a href="boutique.html" class="btn btn-primary">Continuer mes achats</a></div>`;
 }
 
 renderCart();
