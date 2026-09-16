@@ -207,8 +207,12 @@ async function ubAdminGetOrders() {
   if (error) { console.error('ubAdminGetOrders', error); return []; }
   return data.map(o => ({
     id: o.id, client: ubEscapeHtml(o.client_name), phone: ubEscapeHtml(o.phone), address: ubEscapeHtml(o.address), date: o.order_date,
+    createdAt: o.created_at,
     payment: ubEscapeHtml(o.payment_method), paymentStatus: o.payment_status, status: o.status,
+    deliveryStatus: o.delivery_status, deliveryPerson: o.delivery_person, deliveryDate: o.delivery_date, deliveryNotes: o.delivery_notes,
     packagingItemId: o.packaging_item_id, packagingCost: o.packaging_cost,
+    subtotal: o.subtotal, promoCode: o.promo_code, discountAmount: o.discount_amount, deliveryFee: o.delivery_fee,
+    orderTotal: o.order_total, depositAmount: o.deposit_amount, paymentProofPath: o.payment_proof_path,
     items: (o.order_items || []).map(it => ({
       productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price, cost: it.unit_cost,
       clientNote: it.client_note || null, clientPhotoPath: it.client_photo_path || null,
@@ -323,6 +327,14 @@ async function ubAdminGetClientPhotoUrl(path) {
 }
 function ubOrderTotal(order, productsById) {
   return ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * l.price, 0);
+}
+/* Total reellement du par la cliente (sous-total - remise + livraison), fige cote
+   serveur au moment de la commande (voir ub_place_order). Distinct de ubOrderTotal
+   (qui ne compte que les lignes produits et sert aux stats de ventes/marges) --
+   on ne melange pas les deux pour ne pas fausser les rapports existants. Retourne
+   null pour les commandes passees avant l'ajout de cet instantane financier. */
+function ubOrderGrandTotal(order) {
+  return order.orderTotal != null ? order.orderTotal : null;
 }
 function ubOrderCOGS(order, productsById) {
   const productsCost = ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * (l.cost || 0), 0);

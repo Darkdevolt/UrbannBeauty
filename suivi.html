@@ -9,7 +9,13 @@
 .track-badge.livree{background:#e6f6ec;color:var(--success)}
 .track-badge.annulee,.track-badge.echec{background:#fbe9ec;color:var(--danger)}
 .track-items{margin-top:16px;border-top:1px solid var(--line);padding-top:16px}
-.track-items div{display:flex;justify-content:space-between;font-size:.86rem;padding:6px 0;color:var(--ink-soft)}
+.track-item-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.86rem;padding:8px 0;color:var(--ink-soft)}
+.review-link{background:none;border:0;color:var(--mauve-600);font-size:.76rem;font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:underline}
+.review-form{background:var(--white);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;margin:6px 0 12px}
+.review-stars{display:flex;gap:4px;font-size:1.4rem;color:var(--line);cursor:pointer;margin-bottom:10px}
+.review-stars span.active{color:var(--gold)}
+.review-form textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:inherit;resize:vertical}
+.review-form input[type="text"]{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font:inherit;margin-bottom:10px}
 </style>
 </head><body>
 <div id="site-header"></div>
@@ -60,9 +66,51 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
       ${order.delivery_date ? `<p style="font-size:.84rem;margin:0 0 6px"><strong>Date de livraison prévue :</strong> ${new Date(order.delivery_date).toLocaleDateString('fr-FR')}</p>` : ''}
       <p style="font-size:.84rem;margin:0"><strong>Adresse :</strong> ${order.address || '—'}</p>
       <div class="track-items">
-        ${items.map(i => `<div><span>${i.name} × ${i.qty}</span><strong>${ubFormatPrice(i.price * i.qty)}</strong></div>`).join('') || '<p style="color:var(--ink-soft)">Détail des articles indisponible.</p>'}
+        ${items.map((i, idx) => `
+          <div class="track-item-row">
+            <span>${i.name} × ${i.qty}</span>
+            <strong>${ubFormatPrice(i.price * i.qty)}</strong>
+            ${order.status !== 'annulee' && i.productId ? `<button class="review-link" type="button" id="review-toggle-${idx}">Laisser un avis</button>` : ''}
+          </div>
+          <div id="review-form-${idx}"></div>
+        `).join('') || '<p style="color:var(--ink-soft)">Détail des articles indisponible.</p>'}
       </div>
     </div>`;
+
+  items.forEach((item, idx) => {
+    const toggle = document.getElementById(`review-toggle-${idx}`);
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+      const box = document.getElementById(`review-form-${idx}`);
+      if (box.dataset.open) { box.innerHTML = ''; box.dataset.open = ''; return; }
+      box.dataset.open = '1';
+      let rating = 0;
+      box.innerHTML = `
+        <div class="review-form">
+          <div class="review-stars" id="review-stars-${idx}">${[1,2,3,4,5].map(n => `<span data-n="${n}">★</span>`).join('')}</div>
+          <input type="text" id="review-name-${idx}" placeholder="Votre prénom (optionnel)">
+          <textarea id="review-text-${idx}" rows="3" placeholder="Votre avis sur ce produit..."></textarea>
+          <p id="review-error-${idx}" style="color:var(--danger);font-size:.78rem;margin:8px 0 0;display:none"></p>
+          <button class="btn btn-primary btn-sm" type="button" id="review-submit-${idx}" style="margin-top:10px">Envoyer mon avis</button>
+        </div>`;
+      const starsEl = document.getElementById(`review-stars-${idx}`);
+      starsEl.querySelectorAll('span').forEach(s => s.addEventListener('click', () => {
+        rating = Number(s.dataset.n);
+        starsEl.querySelectorAll('span').forEach(x => x.classList.toggle('active', Number(x.dataset.n) <= rating));
+      }));
+      document.getElementById(`review-submit-${idx}`).addEventListener('click', async () => {
+        const errEl = document.getElementById(`review-error-${idx}`);
+        errEl.style.display = 'none';
+        const text = document.getElementById(`review-text-${idx}`).value.trim();
+        const name = document.getElementById(`review-name-${idx}`).value.trim();
+        if (!rating) { errEl.textContent = 'Merci de choisir une note.'; errEl.style.display = 'block'; return; }
+        if (!text) { errEl.textContent = 'Merci de rédiger votre avis.'; errEl.style.display = 'block'; return; }
+        const res = await ubSubmitReview({ orderId: order.id, phone, productId: item.productId, rating, text, name });
+        if (res.error) { errEl.textContent = "Une erreur est survenue, réessayez dans un instant."; errEl.style.display = 'block'; return; }
+        box.innerHTML = `<p style="color:var(--success);font-size:.84rem;padding:10px 0">Merci pour votre avis ! Il sera publié après vérification.</p>`;
+      });
+    });
+  });
 });
 </script>
 </body></html>

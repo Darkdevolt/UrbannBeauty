@@ -123,7 +123,7 @@ async function main() {
             ${packaging.map(p => `<option value="${p.id}" ${o.packagingItemId === p.id ? 'selected' : ''}>${p.name}${p.heightCm && p.widthCm ? ` (${p.heightCm}×${p.widthCm}cm)` : ''} — ${p.quantityRemaining <= 0 ? 'épuisé' : p.quantityRemaining + ' restants'}</option>`).join('')}
           </select>
         </td>
-        <td><strong>${ubFormatPrice(ubOrderTotal(o, productsById))}</strong></td>
+        <td><strong>${ubFormatPrice(ubOrderGrandTotal(o) ?? ubOrderTotal(o, productsById))}</strong>${ubOrderGrandTotal(o) == null ? `<div style="font-size:.68rem;color:var(--a-ink-soft)">hors livraison</div>` : ''}</td>
         <td>
           <select class="a-select" style="padding:6px 10px;font-size:.78rem" onchange="ubUpdateStatus('${o.id}', this.value)">
             <option value="en_attente" ${o.status === 'en_attente' ? 'selected' : ''}>En attente</option>

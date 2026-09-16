@@ -36,6 +36,22 @@ async function ubTrackOrder(orderId, phone) {
   return (data && data[0]) || null;
 }
 
+/* Avis client sur un produit reellement commande (verifie cote serveur via
+   commande + telephone). Mis en attente de moderation admin avant publication. */
+async function ubSubmitReview({ orderId, phone, productId, rating, text, name }) {
+  const { data, error } = await ubSupabase.rpc('ub_submit_review', {
+    p_order_id: orderId, p_phone: phone, p_product_id: productId, p_rating: rating, p_text: text, p_name: name || null,
+  });
+  if (error) {
+    if (/COMMANDE_INTROUVABLE/.test(error.message)) return { error: 'COMMANDE_INTROUVABLE' };
+    if (/NOTE_INVALIDE/.test(error.message)) return { error: 'NOTE_INVALIDE' };
+    if (/AVIS_VIDE/.test(error.message)) return { error: 'AVIS_VIDE' };
+    console.error('ubSubmitReview', error);
+    return { error: 'INCONNU' };
+  }
+  return { ok: !!data };
+}
+
 /* ---------- Demande de retour publique ---------- */
 async function ubRequestReturn({ orderId, phone, clientName, productId, qty, reason }) {
   const { error } = await ubSupabase.from('returns').insert({
@@ -166,7 +182,7 @@ function ubCatsById(categories) {
    reserve le stock puis cree la commande de facon atomique : soit tout reussit,
    soit rien n'est enregistre (voir migration add_indexes_and_atomic_order_placement).
    Ne jamais recalculer/decrementer le stock depuis le frontend. */
-async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items }) {
+async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items, promoCode, deliveryZoneId, paymentProofPath }) {
   const { data, error } = await ubSupabase.rpc('ub_place_order', {
     p_client_name: clientName,
     p_phone: phone,
@@ -178,6 +194,9 @@ async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items }
       ...(l.clientPhotoPath ? { client_photo_path: l.clientPhotoPath } : {}),
       ...(l.boxInstanceId ? { box_instance_id: l.boxInstanceId, box_template_id: l.boxTemplateId } : {}),
     })),
+    p_promo_code: promoCode || null,
+    p_delivery_zone_id: deliveryZoneId || null,
+    p_payment_proof_path: paymentProofPath || null,
   });
   if (error) {
     const code = (error.message || '').match(/PRODUIT_INDISPONIBLE:\s*(\S+)/);
@@ -185,6 +204,7 @@ async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items }
     if (/PANIER_VIDE/.test(error.message)) return { error: 'PANIER_VIDE' };
     if (/NOM_CLIENT_REQUIS/.test(error.message)) return { error: 'NOM_CLIENT_REQUIS' };
     if (/TELEPHONE_REQUIS/.test(error.message)) return { error: 'TELEPHONE_REQUIS' };
+    if (/PREUVE_PAIEMENT_REQUISE/.test(error.message)) return { error: 'PREUVE_PAIEMENT_REQUISE' };
     if (/BOX_/.test(error.message)) return { error: 'BOX_INVALIDE' };
     console.error('ubPlaceOrder', error);
     return { error: 'INCONNU' };

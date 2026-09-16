@@ -57,6 +57,18 @@ async function ubUploadClientPhoto(file) {
   if (error) { console.error('ubUploadClientPhoto', error); return null; }
   return path;
 }
+/* Capture d'ecran de la transaction Wave envoyee au checkout, preuve de paiement
+   obligatoire (voir ub_place_order). Meme bucket prive que ubUploadClientPhoto,
+   mais dossier "payment-proofs/" distinct de "notes/" : la purge automatique a
+   7 jours ne cible que "notes/", les preuves de paiement sont conservees. */
+async function ubUploadPaymentProof(file) {
+  if (!file || !file.type.startsWith('image/')) return null;
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `payment-proofs/${Date.now()}-${Math.round(Math.random() * 1e6)}.${ext}`;
+  const { error } = await ubSupabase.storage.from('client-uploads').upload(path, file, { contentType: file.type });
+  if (error) { console.error('ubUploadPaymentProof', error); return null; }
+  return path;
+}
 async function ubUploadVideo(file, folder) {
   if (!file || !file.type.startsWith('video/')) return null;
   const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();

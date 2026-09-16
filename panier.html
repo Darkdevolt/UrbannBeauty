@@ -8,6 +8,9 @@
 .note-modal textarea{width:100%;border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;font:inherit;margin-top:12px;resize:vertical}
 .note-photo-zone{display:block;border:2px dashed var(--mauve-200);border-radius:var(--radius-md);padding:20px;text-align:center;cursor:pointer;margin-top:12px;font-size:.84rem}
 .note-photo-zone svg{width:24px;height:24px;color:var(--mauve-500);margin-bottom:4px}
+.proof-zone{margin-top:6px}
+.proof-upload{display:flex;align-items:center;gap:8px;border:2px dashed var(--mauve-300);border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--mauve-700);background:var(--mauve-50)}
+.proof-upload svg{width:18px;height:18px;flex-shrink:0}
 .note-photo-zone img{max-width:100%;max-height:160px;border-radius:8px;display:block;margin:0 auto}
 </style>
 </head><body>
@@ -25,6 +28,7 @@ let currentZones = [];
 let currentSubtotal = 0;
 let appliedPromo = null;
 let availablePromoCodes = {}; // rempli depuis l'admin (promo_codes), vide par defaut
+let wavePaymentProofPath = null; // capture d'ecran Wave jointe, obligatoire avant de valider
 
 function ubCurrentZoneFee(){
   const id = document.getElementById('co-zone')?.value;
@@ -104,17 +108,35 @@ function ubTogglePaymentNote(){
   const selected = document.querySelector('input[name="payment"]:checked')?.value;
   const note = document.getElementById('wave-pay-note');
   if(!note) return;
-  const wasChecked = document.getElementById('co-wave-confirm')?.checked || false;
   const total = ubCurrentTotal();
   const deposit = ubDepositAmount(total);
-  const amountToPay = selected === 'Paiement à la livraison' ? deposit : total;
+  const isDeposit = selected === 'Paiement à la livraison';
+  const amountToPay = isDeposit ? deposit : total;
   const amountBox = `<div class="wave-amount-box"><div><span>Montant exact à payer sur Wave</span><strong>${ubFormatPrice(amountToPay)}</strong></div><button type="button" id="wave-copy-btn" class="btn btn-outline btn-sm" onclick="ubCopyWaveAmount(${amountToPay})">Copier le montant</button></div>`;
+  const proofZone = `<div class="proof-zone" id="proof-zone">
+    <label class="proof-upload" for="wave-proof-input" id="proof-upload-label">
+      ${wavePaymentProofPath ? `${ubIcon('check')} Capture jointe — touchez pour la remplacer` : `${ubIcon('camera')} Joindre la capture d'écran de la transaction Wave *`}
+    </label>
+    <input type="file" id="wave-proof-input" accept="image/*" hidden>
+    <p style="font-size:.72rem;color:var(--ink-soft);margin:6px 0 0">Obligatoire : sans cette preuve, la commande ne peut pas être validée.</p>
+  </div>`;
   note.style.display='flex';
-  if(selected === 'Paiement à la livraison'){
-    note.innerHTML = amountBox + `<span>Cet acompte (20% minimum) est obligatoire pour valider la commande. Le solde de <strong>${ubFormatPrice(total-deposit)}</strong> sera réglé à la livraison. Ouvrez Wave et collez le montant copié ci-dessus, via ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a><label class="wave-confirm-row"><input type="checkbox" id="co-wave-confirm" ${wasChecked?'checked':''}> <span>Je confirme avoir payé l'acompte de ${ubFormatPrice(deposit)} via Wave</span></label>`;
+  note.style.flexDirection='column';
+  if(isDeposit){
+    note.innerHTML = amountBox + `<span>Cet acompte (20% minimum) est obligatoire pour valider la commande. Le solde de <strong>${ubFormatPrice(total-deposit)}</strong> sera réglé à la livraison. Ouvrez Wave et collez le montant copié ci-dessus, via ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a>` + proofZone;
   } else {
-    note.innerHTML = amountBox + `<span>Ouvrez Wave et collez le montant copié ci-dessus, via ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a><label class="wave-confirm-row"><input type="checkbox" id="co-wave-confirm" ${wasChecked?'checked':''}> <span>Je confirme avoir payé ${ubFormatPrice(total)} via Wave</span></label>`;
+    note.innerHTML = amountBox + `<span>Ouvrez Wave et collez le montant copié ci-dessus, via ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a>` + proofZone;
   }
+  document.getElementById('wave-proof-input').addEventListener('change', async e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const label = document.getElementById('proof-upload-label');
+    label.textContent = 'Envoi de la capture...';
+    const path = await ubUploadPaymentProof(file);
+    if(!path){ ubShowToast("Échec de l'envoi, réessayez"); label.innerHTML = `${ubIcon('camera')} Joindre la capture d'écran de la transaction Wave *`; return; }
+    wavePaymentProofPath = path;
+    label.innerHTML = `${ubIcon('check')} Capture jointe — touchez pour la remplacer`;
+  });
 }
 
 async function renderCart(){
@@ -223,17 +245,20 @@ async function ubSubmitOrder(){
   if(!name) return showError('Merci de renseigner votre nom complet.');
   if(!phone || phone.replace(/\D/g,'').length < 9) return showError('Merci de renseigner un numéro de téléphone valide.');
   if(!zone) return showError('Merci de choisir votre zone de livraison.');
-  if(!document.getElementById('co-wave-confirm')?.checked){
+  if(!wavePaymentProofPath){
     const depositNow = ubDepositAmount();
     return showError(payment==='Paiement à la livraison'
-      ? `Un acompte de ${ubFormatPrice(depositNow)} (20% minimum) doit être payé via Wave pour valider la commande. Merci de cocher la case de confirmation après paiement.`
-      : 'Merci de confirmer votre paiement Wave (case à cocher) avant de valider la commande.');
+      ? `Merci de joindre la capture d'écran de la transaction Wave prouvant le paiement de l'acompte de ${ubFormatPrice(depositNow)} : sans cette preuve, la commande ne peut pas être validée.`
+      : "Merci de joindre la capture d'écran de la transaction Wave prouvant votre paiement : sans cette preuve, la commande ne peut pas être validée.");
   }
 
   btn.disabled=true; btn.textContent='Traitement en cours...';
   const result = await ubPlaceOrder({
     clientName: name, phone, address, paymentMethod: payment,
     items: currentLines.map(l => ({ id: l.product.id, qty: l.qty, boxInstanceId: l.boxInstanceId, boxTemplateId: l.boxTemplateId, clientNote: l.clientNote, clientPhotoPath: l.clientPhotoPath })),
+    promoCode: appliedPromo ? appliedPromo.code : null,
+    deliveryZoneId: zone.id,
+    paymentProofPath: wavePaymentProofPath,
   });
   btn.disabled=false; btn.textContent='Passer la commande';
 
@@ -249,6 +274,8 @@ async function ubSubmitOrder(){
       showError('Merci de renseigner votre numéro de téléphone.');
     } else if(result.error==='BOX_INVALIDE'){
       showError("Une box cadeau de votre panier n'est plus disponible ou a été modifiée entre-temps. Merci de retirer la box et de la recomposer.");
+    } else if(result.error==='PREUVE_PAIEMENT_REQUISE'){
+      showError("Merci de joindre la capture d'écran de la transaction Wave : sans cette preuve, la commande ne peut pas être validée.");
     } else {
       showError("Une erreur est survenue lors de l'enregistrement de votre commande. Merci de réessayer dans un instant.");
     }
@@ -260,6 +287,7 @@ async function ubSubmitOrder(){
   const remainderDue=finalTotal-depositPaid;
   ubSaveCart([]);
   appliedPromo=null;
+  wavePaymentProofPath=null;
   const balanceNote = payment==='Paiement à la livraison'
     ? ` Acompte de <strong>${ubFormatPrice(depositPaid)}</strong> réglé via Wave — solde de <strong>${ubFormatPrice(remainderDue)}</strong> à régler à la livraison.`
     : ` Montant total de <strong>${ubFormatPrice(finalTotal)}</strong> réglé via Wave.`;

@@ -5,35 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="doc-title">Bon de commande — Admin Urbann Beauty</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/admin.css">
 <style>
-  body { background: var(--a-bg); }
-  .prep-page { max-width: 760px; margin: 40px auto; padding: 0 20px 60px; }
-  .prep-actions { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 18px; }
-  .prep-card { background: #fff; border-radius: 16px; padding: 48px; box-shadow: var(--a-shadow); }
-  .prep-head { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: flex-start; padding-bottom: 28px; border-bottom: 2px solid var(--a-ink); margin-bottom: 28px; }
-  .prep-head .brand { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--a-ink); }
-  .prep-head .brand span { color: var(--a-mauve); font-style: italic; }
+  /* Identite volontairement distincte du recu client : fond sombre, accent ambre,
+     police mono pour les identifiants -- impossible a confondre avec le recu (blanc,
+     mauve, Playfair) meme en un coup d'oeil ou a l'impression. */
+  body { background: #1c1712; }
+  .prep-page { max-width: 820px; margin: 0 auto; padding: 32px 20px 70px; }
+  .prep-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .prep-actions .a-btn-outline { background: transparent; color: #f3ead9; border-color: rgba(243,234,217,.35); }
+  .prep-stamp { font: 700 .68rem 'Space Mono', monospace; letter-spacing: .14em; text-transform: uppercase; color: #e8a33d; border: 1px solid #e8a33d; border-radius: 999px; padding: 6px 14px; }
+  .prep-card { background: #26201a; color: #f3ead9; border-radius: 14px; padding: 36px; box-shadow: 0 20px 60px rgba(0,0,0,.4); border: 1px solid #3a3128; }
+  .prep-head { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: flex-start; padding-bottom: 24px; border-bottom: 2px dashed #4a3f33; margin-bottom: 24px; }
+  .prep-head .brand { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: #f3ead9; }
+  .prep-head .brand span { color: #e8a33d; font-style: italic; }
+  .prep-head .tag { font: 700 .62rem 'Space Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: #e8a33d; margin-top: 4px; }
   .prep-head .meta { text-align: right; }
-  .prep-head .meta h2 { font-size: 1.3rem; margin-bottom: 6px; }
-  .prep-head .meta div { font-size: .82rem; color: var(--a-ink-soft); }
-  .prep-section-title { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--a-ink-soft); margin-bottom: 10px; font-weight: 600; }
-  .prep-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; margin-bottom: 32px; }
-  .prep-grid p { margin: 0; font-size: .9rem; }
-  .prep-item { border: 1px solid var(--a-line); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
-  .prep-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .prep-item-head strong { font-size: .96rem; }
-  .prep-item-head span { font-size: .84rem; color: var(--a-ink-soft); white-space: nowrap; }
-  .prep-note { margin-top: 10px; background: var(--a-mauve-light); border-radius: 10px; padding: 12px 14px; }
-  .prep-note-label { display: flex; align-items: center; gap: 6px; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--a-mauve); font-weight: 700; margin-bottom: 6px; }
+  .prep-head .meta h2 { font: 700 1.15rem 'Space Mono', monospace; margin-bottom: 6px; color: #fff; }
+  .prep-head .meta div { font-size: .8rem; color: #c9bba3; }
+  .prep-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 26px; }
+  .prep-badge { font-size: .72rem; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: #3a3128; color: #e8a33d; }
+  .prep-section-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: #e8a33d; margin: 26px 0 12px; font-weight: 700; }
+  .prep-section-title:first-of-type { margin-top: 0; }
+  .prep-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; }
+  .prep-grid p { margin: 2px 0; font-size: .88rem; color: #f3ead9; }
+  .prep-grid .label { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: #8c7f6b; }
+  .prep-money { display: grid; gap: 6px; background: #201b16; border-radius: 10px; padding: 16px 18px; font-size: .86rem; }
+  .prep-money .row { display: flex; justify-content: space-between; color: #c9bba3; }
+  .prep-money .row.total { color: #fff; font-weight: 700; font-size: 1.05rem; border-top: 1px dashed #4a3f33; padding-top: 10px; margin-top: 4px; }
+  .prep-money .row.deposit { color: #e8a33d; font-weight: 700; }
+  .prep-proof { margin-top: 14px; border: 2px solid #e8a33d; border-radius: 10px; padding: 14px; background: #201b16; }
+  .prep-proof-label { font: 700 .7rem 'Space Mono', monospace; letter-spacing: .06em; text-transform: uppercase; color: #e8a33d; margin-bottom: 10px; }
+  .prep-proof img { max-width: 100%; max-height: 420px; border-radius: 8px; display: block; margin: 0 auto; }
+  .prep-item { border: 1px solid #3a3128; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; background: #201b16; }
+  .prep-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .prep-item-head strong { font-size: .98rem; color: #fff; }
+  .prep-item-head .ref { font: 700 .68rem 'Space Mono', monospace; color: #8c7f6b; }
+  .prep-item-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: .78rem; color: #c9bba3; margin-top: 6px; }
+  .prep-note { margin-top: 12px; background: #3a3128; border-radius: 10px; padding: 14px 16px; }
+  .prep-note-label { display: flex; align-items: center; gap: 6px; font: 700 .68rem 'Space Mono', monospace; text-transform: uppercase; letter-spacing: .04em; color: #e8a33d; margin-bottom: 8px; }
   .prep-note-label svg { width: 14px; height: 14px; flex-shrink: 0; }
-  .prep-note-text { font-size: .88rem; margin: 0; }
-  .prep-note img { max-width: 220px; max-height: 220px; border-radius: 8px; margin-top: 10px; display: block; }
-  .prep-note .loading { font-size: .8rem; color: var(--a-ink-soft); }
-  .prep-foot { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px dashed var(--a-line); font-size: .8rem; color: var(--a-ink-soft); }
+  .prep-note-text { font-size: .88rem; margin: 0; color: #f3ead9; }
+  .prep-note img { max-width: 100%; max-height: 320px; border-radius: 8px; margin-top: 10px; display: block; }
+  .prep-note .loading { font-size: .8rem; color: #8c7f6b; }
+  .prep-wa { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: .8rem; color: #25D366; text-decoration: none; font-weight: 600; }
+  .prep-foot { text-align: center; margin-top: 36px; padding-top: 20px; border-top: 1px dashed #4a3f33; font: 700 .68rem 'Space Mono', monospace; letter-spacing: .06em; text-transform: uppercase; color: #8c7f6b; }
   @media (max-width: 560px) {
-    .prep-card { padding: 24px; }
+    .prep-card { padding: 22px; }
     .prep-grid { grid-template-columns: minmax(0,1fr); }
     .prep-head .meta { text-align: left; }
   }
@@ -41,7 +60,8 @@
     .a-toast, .prep-actions, .whatsapp-float { display: none !important; }
     body { background: #fff; }
     .prep-page { margin: 0; max-width: none; padding: 0; }
-    .prep-card { box-shadow: none; border-radius: 0; padding: 20px; }
+    .prep-card { box-shadow: none; border-radius: 0; padding: 20px; background: #fff; color: #000; border: 0; }
+    .prep-head, .prep-money .row.total, .prep-note { border-color: #ccc; }
   }
 </style>
 </head>
@@ -50,6 +70,7 @@
 <div class="prep-page">
   <div class="prep-actions">
     <a href="commandes.html" class="a-btn a-btn-outline">← Retour aux commandes</a>
+    <span class="prep-stamp">Usage interne — non client</span>
     <button class="a-btn a-btn-primary" onclick="window.print()" id="print-btn"></button>
   </div>
   <div class="prep-card" id="prep-card"></div>
@@ -66,8 +87,12 @@ async function main() {
   document.getElementById('print-btn').innerHTML = ubIcon('printer') + ' Imprimer';
 
   const params = new URLSearchParams(location.search);
-  const [orders, products] = await Promise.all([ubAdminGetOrders(), ubAdminGetProducts()]);
+  const [orders, products, categories, packaging] = await Promise.all([
+    ubAdminGetOrders(), ubAdminGetProducts(), ubGetAllCategories(), ubAdminGetPackagingItems(),
+  ]);
   const productsById = ubProductsById(products);
+  const categoriesById = ubCatsById(categories);
+  const packagingById = Object.fromEntries(packaging.map(p => [p.id, p]));
   const order = orders.find(o => o.id === params.get('id'));
   const card = document.getElementById('prep-card');
 
@@ -78,60 +103,108 @@ async function main() {
 
   document.getElementById('doc-title').textContent = `Bon de commande ${order.id} — Urbann Beauty`;
   const lines = ubOrderLines(order, productsById);
-  const statusLabel = { livree: 'Livrée', en_cours: 'En préparation / expédiée', en_attente: 'En attente', annulee: 'Annulée' }[order.status] || order.status;
+  const grandTotal = ubOrderGrandTotal(order);
+  const pkg = order.packagingItemId ? packagingById[order.packagingItemId] : null;
+
+  const STATUS = { livree: 'Livrée', en_cours: 'En préparation / expédiée', en_attente: 'En attente', annulee: 'Annulée' };
+  const DELIVERY = { a_preparer: 'À préparer', prete: 'Prête', en_livraison: 'En cours de livraison', livree: 'Livrée', echec: 'Échec de livraison', annulee: 'Annulée' };
+  const PAYMENT = { paye: 'Payé', en_attente: 'En attente de vérification', rembourse: 'Remboursé' };
+
+  const waLink = order.phone ? `https://wa.me/${String(order.phone).replace(/\D/g, '')}` : null;
 
   card.innerHTML = `
     <div class="prep-head">
       <div>
         <div class="brand" id="prep-logo">Urbann<span>Beauty</span></div>
-        <div style="font-size:.8rem;color:var(--a-ink-soft);margin-top:8px">Bon de préparation interne — non destiné au client</div>
+        <div class="tag">Bon de préparation — à ne jamais remettre à la cliente</div>
       </div>
       <div class="meta">
-        <h2>Bon de commande ${order.id}</h2>
-        <div>Date : ${new Date(order.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-        <div>Statut : <strong>${statusLabel}</strong></div>
+        <h2>${order.id}</h2>
+        <div>${new Date(order.createdAt || order.date).toLocaleString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
       </div>
     </div>
 
+    <div class="prep-badges">
+      <span class="prep-badge">Commande : ${STATUS[order.status] || order.status}</span>
+      <span class="prep-badge">Livraison : ${DELIVERY[order.deliveryStatus] || 'À préparer'}</span>
+      <span class="prep-badge">Paiement : ${PAYMENT[order.paymentStatus] || order.paymentStatus}</span>
+      <span class="prep-badge">${ubEscapeHtml(order.payment)}</span>
+    </div>
+
+    <div class="prep-section-title">Cliente</div>
     <div class="prep-grid">
       <div>
-        <div class="prep-section-title">Client</div>
-        <p><strong>${order.client}</strong></p>
-        <p>${order.phone || '—'}</p>
+        <p class="label">Nom</p><p><strong>${order.client}</strong></p>
+        <p class="label" style="margin-top:10px">Téléphone</p><p>${order.phone || '—'}</p>
+        ${waLink ? `<a class="prep-wa" href="${waLink}" target="_blank" rel="noopener">${ubIcon('whatsapp')} Contacter sur WhatsApp</a>` : ''}
       </div>
       <div>
-        <div class="prep-section-title">Adresse de livraison</div>
-        <p>${order.address || '—'}</p>
+        <p class="label">Adresse de livraison</p><p>${order.address || '—'}</p>
+        ${order.deliveryPerson ? `<p class="label" style="margin-top:10px">Livreur</p><p>${order.deliveryPerson}</p>` : ''}
+        ${order.deliveryDate ? `<p class="label" style="margin-top:10px">Date de livraison prévue</p><p>${new Date(order.deliveryDate).toLocaleDateString('fr-FR')}</p>` : ''}
       </div>
     </div>
+    ${order.deliveryNotes ? `<div class="prep-note" style="margin-top:16px"><div class="prep-note-label">${ubIcon('edit')} Notes de livraison (admin)</div><p class="prep-note-text">${ubEscapeHtml(order.deliveryNotes)}</p></div>` : ''}
+    ${pkg ? `<div class="prep-note" style="margin-top:16px"><div class="prep-note-label">${ubIcon('box')} Emballage assigné</div><p class="prep-note-text">${pkg.name}${pkg.heightCm && pkg.widthCm ? ` (${pkg.heightCm}×${pkg.widthCm}cm)` : ''}</p></div>` : ''}
+
+    <div class="prep-section-title">Détail financier</div>
+    <div class="prep-money">
+      ${grandTotal != null ? `
+        <div class="row"><span>Sous-total produits</span><span>${ubFormatPrice(order.subtotal || 0)}</span></div>
+        ${order.discountAmount > 0 ? `<div class="row"><span>Remise${order.promoCode ? ` (code ${order.promoCode})` : ''}</span><span>−${ubFormatPrice(order.discountAmount)}</span></div>` : ''}
+        <div class="row"><span>Livraison</span><span>${order.deliveryFee === 0 ? 'Offerte' : ubFormatPrice(order.deliveryFee)}</span></div>
+        <div class="row total"><span>Total dû par la cliente</span><span>${ubFormatPrice(grandTotal)}</span></div>
+        <div class="row deposit"><span>Acompte attendu (20%)</span><span>${ubFormatPrice(order.depositAmount || 0)}</span></div>
+        <div class="row"><span>Solde restant si acompte seul</span><span>${ubFormatPrice(grandTotal - (order.depositAmount || 0))}</span></div>
+      ` : `<div class="row"><span>Sous-total produits (hors livraison — commande antérieure à ce détail)</span><span>${ubFormatPrice(ubOrderTotal(order, productsById))}</span></div>`}
+    </div>
+    ${order.paymentProofPath ? `
+      <div class="prep-proof">
+        <div class="prep-proof-label">${ubIcon('camera')} Preuve de paiement Wave envoyée par la cliente</div>
+        <div id="prep-payment-proof" class="loading">Chargement de la capture...</div>
+      </div>` : `
+      <div class="prep-proof" style="border-color:#c1495a">
+        <div class="prep-proof-label" style="color:#e07a89">${ubIcon('close')} Aucune preuve de paiement enregistrée</div>
+      </div>`}
 
     <div class="prep-section-title">À préparer</div>
     ${lines.map((l, i) => `
       <div class="prep-item">
         <div class="prep-item-head">
           <strong>${l.name}</strong>
-          <span>Qté ${l.qty}</span>
+          <span class="ref">UB-${String(l.productId || '').toUpperCase()}</span>
+        </div>
+        <div class="prep-item-meta">
+          <span>Catégorie : ${categoriesById[productsById[l.productId]?.category]?.name || '—'}</span>
+          <span>Qté : ${l.qty}</span>
+          <span>Prix unitaire : ${ubFormatPrice(l.price)}</span>
+          <span>Total ligne : ${ubFormatPrice(l.price * l.qty)}</span>
         </div>
         ${(l.clientNote || l.clientPhotoPath) ? `
           <div class="prep-note">
-            <div class="prep-note-label">${ubIcon('camera')} Info fournie par la cliente</div>
+            <div class="prep-note-label">${ubIcon('camera')} Info fournie par la cliente pour ce produit</div>
             ${l.clientNote ? `<p class="prep-note-text">${ubEscapeHtml(l.clientNote)}</p>` : ''}
             ${l.clientPhotoPath ? `<div id="prep-photo-${i}" class="loading">Chargement de la photo...</div>` : ''}
           </div>` : ''}
       </div>`).join('')}
 
-    <div class="prep-foot">
-      Document interne — à ne pas remettre à la cliente.
-    </div>
+    <div class="prep-foot">Document interne · ${order.id} · imprimé le ${new Date().toLocaleDateString('fr-FR')}</div>
   `;
   ubApplyLogo(document.getElementById('prep-logo'));
 
+  if (order.paymentProofPath) {
+    ubAdminGetClientPhotoUrl(order.paymentProofPath).then(url => {
+      const el = document.getElementById('prep-payment-proof');
+      if (!el) return;
+      el.outerHTML = url ? `<img src="${url}" alt="Capture de la transaction Wave">` : `<p style="color:#e07a89;font-size:.85rem">Capture introuvable (peut-être expirée).</p>`;
+    });
+  }
   lines.forEach(async (l, i) => {
     if (!l.clientPhotoPath) return;
     const url = await ubAdminGetClientPhotoUrl(l.clientPhotoPath);
     const el = document.getElementById(`prep-photo-${i}`);
     if (!el) return;
-    el.outerHTML = url ? `<img src="${url}" alt="Photo envoyée par la cliente">` : `<p class="prep-note-text" style="color:var(--a-danger)">Photo introuvable.</p>`;
+    el.outerHTML = url ? `<img src="${url}" alt="Photo envoyée par la cliente">` : `<p class="prep-note-text" style="color:#e07a89">Photo introuvable (peut-être expirée).</p>`;
   });
 }
 main();

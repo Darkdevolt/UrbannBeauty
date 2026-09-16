@@ -122,7 +122,12 @@ async function main() {
       </table>
 
       <div class="receipt-totals">
-        <div class="row total"><span>Total</span><span>${ubFormatPrice(total)}</span></div>
+        ${ubOrderGrandTotal(order) != null ? `
+          <div class="row"><span>Sous-total</span><span>${ubFormatPrice(order.subtotal || 0)}</span></div>
+          ${order.discountAmount > 0 ? `<div class="row"><span>Remise${order.promoCode ? ` (${order.promoCode})` : ''}</span><span>−${ubFormatPrice(order.discountAmount)}</span></div>` : ''}
+          <div class="row"><span>Livraison</span><span>${order.deliveryFee === 0 ? 'Offerte' : ubFormatPrice(order.deliveryFee)}</span></div>
+          <div class="row total"><span>Total</span><span>${ubFormatPrice(ubOrderGrandTotal(order))}</span></div>
+        ` : `<div class="row total"><span>Total</span><span>${ubFormatPrice(total)}</span></div>`}
       </div>
 
       <div class="receipt-foot">
