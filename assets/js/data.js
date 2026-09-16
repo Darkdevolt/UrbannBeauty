@@ -114,7 +114,7 @@ function ubMapProduct(p) {
   return {
     id: p.id, name: p.name, category: p.category_id, gender: p.gender || 'mixte', price: p.price, oldPrice: p.old_price,
     stock: p.stock, rating: Number(p.rating), reviews: p.reviews, tag: p.tag,
-    desc: p.description, img: p.image_url, video: p.video_url,
+    desc: p.description, img: p.image_url, video: p.video_url, gallery: p.gallery_images || [],
   };
 }
 /* products_storefront est une vue sans la colonne cost_price (prix d'achat) : le prix

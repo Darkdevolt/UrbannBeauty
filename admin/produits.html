@@ -60,13 +60,13 @@
             <textarea id="f-desc" rows="4" required placeholder="Décrivez le produit, ses bénéfices, son utilisation..."></textarea>
           </div>
           <div class="a-field full">
-            <label>Photo du produit</label>
+            <label>Photos du produit (autant que vous voulez — la première est la photo principale)</label>
             <div class="upload-zone" onclick="document.getElementById('f-photo-input').click()">
               {{upload}}
-              <p><strong>Cliquez pour importer</strong> ou glissez une image ici (JPG, PNG)</p>
+              <p><strong>Cliquez pour importer</strong> une ou plusieurs images (JPG, PNG)</p>
             </div>
-            <input type="file" id="f-photo-input" accept="image/*" hidden>
-            <div class="upload-preview" id="photo-preview"></div>
+            <input type="file" id="f-photo-input" accept="image/*" multiple hidden>
+            <div class="upload-preview" id="photo-preview" style="flex-wrap:wrap"></div>
           </div>
           <div class="a-field full">
             <label>Vidéo de présentation (optionnel)</label>
@@ -96,7 +96,7 @@
 let products = [];
 let categories = [];
 let categoriesById = {};
-let currentPhoto = null;
+let currentPhotos = [];
 let currentVideo = null;
 let filterState = { q: '', cat: 'all', stock: 'all' };
 
@@ -183,11 +183,23 @@ async function main() {
       </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('box')}<p>Aucun produit ne correspond à vos filtres.</p></div></td></tr>`;
   }
 
+  function renderPhotoPreview() {
+    document.getElementById('photo-preview').innerHTML = currentPhotos.map((url, i) => `
+      <div class="item" style="position:relative">
+        ${i === 0 ? `<span style="position:absolute;top:4px;left:4px;background:var(--a-mauve);color:#fff;font-size:.62rem;padding:2px 7px;border-radius:999px;z-index:1">Principale</span>` : ''}
+        <img src="${url}">
+        <button type="button" onclick="event.stopPropagation(); ubRemovePhoto(${i})">✕</button>
+        ${i !== 0 ? `<button type="button" style="position:absolute;bottom:4px;left:4px;right:4px;font-size:.6rem;background:rgba(255,255,255,.92);border:1px solid var(--a-line);border-radius:6px;padding:2px 4px;cursor:pointer" onclick="event.stopPropagation(); ubMakeMainPhoto(${i})">Définir comme principale</button>` : ''}
+      </div>`).join('');
+  }
+  window.ubRemovePhoto = function (i) { currentPhotos.splice(i, 1); renderPhotoPreview(); };
+  window.ubMakeMainPhoto = function (i) { const [url] = currentPhotos.splice(i, 1); currentPhotos.unshift(url); renderPhotoPreview(); };
+
   function ubOpenModal(id) {
     const modal = document.getElementById('product-modal');
     const catSelect = document.getElementById('f-category');
     catSelect.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    currentPhoto = null; currentVideo = null;
+    currentPhotos = []; currentVideo = null;
     document.getElementById('photo-preview').innerHTML = '';
     document.getElementById('video-preview').innerHTML = '';
 
@@ -203,8 +215,8 @@ async function main() {
       document.getElementById('f-oldprice').value = p.oldPrice || '';
       document.getElementById('f-stock').value = p.stock;
       document.getElementById('f-desc').value = p.desc;
-      currentPhoto = p.img;
-      document.getElementById('photo-preview').innerHTML = `<div class="item"><img src="${p.img}"></div>`;
+      currentPhotos = [p.img, ...(p.gallery || [])].filter(Boolean);
+      renderPhotoPreview();
     } else {
       document.getElementById('modal-title').textContent = 'Ajouter un produit';
       document.getElementById('product-form').reset();
@@ -215,13 +227,21 @@ async function main() {
   function ubCloseModal() { document.getElementById('product-modal').classList.remove('open'); }
 
   document.getElementById('f-photo-input').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    document.getElementById('photo-preview').innerHTML = `<div class="item" style="display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--a-ink-soft)">Envoi...</div>`;
-    const url = await ubUploadImage(file, 'products');
-    if (!url) { ubAToast('Échec de l\'envoi de la photo'); document.getElementById('photo-preview').innerHTML = ''; return; }
-    currentPhoto = url;
-    document.getElementById('photo-preview').innerHTML = `<div class="item"><img src="${currentPhoto}"><button type="button" onclick="event.stopPropagation(); currentPhoto=null; document.getElementById('photo-preview').innerHTML='';">✕</button></div>`;
+    const files = [...e.target.files];
+    if (!files.length) return;
+    e.target.value = '';
+    for (const file of files) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'item';
+      placeholder.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--a-ink-soft)';
+      placeholder.textContent = 'Envoi...';
+      document.getElementById('photo-preview').appendChild(placeholder);
+      const url = await ubUploadImage(file, 'products');
+      placeholder.remove();
+      if (!url) { ubAToast(`Échec de l'envoi de "${file.name}"`); continue; }
+      currentPhotos.push(url);
+      renderPhotoPreview();
+    }
   });
   document.getElementById('f-video-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -247,7 +267,8 @@ async function main() {
       oldPrice: document.getElementById('f-oldprice').value ? Number(document.getElementById('f-oldprice').value) : null,
       stock: Number(document.getElementById('f-stock').value),
       desc: document.getElementById('f-desc').value,
-      img: currentPhoto || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop',
+      img: currentPhotos[0] || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop',
+      gallery: currentPhotos.slice(1),
       video: currentVideo || null,
       rating: id ? (products.find(p => p.id === id)?.rating || 4.5) : 4.5,
       reviews: id ? (products.find(p => p.id === id)?.reviews || 0) : 0,

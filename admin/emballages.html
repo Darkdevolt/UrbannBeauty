@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emballages — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+.pk-stock-bar{width:100%;height:6px;border-radius:999px;background:var(--a-line);overflow:hidden;margin-top:4px}
+.pk-stock-fill{height:100%;background:var(--a-success)}
+.pk-stock-fill.low{background:var(--a-warning)}
+.pk-stock-fill.out{background:var(--a-danger)}
+</style>
+</head>
+<body>
+<div class="admin-shell" id="admin-shell"></div>
+
+<div class="a-modal-overlay" id="pk-modal">
+  <div class="a-modal" style="max-width:520px">
+    <div class="a-modal-head"><h3 id="pk-modal-title">Enregistrer un achat d'emballages</h3><button class="a-modal-close" onclick="ubClosePkModal()"></button></div>
+    <div class="a-modal-body">
+      <form id="pk-form">
+        <input type="hidden" id="pk-id">
+        <div class="a-field"><label>Nom / format (ex : Sachet A4)</label><input type="text" id="pk-name" required placeholder="Sachet A4"></div>
+        <div class="a-form-grid">
+          <div class="a-field"><label>Hauteur (cm)</label><input type="number" id="pk-height" min="0" step="0.5" placeholder="35"></div>
+          <div class="a-field"><label>Largeur (cm)</label><input type="number" id="pk-width" min="0" step="0.5" placeholder="29"></div>
+        </div>
+        <div class="a-form-grid">
+          <div class="a-field"><label>Quantité achetée</label><input type="number" id="pk-qty" required min="1" step="1" placeholder="100"></div>
+          <div class="a-field"><label>Coût total (FCFA)</label><input type="number" id="pk-total" required min="0" step="100" placeholder="25000"></div>
+        </div>
+        <p style="font-size:.8rem;color:var(--a-ink-soft);margin:-6px 0 14px">Coût unitaire calculé automatiquement : <strong id="pk-unit-preview">—</strong> / unité</p>
+        <div class="a-field"><label>Date d'achat</label><input type="date" id="pk-date"></div>
+        <div class="a-field"><label>Notes (optionnel)</label><input type="text" id="pk-notes" placeholder="Fournisseur, référence..."></div>
+      </form>
+    </div>
+    <div class="a-modal-foot"><button class="a-btn a-btn-outline" onclick="ubClosePkModal()">Annuler</button><button class="a-btn a-btn-primary" onclick="ubSavePackaging()">Enregistrer</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script><script src="../assets/js/data.js"></script><script src="../assets/js/media.js"></script><script src="assets/admin.js"></script>
+<script>
+let packaging = [];
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('emballages', 'Emballages', "Enregistrez vos achats d'emballages (sachets, boîtes...) et suivez le stock restant par format");
+  const close = document.querySelector('.a-modal-close'); if (close) close.innerHTML = ubIcon('close');
+
+  ['pk-qty', 'pk-total'].forEach(id => document.getElementById(id).addEventListener('input', updateUnitPreview));
+
+  packaging = await ubAdminGetPackagingItems();
+  renderContent();
+
+  function updateUnitPreview() {
+    const qty = Number(document.getElementById('pk-qty').value) || 0;
+    const total = Number(document.getElementById('pk-total').value) || 0;
+    document.getElementById('pk-unit-preview').textContent = qty > 0 ? ubFormatPrice(Math.round(total / qty)) : '—';
+  }
+
+  function renderContent() {
+    const totalInvested = packaging.reduce((s, p) => s + p.totalCost, 0);
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-stats-grid">
+        <div class="a-panel a-stat-card">
+          <div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('box')}</div>
+          <div class="value">${packaging.length}</div><div class="label">Formats d'emballage suivis</div>
+        </div>
+        <div class="a-panel a-stat-card">
+          <div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('truck')}</div>
+          <div class="value">${ubFormatPrice(totalInvested)}</div><div class="label">Investi en emballages au total</div>
+        </div>
+      </div>
+      <div class="a-toolbar">
+        <p style="color:var(--a-ink-soft);font-size:.88rem;margin:0">Sélectionnez le sachet utilisé directement depuis Commandes & Ventes — le stock se met à jour automatiquement.</p>
+        <button class="a-btn a-btn-primary" onclick="ubOpenPkModal()">${ubIcon('plus')} Enregistrer un achat</button>
+      </div>
+      <div class="a-panel">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Emballage</th><th>Dimensions</th><th>Stock</th><th>Coût unitaire</th><th>Coût total</th><th>Acheté le</th><th>Actions</th></tr></thead>
+            <tbody id="pk-tbody"></tbody>
+          </table>
+        </div>
+      </div>`;
+    renderTable();
+  }
+
+  function renderTable() {
+    document.getElementById('pk-tbody').innerHTML = packaging.length ? packaging.map(p => {
+      const pct = p.quantityPurchased ? Math.max(0, Math.min(100, Math.round(p.quantityRemaining / p.quantityPurchased * 100))) : 0;
+      const fillClass = p.quantityRemaining <= 0 ? 'out' : (pct <= 20 ? 'low' : '');
+      return `
+      <tr>
+        <td><strong>${p.name}</strong>${p.notes ? `<br><span style="font-size:.74rem;color:var(--a-ink-soft)">${p.notes}</span>` : ''}</td>
+        <td>${p.heightCm && p.widthCm ? `${p.heightCm} × ${p.widthCm} cm` : '—'}</td>
+        <td style="min-width:120px">
+          <div>${p.quantityRemaining <= 0 ? '<span class="a-badge danger">Épuisé</span>' : `${p.quantityRemaining} / ${p.quantityPurchased}`}</div>
+          <div class="pk-stock-bar"><div class="pk-stock-fill ${fillClass}" style="width:${pct}%"></div></div>
+        </td>
+        <td>${ubFormatPrice(p.unitCost)}</td>
+        <td>${ubFormatPrice(p.totalCost)}</td>
+        <td>${new Date(p.purchasedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+        <td>
+          <div class="a-actions-cell">
+            <button class="a-icon-action" onclick="ubAdjustStock('${p.id}')" title="Ajuster le stock manuellement">${ubIcon('edit')}</button>
+            <button class="a-icon-action" onclick="ubDeletePackaging('${p.id}')" title="Supprimer">${ubIcon('trash')}</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('box')}<p>Aucun achat d'emballage enregistré pour le moment.</p></div></td></tr>`;
+  }
+
+  function ubOpenPkModal() {
+    document.getElementById('pk-form').reset();
+    document.getElementById('pk-id').value = '';
+    document.getElementById('pk-date').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('pk-unit-preview').textContent = '—';
+    document.getElementById('pk-modal-title').textContent = "Enregistrer un achat d'emballages";
+    document.getElementById('pk-modal').classList.add('open');
+  }
+  function ubClosePkModal() { document.getElementById('pk-modal').classList.remove('open'); }
+
+  window.ubSavePackaging = async function () {
+    const form = document.getElementById('pk-form');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const quantityPurchased = Number(document.getElementById('pk-qty').value);
+    const totalCost = Number(document.getElementById('pk-total').value);
+    const data = {
+      name: document.getElementById('pk-name').value.trim(),
+      heightCm: document.getElementById('pk-height').value ? Number(document.getElementById('pk-height').value) : null,
+      widthCm: document.getElementById('pk-width').value ? Number(document.getElementById('pk-width').value) : null,
+      quantityPurchased, quantityRemaining: quantityPurchased,
+      unitCost: Math.round(totalCost / quantityPurchased), totalCost,
+      purchasedAt: document.getElementById('pk-date').value || new Date().toISOString().slice(0, 10),
+      notes: document.getElementById('pk-notes').value.trim(),
+    };
+    const ok = await ubAdminSavePackagingItem(data);
+    if (!ok) { ubAToast('Erreur lors de l\'enregistrement'); return; }
+    ubAToast('Achat enregistré');
+    ubClosePkModal();
+    packaging = await ubAdminGetPackagingItems();
+    renderTable();
+  };
+
+  window.ubAdjustStock = async function (id) {
+    const p = packaging.find(x => x.id === id);
+    const input = prompt(`Quantité restante pour "${p.name}" (actuellement ${p.quantityRemaining}) :`, p.quantityRemaining);
+    if (input === null) return;
+    const value = Number(input);
+    if (!Number.isFinite(value) || value < 0) { ubAToast('Merci de saisir un nombre valide.'); return; }
+    const ok = await ubAdminSavePackagingItem({ ...p, quantityRemaining: value });
+    if (!ok) { ubAToast('Erreur lors de la mise à jour'); return; }
+    p.quantityRemaining = value;
+    ubAToast('Stock mis à jour');
+    renderTable();
+  };
+
+  window.ubDeletePackaging = async function (id) {
+    if (!confirm("Supprimer définitivement cet emballage ? Les commandes qui l'utilisent garderont le coût déjà enregistré.")) return;
+    const ok = await ubAdminDeletePackagingItem(id);
+    if (!ok) { ubAToast('Erreur lors de la suppression'); return; }
+    packaging = packaging.filter(p => p.id !== id);
+    ubAToast('Emballage supprimé');
+    renderTable();
+  };
+
+  window.ubOpenPkModal = ubOpenPkModal;
+  window.ubClosePkModal = ubClosePkModal;
+}
+main();
+</script>
+</body>
+</html>

@@ -36,7 +36,7 @@ async function ubAdminSaveProduct(p) {
     id: p.id, name: p.name, category_id: p.category, gender: p.gender || 'mixte', price: p.price, old_price: p.oldPrice || null,
     cost_price: p.costPrice != null ? p.costPrice : null,
     stock: p.stock, rating: p.rating, reviews: p.reviews, tag: p.tag || null, description: p.desc,
-    image_url: p.img, video_url: p.video || null, updated_at: new Date().toISOString(),
+    image_url: p.img, video_url: p.video || null, gallery_images: p.gallery || [], updated_at: new Date().toISOString(),
   });
   if (error) console.error('ubAdminSaveProduct', error);
   return !error;
@@ -104,6 +104,46 @@ async function ubAdminDeleteGiftBoxTemplate(id) {
   return !error;
 }
 
+/* ---------- Emballages (achats en lot, stock, cout unitaire) ---------- */
+async function ubAdminGetPackagingItems() {
+  const { data, error } = await ubSupabase.from('packaging_items').select('*').order('purchased_at', { ascending: false });
+  if (error) { console.error('ubAdminGetPackagingItems', error); return []; }
+  return data.map(p => ({
+    id: p.id, name: p.name, heightCm: p.height_cm, widthCm: p.width_cm,
+    quantityPurchased: p.quantity_purchased, quantityRemaining: p.quantity_remaining,
+    unitCost: p.unit_cost, totalCost: p.total_cost, purchasedAt: p.purchased_at, notes: p.notes,
+  }));
+}
+async function ubAdminSavePackagingItem(p) {
+  const { error } = await ubSupabase.from('packaging_items').upsert({
+    id: p.id || undefined, name: p.name, height_cm: p.heightCm || null, width_cm: p.widthCm || null,
+    quantity_purchased: p.quantityPurchased, quantity_remaining: p.quantityRemaining,
+    unit_cost: p.unitCost, total_cost: p.totalCost, purchased_at: p.purchasedAt, notes: p.notes || null,
+  });
+  if (error) console.error('ubAdminSavePackagingItem', error);
+  return !error;
+}
+async function ubAdminDeletePackagingItem(id) {
+  const { error } = await ubSupabase.from('packaging_items').delete().eq('id', id);
+  if (error) console.error('ubAdminDeletePackagingItem', error);
+  return !error;
+}
+/* Ajuste le stock restant d'un emballage (delta positif ou negatif). N'empeche jamais
+   l'operation meme si ca passe sous zero : la cliente doit garder de la flexibilite si
+   un format est temporairement epuise (elle enregistrera le rachat plus tard). */
+async function ubAdminAdjustPackagingStock(id, delta) {
+  const { data, error: readErr } = await ubSupabase.from('packaging_items').select('quantity_remaining').eq('id', id).maybeSingle();
+  if (readErr || !data) return false;
+  const { error } = await ubSupabase.from('packaging_items').update({ quantity_remaining: data.quantity_remaining + delta }).eq('id', id);
+  if (error) console.error('ubAdminAdjustPackagingStock', error);
+  return !error;
+}
+async function ubAdminSetOrderPackaging(orderId, packagingItemId, packagingCost) {
+  const { error } = await ubSupabase.from('orders').update({ packaging_item_id: packagingItemId || null, packaging_cost: packagingCost != null ? packagingCost : null }).eq('id', orderId);
+  if (error) console.error('ubAdminSetOrderPackaging', error);
+  return !error;
+}
+
 /* ---------- Zones de livraison ---------- */
 async function ubAdminGetZones() {
   const { data, error } = await ubSupabase.from('delivery_zones').select('*').order('sort_order', { ascending: true });
@@ -146,6 +186,7 @@ async function ubAdminGetOrders() {
   return data.map(o => ({
     id: o.id, client: ubEscapeHtml(o.client_name), phone: ubEscapeHtml(o.phone), address: ubEscapeHtml(o.address), date: o.order_date,
     payment: ubEscapeHtml(o.payment_method), paymentStatus: o.payment_status, status: o.status,
+    packagingItemId: o.packaging_item_id, packagingCost: o.packaging_cost,
     items: (o.order_items || []).map(it => ({ productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price, cost: it.unit_cost })),
   }));
 }
@@ -245,7 +286,8 @@ function ubOrderTotal(order, productsById) {
   return ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * l.price, 0);
 }
 function ubOrderCOGS(order, productsById) {
-  return ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * (l.cost || 0), 0);
+  const productsCost = ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * (l.cost || 0), 0);
+  return productsCost + (order.packagingCost || 0);
 }
 function ubOrderItemCount(order) {
   return order.items.reduce((s, l) => s + l.qty, 0);
@@ -435,6 +477,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
     { group: 'Comptabilite' },
     { href: 'finances.html', key: 'finances', label: 'Finances', icon: 'chart' },
     { href: 'fournisseurs.html', key: 'fournisseurs', label: 'Fournisseurs', icon: 'truck' },
+    { href: 'emballages.html', key: 'emballages', label: 'Emballages', icon: 'box' },
     { group: 'Compte' },
     { href: 'parametres.html', key: 'parametres', label: 'Paramètres', icon: 'settings' },
   ];

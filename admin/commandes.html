@@ -20,6 +20,7 @@
 <script>
 let orders = [];
 let productsById = {};
+let packaging = [];
 let filterState = { q: '', status: 'all', payment: 'all' };
 
 async function main() {
@@ -28,7 +29,7 @@ async function main() {
 
   const products = await ubAdminGetProducts();
   productsById = ubProductsById(products);
-  orders = await ubAdminGetOrders();
+  [orders, packaging] = await Promise.all([ubAdminGetOrders(), ubAdminGetPackagingItems()]);
   renderContent();
 
   function renderContent() {
@@ -83,7 +84,7 @@ async function main() {
       <div class="a-panel">
         <div class="a-table-wrap">
           <table class="a-table">
-            <thead><tr><th>Commande</th><th>Client</th><th>Date</th><th>Articles</th><th>Paiement</th><th>Statut paiement</th><th>Total</th><th>Livraison</th><th>Reçu</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Commande</th><th>Client</th><th>Date</th><th>Articles</th><th>Paiement</th><th>Statut paiement</th><th>Sachet utilisé</th><th>Total</th><th>Livraison</th><th>Reçu</th><th>Actions</th></tr></thead>
             <tbody id="orders-tbody"></tbody>
           </table>
         </div>
@@ -116,6 +117,12 @@ async function main() {
             <option value="rembourse" ${o.paymentStatus === 'rembourse' ? 'selected' : ''}>Remboursé</option>
           </select>
         </td>
+        <td>
+          <select class="a-select" style="padding:6px 10px;font-size:.78rem" onchange="ubSetPackaging('${o.id}', this.value)">
+            <option value="">— Aucun —</option>
+            ${packaging.map(p => `<option value="${p.id}" ${o.packagingItemId === p.id ? 'selected' : ''}>${p.name}${p.heightCm && p.widthCm ? ` (${p.heightCm}×${p.widthCm}cm)` : ''} — ${p.quantityRemaining <= 0 ? 'épuisé' : p.quantityRemaining + ' restants'}</option>`).join('')}
+          </select>
+        </td>
         <td><strong>${ubFormatPrice(ubOrderTotal(o, productsById))}</strong></td>
         <td>
           <select class="a-select" style="padding:6px 10px;font-size:.78rem" onchange="ubUpdateStatus('${o.id}', this.value)">
@@ -132,7 +139,7 @@ async function main() {
             <button class="a-icon-action" onclick="ubDeleteOrder('${o.id}')" title="Supprimer définitivement cette commande">${ubIcon('trash')}</button>
           </div>
         </td>
-      </tr>`).join('') : `<tr><td colspan="10"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
+      </tr>`).join('') : `<tr><td colspan="11"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
   }
 
   window.ubUpdateStatus = async function (id, status) {
@@ -154,6 +161,26 @@ async function main() {
     renderContent();
   };
 
+  window.ubSetPackaging = async function (orderId, packagingItemId) {
+    const o = orders.find(x => x.id === orderId);
+    if (!o) return;
+    const previousId = o.packagingItemId;
+    if (previousId === (packagingItemId || null)) return;
+
+    if (previousId) await ubAdminAdjustPackagingStock(previousId, 1);
+    if (packagingItemId) await ubAdminAdjustPackagingStock(packagingItemId, -1);
+
+    const pkg = packaging.find(p => p.id === packagingItemId);
+    const ok = await ubAdminSetOrderPackaging(orderId, packagingItemId || null, pkg ? pkg.unitCost : null);
+    if (!ok) { ubAToast('Erreur lors de la mise à jour'); return; }
+
+    o.packagingItemId = packagingItemId || null;
+    o.packagingCost = pkg ? pkg.unitCost : null;
+    packaging = await ubAdminGetPackagingItems();
+    ubAToast(packagingItemId ? `Sachet "${pkg.name}" assigné à ${orderId}` : `Sachet retiré de ${orderId}`);
+    renderTable();
+  };
+
   window.ubDeleteOrder = async function (id) {
     if (!confirm(`Supprimer définitivement la commande ${id} ? Cette action est irréversible.`)) return;
     const ok = await ubAdminDeleteOrder(id);
@@ -164,9 +191,10 @@ async function main() {
   };
 
   window.ubExportOrders = function () {
-    const headers = ['Commande', 'Client', 'Téléphone', 'Adresse', 'Date', 'Articles', 'Mode de paiement', 'Statut paiement', 'Statut livraison', 'Total (FCFA)'];
+    const headers = ['Commande', 'Client', 'Téléphone', 'Adresse', 'Date', 'Articles', 'Mode de paiement', 'Statut paiement', 'Statut livraison', 'Sachet utilisé', 'Total (FCFA)'];
     const rows = orders.map(o => [
-      o.id, o.client, o.phone || '', o.address || '', o.date, ubOrderItemCount(o), o.payment, o.paymentStatus, o.status, ubOrderTotal(o, productsById),
+      o.id, o.client, o.phone || '', o.address || '', o.date, ubOrderItemCount(o), o.payment, o.paymentStatus, o.status,
+      packaging.find(p => p.id === o.packagingItemId)?.name || '', ubOrderTotal(o, productsById),
     ]);
     ubExportCSV('urbann-beauty-commandes.csv', headers, rows);
   };
