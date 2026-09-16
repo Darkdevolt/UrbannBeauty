@@ -7,6 +7,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/admin.css">
+<style>
+.report-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.report-bar select{border:1px solid var(--a-line);border-radius:10px;padding:9px 12px;font:inherit;font-size:.84rem;background:#fff}
+.report-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.report-stat{padding:16px;border:1px solid var(--a-line);border-radius:14px}
+.report-stat .value{font-family:'Playfair Display',serif;font-size:1.5rem}
+.report-stat .label{font-size:.78rem;color:var(--a-ink-soft);margin-top:4px}
+.report-stat .change{font-size:.74rem;font-weight:600;margin-top:6px}
+.report-stat .change.up{color:var(--a-success)}
+.report-stat .change.down{color:var(--a-danger)}
+@media(max-width:700px){.report-stats{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 
@@ -93,6 +105,29 @@ async function main() {
         </div>
       </div>
     </div>
+
+    <div class="a-panel" style="padding:22px;margin-top:22px">
+      <div class="a-panel-head" style="padding:0 0 16px">
+        <div><h3 style="margin:0">Rapports périodiques</h3><p style="margin:4px 0 0;color:var(--a-ink-soft);font-size:.82rem">Chiffre d'affaires, commandes et meilleurs produits sur une période, comparés à la période précédente.</p></div>
+        <button class="a-btn a-btn-outline a-btn-sm" id="report-export">${ubIcon('upload')} Exporter (CSV)</button>
+      </div>
+      <div class="report-bar">
+        <select id="report-type">
+          <option value="month">Mensuel</option>
+          <option value="quarter">Trimestriel</option>
+          <option value="semester">Semestriel</option>
+        </select>
+        <select id="report-period"></select>
+        <select id="report-year"></select>
+      </div>
+      <div class="report-stats" id="report-stats"></div>
+      <div class="a-table-wrap">
+        <table class="a-table">
+          <thead><tr><th>Meilleurs produits de la période</th><th>Quantité vendue</th></tr></thead>
+          <tbody id="report-bestsellers"></tbody>
+        </table>
+      </div>
+    </div>
   `;
 
   document.getElementById('receivables-tbody').innerHTML = receivables.list.length ? receivables.list.map(c => `
@@ -108,6 +143,64 @@ async function main() {
       <td>${new Date(s.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
       <td><strong style="color:var(--a-danger)">${ubFormatPrice(s.amount)}</strong></td>
     </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune dette fournisseur en cours.</td></tr>`;
+
+  /* ---------- Rapports périodiques ---------- */
+  const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const now = new Date();
+  const reportState = { type: 'month', period: now.getMonth() + 1, year: now.getFullYear() };
+  let lastReport = null;
+
+  function populateReportControls() {
+    const typeEl = document.getElementById('report-type'), periodEl = document.getElementById('report-period'), yearEl = document.getElementById('report-year');
+    typeEl.value = reportState.type;
+    const periodOptions = reportState.type === 'month'
+      ? MONTHS.map((m, i) => ({ value: i + 1, label: m }))
+      : reportState.type === 'quarter'
+      ? [1, 2, 3, 4].map(q => ({ value: q, label: `T${q}` }))
+      : [1, 2].map(s => ({ value: s, label: `Semestre ${s}` }));
+    periodEl.innerHTML = periodOptions.map(o => `<option value="${o.value}" ${o.value === reportState.period ? 'selected' : ''}>${o.label}</option>`).join('');
+    const years = new Set([now.getFullYear(), now.getFullYear() - 1]);
+    orders.forEach(o => { if (o.date) years.add(new Date(o.date).getFullYear()); });
+    yearEl.innerHTML = [...years].sort((a, b) => b - a).map(y => `<option value="${y}" ${y === reportState.year ? 'selected' : ''}>${y}</option>`).join('');
+  }
+
+  function rangeFor(type, year, period) {
+    if (type === 'month') return ubMonthRange(year, period);
+    if (type === 'quarter') return ubQuarterRange(year, period);
+    return ubSemesterRange(year, period);
+  }
+
+  function renderReport() {
+    const [start, end] = rangeFor(reportState.type, reportState.year, reportState.period);
+    const [prevYear, prevPeriod] = ubPreviousRange(reportState.type, reportState.year, reportState.period);
+    const [prevStart, prevEnd] = rangeFor(reportState.type, prevYear, prevPeriod);
+    const current = ubComputePeriodStats(orders, productsById, start, end);
+    const previous = ubComputePeriodStats(orders, productsById, prevStart, prevEnd);
+    lastReport = { current, previous, start, end };
+
+    const stat = (value, label, change) => `<div class="report-stat"><div class="value">${value}</div><div class="label">${label}</div><div class="change ${change >= 0 ? 'up' : 'down'}">${change >= 0 ? '+' : ''}${change}% vs période précédente</div></div>`;
+    document.getElementById('report-stats').innerHTML =
+      stat(ubFormatPrice(current.revenue), "Chiffre d'affaires", ubPercentChange(current.revenue, previous.revenue)) +
+      stat(current.count, 'Commandes', ubPercentChange(current.count, previous.count)) +
+      stat(ubFormatPrice(current.avg), 'Panier moyen', ubPercentChange(current.avg, previous.avg));
+
+    document.getElementById('report-bestsellers').innerHTML = current.bestSellers.length
+      ? current.bestSellers.map(x => `<tr><td>${x.product.name}</td><td>${x.qty}</td></tr>`).join('')
+      : `<tr><td colspan="2" style="color:var(--a-ink-soft)">Aucune vente sur cette période.</td></tr>`;
+  }
+
+  populateReportControls();
+  renderReport();
+  document.getElementById('report-type').addEventListener('change', e => { reportState.type = e.target.value; reportState.period = 1; populateReportControls(); renderReport(); });
+  document.getElementById('report-period').addEventListener('change', e => { reportState.period = Number(e.target.value); renderReport(); });
+  document.getElementById('report-year').addEventListener('change', e => { reportState.year = Number(e.target.value); renderReport(); });
+  document.getElementById('report-export').addEventListener('click', () => {
+    if (!lastReport) return;
+    const { current, start, end } = lastReport;
+    const headers = ['Periode', 'Chiffre affaires (FCFA)', 'Commandes', 'Panier moyen (FCFA)', 'Meilleur produit', 'Quantite'];
+    const rows = [[`${start} au ${end}`, current.revenue, current.count, current.avg, current.bestSellers[0]?.product.name || '', current.bestSellers[0]?.qty || '']];
+    ubExportCSV(`urbann-beauty-rapport-${start}_${end}.csv`, headers, rows);
+  });
 
   window.ubExportFinances = function () {
     const headers = ['Type', 'Tiers', 'Reference', 'Montant (FCFA)', 'Echeance / date'];

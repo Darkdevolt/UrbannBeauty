@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paramètres — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+.reset-list{display:grid;gap:10px;margin:18px 0}
+.reset-item{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid var(--a-line);border-radius:12px}
+.reset-item input{width:auto}
+.reset-item .count{margin-left:auto;font-size:.78rem;color:var(--a-ink-soft);background:var(--a-mauve-light);padding:4px 10px;border-radius:999px}
+.reset-safe{background:var(--a-success-bg);color:var(--a-success);border-radius:12px;padding:12px 16px;font-size:.82rem;margin-bottom:18px}
+.reset-step{border:1px solid var(--a-line);border-radius:14px;padding:18px;margin-top:14px}
+.reset-step.locked{opacity:.5;pointer-events:none}
+.reset-step h4{margin:0 0 10px;font-size:.92rem}
+.reset-danger-btn{background:var(--a-danger);border-color:var(--a-danger);color:#fff}
+</style>
+</head>
+<body>
+<div class="admin-shell" id="admin-shell"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script><script src="../assets/js/data.js"></script><script src="../assets/js/media.js"></script><script src="assets/admin.js"></script>
+<script>
+const RESET_TABLES = [
+  { key: 'orders', label: 'Commandes (et leurs articles / retours liés)' },
+  { key: 'returns', label: 'Retours' },
+  { key: 'contact_messages', label: 'Messages de contact' },
+  { key: 'newsletter_subscribers', label: "Inscrits à la newsletter" },
+];
+let step1Verified = false;
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  const session = await ubAdminGetSession();
+  await ubAdminRenderShell('parametres', 'Paramètres', 'Gestion du compte et outils de maintenance de la boutique');
+
+  const counts = {};
+  for (const t of RESET_TABLES) counts[t.key] = await ubAdminCountRows(t.key);
+
+  document.getElementById('a-content').innerHTML = `
+    <div class="a-panel" style="padding:22px;margin-bottom:20px">
+      <h3 style="margin:0 0 6px">Réinitialiser des données de test</h3>
+      <p style="color:var(--a-ink-soft);font-size:.86rem;margin:0 0 14px">Supprime définitivement les données cochées ci-dessous. Pour éviter tout incident, les produits, catégories, avis clients, zones de livraison et la médiathèque ne sont <strong>jamais</strong> concernés par cet outil — gérez-les depuis leurs pages respectives.</p>
+      <div class="reset-list">
+        ${RESET_TABLES.map(t => `<label class="reset-item"><input type="checkbox" class="reset-check" value="${t.key}"><span>${t.label}</span><span class="count">${counts[t.key]} enregistrement${counts[t.key] > 1 ? 's' : ''}</span></label>`).join('')}
+      </div>
+
+      <div class="reset-step" id="step1">
+        <h4>Étape 1 — Confirmez votre mot de passe</h4>
+        <p style="font-size:.78rem;color:var(--a-ink-soft);margin:0 0 10px">Connecté en tant que <strong>${session?.user?.email || ''}</strong></p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input type="password" id="reset-pass-1" placeholder="Mot de passe" style="flex:1;min-width:200px;border:1px solid var(--a-line);border-radius:10px;padding:11px 14px;font:inherit">
+          <button class="a-btn a-btn-outline" id="reset-verify-1">Vérifier</button>
+        </div>
+        <p id="reset-msg-1" style="font-size:.78rem;margin:10px 0 0"></p>
+      </div>
+
+      <div class="reset-step locked" id="step2">
+        <h4>Étape 2 — Confirmez à nouveau votre mot de passe</h4>
+        <p style="font-size:.78rem;color:var(--a-ink-soft);margin:0 0 10px">Par sécurité, ressaisissez votre mot de passe une seconde fois pour lancer la suppression définitive.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input type="password" id="reset-pass-2" placeholder="Mot de passe" style="flex:1;min-width:200px;border:1px solid var(--a-line);border-radius:10px;padding:11px 14px;font:inherit">
+          <button class="a-btn reset-danger-btn" id="reset-confirm-2">Confirmer et réinitialiser</button>
+        </div>
+        <p id="reset-msg-2" style="font-size:.78rem;margin:10px 0 0"></p>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('reset-verify-1').onclick = async () => {
+    const checked = [...document.querySelectorAll('.reset-check:checked')];
+    const msg1 = document.getElementById('reset-msg-1');
+    if (!checked.length) { msg1.textContent = 'Sélectionnez au moins une donnée à réinitialiser.'; msg1.style.color = 'var(--a-danger)'; return; }
+    const pass = document.getElementById('reset-pass-1').value;
+    if (!pass) { msg1.textContent = 'Merci de saisir votre mot de passe.'; msg1.style.color = 'var(--a-danger)'; return; }
+    msg1.textContent = 'Vérification...'; msg1.style.color = 'var(--a-ink-soft)';
+    const ok = await ubAdminVerifyPassword(pass);
+    if (!ok) { msg1.textContent = 'Mot de passe incorrect.'; msg1.style.color = 'var(--a-danger)'; return; }
+    step1Verified = true;
+    msg1.textContent = 'Mot de passe vérifié.'; msg1.style.color = 'var(--a-success)';
+    document.getElementById('step2').classList.remove('locked');
+  };
+
+  document.getElementById('reset-confirm-2').onclick = async () => {
+    const msg2 = document.getElementById('reset-msg-2');
+    if (!step1Verified) return;
+    const pass = document.getElementById('reset-pass-2').value;
+    if (!pass) { msg2.textContent = 'Merci de saisir votre mot de passe.'; msg2.style.color = 'var(--a-danger)'; return; }
+    msg2.textContent = 'Vérification...'; msg2.style.color = 'var(--a-ink-soft)';
+    const ok = await ubAdminVerifyPassword(pass);
+    if (!ok) { msg2.textContent = 'Mot de passe incorrect.'; msg2.style.color = 'var(--a-danger)'; return; }
+
+    const checked = [...document.querySelectorAll('.reset-check:checked')].map(c => c.value);
+    const btn = document.getElementById('reset-confirm-2');
+    btn.disabled = true; btn.textContent = 'Réinitialisation en cours...';
+    let allOk = true;
+    for (const table of checked) {
+      const wiped = await ubAdminWipeTable(table);
+      if (!wiped) allOk = false;
+    }
+    btn.disabled = false; btn.textContent = 'Confirmer et réinitialiser';
+    if (!allOk) { msg2.textContent = "Une erreur est survenue pendant la réinitialisation."; msg2.style.color = 'var(--a-danger)'; return; }
+    ubAToast('Données réinitialisées');
+    main();
+  };
+}
+main();
+</script>
+</body>
+</html>

@@ -83,7 +83,7 @@ async function main() {
       <div class="a-panel">
         <div class="a-table-wrap">
           <table class="a-table">
-            <thead><tr><th>Commande</th><th>Client</th><th>Date</th><th>Articles</th><th>Paiement</th><th>Statut paiement</th><th>Total</th><th>Livraison</th><th>Reçu</th></tr></thead>
+            <thead><tr><th>Commande</th><th>Client</th><th>Date</th><th>Articles</th><th>Paiement</th><th>Statut paiement</th><th>Total</th><th>Livraison</th><th>Reçu</th><th>Actions</th></tr></thead>
             <tbody id="orders-tbody"></tbody>
           </table>
         </div>
@@ -126,7 +126,8 @@ async function main() {
           </select>
         </td>
         <td><a class="a-icon-action" style="display:inline-flex" href="recu.html?id=${o.id}" target="_blank" title="Voir / imprimer le reçu">${ubIcon('receipt')}</a></td>
-      </tr>`).join('') : `<tr><td colspan="9"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
+        <td><button class="a-icon-action" onclick="ubDeleteOrder('${o.id}')" title="Supprimer définitivement cette commande">${ubIcon('trash')}</button></td>
+      </tr>`).join('') : `<tr><td colspan="10"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
   }
 
   window.ubUpdateStatus = async function (id, status) {
@@ -145,6 +146,15 @@ async function main() {
     if (!ok) { ubAToast('Erreur lors de la mise à jour'); return; }
     o.paymentStatus = paymentStatus;
     ubAToast(`Paiement de ${id} mis à jour`);
+    renderContent();
+  };
+
+  window.ubDeleteOrder = async function (id) {
+    if (!confirm(`Supprimer définitivement la commande ${id} ? Cette action est irréversible.`)) return;
+    const ok = await ubAdminDeleteOrder(id);
+    if (!ok) { ubAToast('Erreur lors de la suppression'); return; }
+    orders = orders.filter(o => o.id !== id);
+    ubAToast(`Commande ${id} supprimée`);
     renderContent();
   };
 

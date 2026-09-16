@@ -128,6 +128,32 @@ async function ubAdminUpdateOrderPayment(id, paymentStatus) {
   const { error } = await ubSupabase.from('orders').update({ payment_status: paymentStatus }).eq('id', id);
   return !error;
 }
+async function ubAdminDeleteOrder(id) {
+  const { error } = await ubSupabase.from('orders').delete().eq('id', id);
+  if (error) console.error('ubAdminDeleteOrder', error);
+  return !error;
+}
+
+/* ---------- Reinitialisation (donnees de test / transactionnelles) ----------
+   Ne touche jamais aux produits, categories, avis clients, zones de livraison
+   ou a la mediatheque : uniquement les donnees transactionnelles/test. */
+async function ubAdminCountRows(table) {
+  const { count, error } = await ubSupabase.from(table).select('id', { count: 'exact', head: true });
+  if (error) { console.error('ubAdminCountRows', table, error); return 0; }
+  return count || 0;
+}
+async function ubAdminWipeTable(table) {
+  const { error } = await ubSupabase.from(table).delete().not('id', 'is', null);
+  if (error) console.error('ubAdminWipeTable', table, error);
+  return !error;
+}
+/* Reverifie le mot de passe du compte connecte sans changer la session en cours. */
+async function ubAdminVerifyPassword(password) {
+  const session = await ubAdminGetSession();
+  if (!session?.user?.email) return false;
+  const { error } = await ubSupabase.auth.signInWithPassword({ email: session.user.email, password });
+  return !error;
+}
 
 function ubProductsById(products) { return Object.fromEntries(products.map(p => [p.id, p])); }
 function ubOrderLines(order, productsById) {
@@ -216,6 +242,42 @@ function ubComputeBestClients(orders, productsById, limit = 5) {
   return Object.values(map).sort((a, b) => b.total - a.total).slice(0, limit);
 }
 
+/* ---------- Rapports periodiques (mensuel / trimestriel / semestriel) ---------- */
+function ubMonthRange(year, month) {
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 0));
+  return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
+}
+function ubQuarterRange(year, quarter) {
+  const startMonth = (quarter - 1) * 3 + 1;
+  const start = new Date(Date.UTC(year, startMonth - 1, 1));
+  const end = new Date(Date.UTC(year, startMonth + 2, 0));
+  return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
+}
+function ubSemesterRange(year, semester) {
+  const startMonth = semester === 1 ? 1 : 7;
+  const start = new Date(Date.UTC(year, startMonth - 1, 1));
+  const end = new Date(Date.UTC(year, startMonth + 5, 0));
+  return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
+}
+function ubPreviousRange(type, year, period) {
+  if (type === 'month') return period === 1 ? [year - 1, 12] : [year, period - 1];
+  if (type === 'quarter') return period === 1 ? [year - 1, 4] : [year, period - 1];
+  return period === 1 ? [year - 1, 2] : [year, period - 1];
+}
+function ubComputePeriodStats(orders, productsById, start, end) {
+  const inRange = orders.filter(o => o.status !== 'annulee' && o.date >= start && o.date <= end);
+  const revenue = inRange.reduce((s, o) => s + ubOrderTotal(o, productsById), 0);
+  const count = inRange.length;
+  const avg = count ? Math.round(revenue / count) : 0;
+  const bestSellers = ubComputeBestSellers(inRange, productsById, 5);
+  return { revenue, count, avg, bestSellers, orders: inRange };
+}
+function ubPercentChange(current, previous) {
+  if (!previous) return current ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
 /* ---------- Toast ---------- */
 let ubAToastTimer = null;
 function ubAToast(message) {
@@ -255,7 +317,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
     { href: 'finances.html', key: 'finances', label: 'Finances', icon: 'chart' },
     { href: 'fournisseurs.html', key: 'fournisseurs', label: 'Fournisseurs', icon: 'truck' },
     { group: 'Compte' },
-    { href: '#', key: 'parametres', label: 'Paramètres', icon: 'settings' },
+    { href: 'parametres.html', key: 'parametres', label: 'Paramètres', icon: 'settings' },
   ];
 
   shell.innerHTML = `
