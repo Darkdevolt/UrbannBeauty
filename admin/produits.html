@@ -44,6 +44,10 @@
             <input type="number" id="f-price" required min="0" placeholder="24000">
           </div>
           <div class="a-field">
+            <label>Prix d'achat chez le fournisseur (FCFA)</label>
+            <input type="number" id="f-cost" min="0" placeholder="12000">
+          </div>
+          <div class="a-field">
             <label>Prix barré (optionnel)</label>
             <input type="number" id="f-oldprice" min="0" placeholder="29000">
           </div>
@@ -130,7 +134,7 @@ async function main() {
         <div class="a-table-wrap">
           <table class="a-table">
             <thead>
-              <tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Statut</th><th>Actions</th></tr>
+              <tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Marge</th><th>Stock</th><th>Statut</th><th>Actions</th></tr>
             </thead>
             <tbody id="products-tbody"></tbody>
           </table>
@@ -166,6 +170,7 @@ async function main() {
         </td>
         <td>${categoriesById[p.category]?.name || '—'}</td>
         <td><strong>${ubFormatPrice(p.price)}</strong>${p.oldPrice ? `<br><span style="font-size:.76rem;color:var(--a-ink-soft);text-decoration:line-through">${ubFormatPrice(p.oldPrice)}</span>` : ''}</td>
+        <td>${p.costPrice != null ? `<strong style="color:var(--a-success)">${ubFormatPrice(p.price - p.costPrice)}</strong><br><span style="font-size:.74rem;color:var(--a-ink-soft)">${Math.round((p.price - p.costPrice) / p.price * 100)}% · achat ${ubFormatPrice(p.costPrice)}</span>` : `<span style="color:var(--a-ink-soft);font-size:.78rem">Prix d'achat non renseigné</span>`}</td>
         <td>${p.stock} unités</td>
         <td>${ubStockBadge(p.stock)}</td>
         <td>
@@ -175,7 +180,7 @@ async function main() {
             <button class="a-icon-action" onclick="ubDeleteProduct('${p.id}')" title="Supprimer">${ubIcon('trash')}</button>
           </div>
         </td>
-      </tr>`).join('') : `<tr><td colspan="6"><div class="empty-state">${ubIcon('box')}<p>Aucun produit ne correspond à vos filtres.</p></div></td></tr>`;
+      </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('box')}<p>Aucun produit ne correspond à vos filtres.</p></div></td></tr>`;
   }
 
   function ubOpenModal(id) {
@@ -194,6 +199,7 @@ async function main() {
       document.getElementById('f-category').value = p.category;
       document.getElementById('f-gender').value = p.gender || 'mixte';
       document.getElementById('f-price').value = p.price;
+      document.getElementById('f-cost').value = p.costPrice != null ? p.costPrice : '';
       document.getElementById('f-oldprice').value = p.oldPrice || '';
       document.getElementById('f-stock').value = p.stock;
       document.getElementById('f-desc').value = p.desc;
@@ -237,6 +243,7 @@ async function main() {
       category: document.getElementById('f-category').value,
       gender: document.getElementById('f-gender').value,
       price: Number(document.getElementById('f-price').value),
+      costPrice: document.getElementById('f-cost').value ? Number(document.getElementById('f-cost').value) : null,
       oldPrice: document.getElementById('f-oldprice').value ? Number(document.getElementById('f-oldprice').value) : null,
       stock: Number(document.getElementById('f-stock').value),
       desc: document.getElementById('f-desc').value,
@@ -263,9 +270,12 @@ async function main() {
   };
 
   window.ubExportProducts = function () {
-    const headers = ['Référence', 'Nom', 'Catégorie', 'Prix (FCFA)', 'Prix barré (FCFA)', 'Stock', 'Description'];
+    const headers = ['Référence', 'Nom', 'Catégorie', 'Prix vente (FCFA)', 'Prix achat (FCFA)', 'Marge (FCFA)', 'Marge (%)', 'Prix barré (FCFA)', 'Stock', 'Description'];
     const rows = products.map(p => [
-      'UB-' + p.id.toUpperCase(), p.name, categoriesById[p.category]?.name || '', p.price, p.oldPrice || '', p.stock, p.desc,
+      'UB-' + p.id.toUpperCase(), p.name, categoriesById[p.category]?.name || '', p.price,
+      p.costPrice ?? '', p.costPrice != null ? p.price - p.costPrice : '',
+      p.costPrice != null ? Math.round((p.price - p.costPrice) / p.price * 100) : '',
+      p.oldPrice || '', p.stock, p.desc,
     ]);
     ubExportCSV('urbann-beauty-produits.csv', headers, rows);
   };

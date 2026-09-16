@@ -94,15 +94,34 @@ function ubMapProduct(p) {
     desc: p.description, img: p.image_url, video: p.video_url,
   };
 }
+/* products_storefront est une vue sans la colonne cost_price (prix d'achat) : le prix
+   d'achat est une donnee commerciale sensible qui ne doit jamais transiter vers le site
+   public, meme dans une reponse API que personne ne regarde jamais. L'admin lit la table
+   products directement (ubAdminGetProducts) car elle a besoin du cout pour les marges. */
 async function ubGetAllProducts() {
-  const { data, error } = await ubSupabase.from('products').select('*').order('created_at');
+  const { data, error } = await ubSupabase.from('products_storefront').select('*').order('created_at');
   if (error) { console.error('ubGetAllProducts', error); return []; }
   return data.map(ubMapProduct);
 }
 async function ubGetProduct(id) {
-  const { data, error } = await ubSupabase.from('products').select('*').eq('id', id).maybeSingle();
+  const { data, error } = await ubSupabase.from('products_storefront').select('*').eq('id', id).maybeSingle();
   if (error || !data) return null;
   return ubMapProduct(data);
+}
+
+/* ---------- Box cadeau (compositions a prix fixe definies par l'admin) ---------- */
+async function ubGetGiftBoxTemplates() {
+  const { data, error } = await ubSupabase.from('gift_box_templates').select('*').eq('active', true).order('sort_order', { ascending: true });
+  if (error) { console.error('ubGetGiftBoxTemplates', error); return []; }
+  return data.map(t => ({ id: t.id, name: t.name, gender: t.gender, price: t.price, slotCount: t.slot_count, eligibleIds: t.eligible_product_ids || [] }));
+}
+/* Repartit un prix fixe entre n articles en FCFA entiers, sans perte d'arrondi
+   (la somme des parts vaut toujours exactement le prix total). */
+function ubSplitFixedPrice(total, n) {
+  if (n <= 0) return [];
+  const base = Math.floor(total / n);
+  const remainder = total - base * n;
+  return Array.from({ length: n }, (_, i) => base + (i < remainder ? 1 : 0));
 }
 
 function ubCatsById(categories) {
@@ -120,7 +139,10 @@ async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items }
     p_phone: phone,
     p_address: address || null,
     p_payment_method: paymentMethod,
-    p_items: items.map(l => ({ product_id: l.id, qty: l.qty })),
+    p_items: items.map(l => ({
+      product_id: l.id, qty: l.qty,
+      ...(l.boxInstanceId ? { box_instance_id: l.boxInstanceId, box_template_id: l.boxTemplateId } : {}),
+    })),
   });
   if (error) {
     const code = (error.message || '').match(/PRODUIT_INDISPONIBLE:\s*(\S+)/);
@@ -128,6 +150,7 @@ async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items }
     if (/PANIER_VIDE/.test(error.message)) return { error: 'PANIER_VIDE' };
     if (/NOM_CLIENT_REQUIS/.test(error.message)) return { error: 'NOM_CLIENT_REQUIS' };
     if (/TELEPHONE_REQUIS/.test(error.message)) return { error: 'TELEPHONE_REQUIS' };
+    if (/BOX_/.test(error.message)) return { error: 'BOX_INVALIDE' };
     console.error('ubPlaceOrder', error);
     return { error: 'INCONNU' };
   }

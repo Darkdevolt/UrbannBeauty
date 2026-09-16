@@ -23,10 +23,18 @@ async function ubAdminGuard() {
 }
 
 /* ---------- Produits ---------- */
-async function ubAdminGetProducts() { return ubGetAllProducts(); }
+/* L'admin lit la table products directement (pas la vue products_storefront) car il a
+   besoin du prix d'achat (cost_price) pour calculer marges et rotation -- une donnee
+   volontairement absente de la vue publique. */
+async function ubAdminGetProducts() {
+  const { data, error } = await ubSupabase.from('products').select('*').order('created_at');
+  if (error) { console.error('ubAdminGetProducts', error); return []; }
+  return data.map(p => ({ ...ubMapProduct(p), costPrice: p.cost_price }));
+}
 async function ubAdminSaveProduct(p) {
   const { error } = await ubSupabase.from('products').upsert({
     id: p.id, name: p.name, category_id: p.category, gender: p.gender || 'mixte', price: p.price, old_price: p.oldPrice || null,
+    cost_price: p.costPrice != null ? p.costPrice : null,
     stock: p.stock, rating: p.rating, reviews: p.reviews, tag: p.tag || null, description: p.desc,
     image_url: p.img, video_url: p.video || null, updated_at: new Date().toISOString(),
   });
@@ -75,6 +83,26 @@ async function ubAdminDeleteTestimonial(id) {
   return !error;
 }
 
+/* ---------- Box cadeau (compositions a prix fixe) ---------- */
+async function ubAdminGetGiftBoxTemplates() {
+  const { data, error } = await ubSupabase.from('gift_box_templates').select('*').order('sort_order', { ascending: true });
+  if (error) { console.error('ubAdminGetGiftBoxTemplates', error); return []; }
+  return data.map(t => ({ id: t.id, name: t.name, gender: t.gender, price: t.price, slotCount: t.slot_count, eligibleIds: t.eligible_product_ids || [], active: t.active, sortOrder: t.sort_order }));
+}
+async function ubAdminSaveGiftBoxTemplate(t) {
+  const { error } = await ubSupabase.from('gift_box_templates').upsert({
+    id: t.id || undefined, name: t.name, gender: t.gender, price: t.price, slot_count: t.slotCount,
+    eligible_product_ids: t.eligibleIds || [], active: t.active !== false, sort_order: t.sortOrder || 0,
+  });
+  if (error) console.error('ubAdminSaveGiftBoxTemplate', error);
+  return !error;
+}
+async function ubAdminDeleteGiftBoxTemplate(id) {
+  const { error } = await ubSupabase.from('gift_box_templates').delete().eq('id', id);
+  if (error) console.error('ubAdminDeleteGiftBoxTemplate', error);
+  return !error;
+}
+
 /* ---------- Zones de livraison ---------- */
 async function ubAdminGetZones() {
   const { data, error } = await ubSupabase.from('delivery_zones').select('*').order('sort_order', { ascending: true });
@@ -112,12 +140,12 @@ async function ubAdminGetNewsletterSubscribers() {
 
 /* ---------- Commandes ---------- */
 async function ubAdminGetOrders() {
-  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty, product_name, unit_price)').order('order_date', { ascending: false });
+  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty, product_name, unit_price, unit_cost)').order('order_date', { ascending: false });
   if (error) { console.error('ubAdminGetOrders', error); return []; }
   return data.map(o => ({
     id: o.id, client: ubEscapeHtml(o.client_name), phone: ubEscapeHtml(o.phone), address: ubEscapeHtml(o.address), date: o.order_date,
     payment: ubEscapeHtml(o.payment_method), paymentStatus: o.payment_status, status: o.status,
-    items: (o.order_items || []).map(it => ({ productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price })),
+    items: (o.order_items || []).map(it => ({ productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price, cost: it.unit_cost })),
   }));
 }
 async function ubAdminUpdateOrderStatus(id, status) {
@@ -208,14 +236,49 @@ function ubOrderLines(order, productsById) {
       name: l.name || (p ? p.name : 'Produit archivé (supprimé depuis)'),
       qty: l.qty,
       price: l.price != null ? l.price : (p ? p.price : 0),
+      cost: l.cost != null ? l.cost : (p ? p.costPrice : 0) || 0,
     };
   });
 }
 function ubOrderTotal(order, productsById) {
   return ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * l.price, 0);
 }
+function ubOrderCOGS(order, productsById) {
+  return ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * (l.cost || 0), 0);
+}
 function ubOrderItemCount(order) {
   return order.items.reduce((s, l) => s + l.qty, 0);
+}
+
+/* ---------- Marges & rotation des stocks ---------- */
+function ubComputeProfitability(orders, productsById) {
+  const active = orders.filter(o => o.status !== 'annulee');
+  const revenue = active.reduce((s, o) => s + ubOrderTotal(o, productsById), 0);
+  const cogs = active.reduce((s, o) => s + ubOrderCOGS(o, productsById), 0);
+  const margin = revenue - cogs;
+  return { revenue, cogs, margin, marginPct: revenue ? Math.round((margin / revenue) * 100) : 0 };
+}
+/* Rotation simplifiee par produit : quantite vendue (commandes non annulees) rapportee
+   au stock actuel. >1 signifie que les ventes ont deja depasse le stock actuellement
+   en rayon (bon signe de rotation) ; proche de 0 signifie un stock qui dort. */
+function ubComputeProductRotation(products, orders) {
+  const sold = {};
+  orders.forEach(o => {
+    if (o.status === 'annulee') return;
+    o.items.forEach(l => { if (l.productId) sold[l.productId] = (sold[l.productId] || 0) + l.qty; });
+  });
+  return products.map(p => {
+    const qtySold = sold[p.id] || 0;
+    const unitMargin = (p.costPrice != null) ? (p.price - p.costPrice) : null;
+    return {
+      product: p,
+      qtySold,
+      unitMargin,
+      marginPct: (unitMargin != null && p.price) ? Math.round((unitMargin / p.price) * 100) : null,
+      totalMargin: unitMargin != null ? unitMargin * qtySold : null,
+      rotation: p.stock > 0 ? Math.round((qtySold / p.stock) * 100) / 100 : (qtySold > 0 ? Infinity : 0),
+    };
+  }).sort((a, b) => b.qtySold - a.qtySold);
 }
 
 /* ---------- Fournisseurs (comptes à payer) ---------- */
@@ -364,6 +427,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
     { href: 'categories.html', key: 'categories', label: 'Catégories', icon: 'filter' },
     { href: 'media.html', key: 'media', label: 'Médiathèque', icon: 'image' },
     { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders' },
+    { href: 'box-cadeau.html', key: 'boxcadeau', label: 'Box Cadeau', icon: 'box' },
     { href: 'avis.html', key: 'avis', label: 'Avis clients', icon: 'heart' },
     { href: 'messages.html', key: 'messages', label: 'Messages & Newsletter', icon: 'mail' },
     { href: 'clients.html', key: 'clients', label: 'Clients', icon: 'users' },

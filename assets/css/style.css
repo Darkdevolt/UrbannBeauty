@@ -833,6 +833,10 @@ section { padding: 88px 0; }
   color: var(--ink-soft); padding-bottom: 14px; border-bottom: 1px solid var(--line);
 }
 .cart-table td { padding: 20px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.cart-box-row td { background: var(--mauve-50); }
+.cart-box-label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .88rem; }
+.cart-box-label svg { width: 18px; height: 18px; color: var(--mauve-600); }
+.cart-box-items { flex-basis: 100%; font-size: .76rem; color: var(--ink-soft); }
 .cart-product { display: flex; align-items: center; gap: 16px; }
 .cart-product img { width: 68px; height: 68px; border-radius: var(--radius-sm); object-fit: cover; }
 .cart-product strong { display: block; font-size: .92rem; }

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Box Cadeau — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+.bx-product-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:320px;overflow-y:auto;border:1px solid var(--a-line);border-radius:12px;padding:12px}
+.bx-product-pick{border:1px solid var(--a-line);border-radius:10px;padding:8px;cursor:pointer;text-align:center;font-size:.74rem}
+.bx-product-pick img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:6px}
+.bx-product-pick.selected{border-color:var(--a-mauve);background:var(--a-mauve-light)}
+.a-checkbox-row{display:flex;align-items:center;gap:9px}
+.a-checkbox-row input{width:auto}
+</style>
+</head>
+<body>
+<div class="admin-shell" id="admin-shell"></div>
+
+<div class="a-modal-overlay" id="bx-modal">
+  <div class="a-modal" style="max-width:640px">
+    <div class="a-modal-head"><h3 id="bx-modal-title">Ajouter une box</h3><button class="a-modal-close" onclick="ubCloseBxModal()"></button></div>
+    <div class="a-modal-body">
+      <form id="bx-form">
+        <input type="hidden" id="bx-id">
+        <div class="a-field"><label>Nom de la box</label><input type="text" id="bx-name" required placeholder="Ex : Box Découverte"></div>
+        <div class="a-field"><label>Destinataire</label>
+          <select id="bx-gender">
+            <option value="tous">Tous</option>
+            <option value="femme">Femme</option>
+            <option value="homme">Homme</option>
+          </select>
+        </div>
+        <div class="a-field"><label>Prix fixe de la box (FCFA, chiffre rond)</label><input type="number" id="bx-price" required min="0" step="500" placeholder="25000"></div>
+        <div class="a-field"><label>Nombre de produits à choisir</label><input type="number" id="bx-slots" required min="1" step="1" placeholder="3"></div>
+        <div class="a-field"><label>Produits éligibles (la cliente choisira parmi ceux-ci)</label><div class="bx-product-picker" id="bx-picker"></div></div>
+        <div class="a-field"><div class="a-checkbox-row"><input type="checkbox" id="bx-active" checked><label for="bx-active" style="margin:0">Box active (visible sur le site)</label></div></div>
+      </form>
+    </div>
+    <div class="a-modal-foot"><button class="a-btn a-btn-outline" onclick="ubCloseBxModal()">Annuler</button><button class="a-btn a-btn-primary" onclick="ubSaveBoxTemplate()">Enregistrer</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script><script src="../assets/js/data.js"></script><script src="../assets/js/media.js"></script><script src="assets/admin.js"></script>
+<script>
+let boxTemplates = [];
+let allProducts = [];
+let pickedProductIds = [];
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('boxcadeau', 'Box Cadeau', "Définissez des compositions de box à prix fixe : la cliente choisit les produits, le prix ne bouge pas");
+  const close = document.querySelector('.a-modal-close'); if (close) close.innerHTML = ubIcon('close');
+
+  [boxTemplates, allProducts] = await Promise.all([ubAdminGetGiftBoxTemplates(), ubAdminGetProducts()]);
+  renderContent();
+
+  function renderContent() {
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-toolbar">
+        <p style="color:var(--a-ink-soft);font-size:.88rem;margin:0">${boxTemplates.length} box · prix fixe quelle que soit la composition choisie par la cliente</p>
+        <button class="a-btn a-btn-primary" onclick="ubOpenBxModal()">${ubIcon('plus')} Ajouter une box</button>
+      </div>
+      <div class="a-panel">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Box</th><th>Destinataire</th><th>Prix fixe</th><th>Produits à choisir</th><th>Éligibles</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="bx-tbody"></tbody>
+          </table>
+        </div>
+      </div>`;
+    renderTable();
+  }
+
+  function renderTable() {
+    document.getElementById('bx-tbody').innerHTML = boxTemplates.length ? boxTemplates.map(t => `
+      <tr>
+        <td><strong>${t.name}</strong></td>
+        <td>${{ tous: 'Tous', femme: 'Femme', homme: 'Homme' }[t.gender] || t.gender}</td>
+        <td><strong>${ubFormatPrice(t.price)}</strong></td>
+        <td>${t.slotCount}</td>
+        <td>${t.eligibleIds.length} produit${t.eligibleIds.length > 1 ? 's' : ''}</td>
+        <td>${t.active ? '<span class="a-badge success">Active</span>' : '<span class="a-badge neutral">Désactivée</span>'}</td>
+        <td>
+          <div class="a-actions-cell">
+            <button class="a-icon-action" onclick="ubOpenBxModal('${t.id}')" title="Modifier">${ubIcon('edit')}</button>
+            <button class="a-icon-action" onclick="ubDeleteBoxTemplate('${t.id}')" title="Supprimer">${ubIcon('trash')}</button>
+          </div>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('box')}<p>Aucune box cadeau pour le moment. Les clientes ne verront rien sur la page Box Cadeau tant qu'aucune n'est créée.</p></div></td></tr>`;
+  }
+
+  function renderPicker() {
+    document.getElementById('bx-picker').innerHTML = allProducts.map(p => `
+      <div class="bx-product-pick ${pickedProductIds.includes(p.id) ? 'selected' : ''}" onclick="ubToggleBxProduct('${p.id}')">
+        <img src="${p.img}" alt="">
+        <div>${p.name}</div>
+        <small style="color:var(--a-ink-soft)">${ubFormatPrice(p.price)}</small>
+      </div>`).join('') || `<p style="color:var(--a-ink-soft)">Aucun produit disponible — ajoutez des produits d'abord.</p>`;
+  }
+  window.ubToggleBxProduct = function (id) {
+    const idx = pickedProductIds.indexOf(id);
+    if (idx >= 0) pickedProductIds.splice(idx, 1); else pickedProductIds.push(id);
+    renderPicker();
+  };
+
+  function ubOpenBxModal(id) {
+    if (id) {
+      const t = boxTemplates.find(x => x.id === id);
+      document.getElementById('bx-modal-title').textContent = 'Modifier la box';
+      document.getElementById('bx-id').value = t.id;
+      document.getElementById('bx-name').value = t.name;
+      document.getElementById('bx-gender').value = t.gender;
+      document.getElementById('bx-price').value = t.price;
+      document.getElementById('bx-slots').value = t.slotCount;
+      document.getElementById('bx-active').checked = t.active !== false;
+      pickedProductIds = [...t.eligibleIds];
+    } else {
+      document.getElementById('bx-modal-title').textContent = 'Ajouter une box';
+      document.getElementById('bx-form').reset();
+      document.getElementById('bx-id').value = '';
+      document.getElementById('bx-active').checked = true;
+      pickedProductIds = [];
+    }
+    renderPicker();
+    document.getElementById('bx-modal').classList.add('open');
+  }
+  function ubCloseBxModal() { document.getElementById('bx-modal').classList.remove('open'); }
+
+  window.ubSaveBoxTemplate = async function () {
+    const form = document.getElementById('bx-form');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const slotCount = Number(document.getElementById('bx-slots').value);
+    if (pickedProductIds.length < slotCount) { ubAToast(`Sélectionnez au moins ${slotCount} produit(s) éligible(s).`); return; }
+    const data = {
+      id: document.getElementById('bx-id').value || undefined,
+      name: document.getElementById('bx-name').value.trim(),
+      gender: document.getElementById('bx-gender').value,
+      price: Number(document.getElementById('bx-price').value),
+      slotCount,
+      eligibleIds: pickedProductIds,
+      active: document.getElementById('bx-active').checked,
+      sortOrder: boxTemplates.length,
+    };
+    const ok = await ubAdminSaveGiftBoxTemplate(data);
+    if (!ok) { ubAToast('Erreur lors de l\'enregistrement'); return; }
+    ubAToast(data.id ? 'Box mise à jour' : 'Box ajoutée');
+    ubCloseBxModal();
+    boxTemplates = await ubAdminGetGiftBoxTemplates();
+    renderTable();
+  };
+
+  window.ubDeleteBoxTemplate = async function (id) {
+    if (!confirm('Supprimer définitivement cette box ?')) return;
+    const ok = await ubAdminDeleteGiftBoxTemplate(id);
+    if (!ok) { ubAToast('Erreur lors de la suppression'); return; }
+    boxTemplates = boxTemplates.filter(t => t.id !== id);
+    ubAToast('Box supprimée');
+    renderTable();
+  };
+
+  window.ubOpenBxModal = ubOpenBxModal;
+  window.ubCloseBxModal = ubCloseBxModal;
+}
+main();
+</script>
+</body>
+</html>

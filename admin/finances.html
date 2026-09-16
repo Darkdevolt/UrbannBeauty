@@ -43,6 +43,8 @@ async function main() {
   const receivables = ubComputeReceivables(orders, productsById);
   const payables = ubComputePayables(suppliers);
   const soldeNet = receivables.total - payables.total;
+  const profitability = ubComputeProfitability(orders, productsById);
+  const rotation = ubComputeProductRotation(products, orders);
 
   document.getElementById('a-content').innerHTML = `
     <div class="a-stats-grid">
@@ -128,6 +130,23 @@ async function main() {
         </table>
       </div>
     </div>
+
+    <div class="a-panel" style="padding:22px;margin-top:22px">
+      <div class="a-panel-head" style="padding:0 0 16px">
+        <div><h3 style="margin:0">Rentabilité & rotation des stocks</h3><p style="margin:4px 0 0;color:var(--a-ink-soft);font-size:.82rem">Marge réelle par produit (prix de vente − prix d'achat) et vitesse d'écoulement du stock. Renseignez le prix d'achat dans Produits & Stock pour activer ces calculs.</p></div>
+      </div>
+      <div class="report-stats" style="margin-bottom:20px">
+        <div class="report-stat"><div class="value">${ubFormatPrice(profitability.revenue)}</div><div class="label">Chiffre d'affaires (hors annulées)</div></div>
+        <div class="report-stat"><div class="value">${ubFormatPrice(profitability.cogs)}</div><div class="label">Coût des produits vendus</div></div>
+        <div class="report-stat"><div class="value" style="color:${profitability.margin>=0?'var(--a-success)':'var(--a-danger)'}">${ubFormatPrice(profitability.margin)} (${profitability.marginPct}%)</div><div class="label">Marge brute</div></div>
+      </div>
+      <div class="a-table-wrap">
+        <table class="a-table">
+          <thead><tr><th>Produit</th><th>Prix d'achat</th><th>Prix de vente</th><th>Marge unitaire</th><th>Vendus</th><th>Marge totale</th><th>Stock actuel</th><th>Rotation</th></tr></thead>
+          <tbody id="rotation-tbody"></tbody>
+        </table>
+      </div>
+    </div>
   `;
 
   document.getElementById('receivables-tbody').innerHTML = receivables.list.length ? receivables.list.map(c => `
@@ -143,6 +162,18 @@ async function main() {
       <td>${new Date(s.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
       <td><strong style="color:var(--a-danger)">${ubFormatPrice(s.amount)}</strong></td>
     </tr>`).join('') : `<tr><td colspan="3" style="color:var(--a-ink-soft)">Aucune dette fournisseur en cours.</td></tr>`;
+
+  document.getElementById('rotation-tbody').innerHTML = rotation.length ? rotation.map(r => `
+    <tr>
+      <td><strong>${r.product.name}</strong></td>
+      <td>${r.product.costPrice != null ? ubFormatPrice(r.product.costPrice) : '<span style="color:var(--a-ink-soft)">—</span>'}</td>
+      <td>${ubFormatPrice(r.product.price)}</td>
+      <td>${r.unitMargin != null ? `<strong style="color:${r.unitMargin>=0?'var(--a-success)':'var(--a-danger)'}">${ubFormatPrice(r.unitMargin)}</strong><br><span style="font-size:.74rem;color:var(--a-ink-soft)">${r.marginPct}%</span>` : '<span style="color:var(--a-ink-soft)">—</span>'}</td>
+      <td>${r.qtySold}</td>
+      <td>${r.totalMargin != null ? ubFormatPrice(r.totalMargin) : '<span style="color:var(--a-ink-soft)">—</span>'}</td>
+      <td>${r.product.stock}</td>
+      <td>${r.rotation === Infinity ? '<span class="a-badge success">Rupture / forte demande</span>' : r.rotation}</td>
+    </tr>`).join('') : `<tr><td colspan="8" style="color:var(--a-ink-soft)">Aucun produit.</td></tr>`;
 
   /* ---------- Rapports périodiques ---------- */
   const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];

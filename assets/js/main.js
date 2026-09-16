@@ -15,14 +15,27 @@ function ubSaveCart(cart) {
 }
 function ubAddToCart(id, qty = 1) {
   const cart = ubGetCart();
-  const line = cart.find(l => l.id === id);
+  const line = cart.find(l => l.id === id && !l.boxInstanceId);
   if (line) line.qty += qty;
   else cart.push({ id, qty });
   ubSaveCart(cart);
   ubShowToast('Produit ajouté au panier');
 }
+/* Ajoute une box cadeau au panier : chaque produit choisi devient sa propre ligne
+   (qty 1, jamais fusionnee) rattachee a boxInstanceId/boxTemplateId. Le prix reel de
+   ces lignes est toujours recalcule cote serveur a partir du template au moment de la
+   commande (voir ub_place_order) -- rien ici n'est source de verite sur le prix. */
+function ubAddBoxToCart(templateId, templateName, productIds) {
+  const cart = ubGetCart();
+  const boxInstanceId = 'box-' + Date.now() + '-' + Math.round(Math.random() * 1e6);
+  productIds.forEach(id => cart.push({ id, qty: 1, boxInstanceId, boxTemplateId: templateId, boxLabel: templateName }));
+  ubSaveCart(cart);
+}
 function ubRemoveFromCart(id) {
-  ubSaveCart(ubGetCart().filter(l => l.id !== id));
+  ubSaveCart(ubGetCart().filter(l => !(l.id === id && !l.boxInstanceId)));
+}
+function ubRemoveBoxFromCart(boxInstanceId) {
+  ubSaveCart(ubGetCart().filter(l => l.boxInstanceId !== boxInstanceId));
 }
 function ubSetQty(id, qty) {
   const cart = ubGetCart();
