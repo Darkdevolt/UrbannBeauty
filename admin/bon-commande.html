@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="doc-title">Bon de commande — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+  body { background: var(--a-bg); }
+  .prep-page { max-width: 760px; margin: 40px auto; padding: 0 20px 60px; }
+  .prep-actions { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 18px; }
+  .prep-card { background: #fff; border-radius: 16px; padding: 48px; box-shadow: var(--a-shadow); }
+  .prep-head { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: flex-start; padding-bottom: 28px; border-bottom: 2px solid var(--a-ink); margin-bottom: 28px; }
+  .prep-head .brand { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--a-ink); }
+  .prep-head .brand span { color: var(--a-mauve); font-style: italic; }
+  .prep-head .meta { text-align: right; }
+  .prep-head .meta h2 { font-size: 1.3rem; margin-bottom: 6px; }
+  .prep-head .meta div { font-size: .82rem; color: var(--a-ink-soft); }
+  .prep-section-title { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--a-ink-soft); margin-bottom: 10px; font-weight: 600; }
+  .prep-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; margin-bottom: 32px; }
+  .prep-grid p { margin: 0; font-size: .9rem; }
+  .prep-item { border: 1px solid var(--a-line); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+  .prep-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .prep-item-head strong { font-size: .96rem; }
+  .prep-item-head span { font-size: .84rem; color: var(--a-ink-soft); white-space: nowrap; }
+  .prep-note { margin-top: 10px; background: var(--a-mauve-light); border-radius: 10px; padding: 12px 14px; }
+  .prep-note-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--a-mauve); font-weight: 700; margin-bottom: 6px; }
+  .prep-note-text { font-size: .88rem; margin: 0; }
+  .prep-note img { max-width: 220px; max-height: 220px; border-radius: 8px; margin-top: 10px; display: block; }
+  .prep-note .loading { font-size: .8rem; color: var(--a-ink-soft); }
+  .prep-foot { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px dashed var(--a-line); font-size: .8rem; color: var(--a-ink-soft); }
+  @media (max-width: 560px) {
+    .prep-card { padding: 24px; }
+    .prep-grid { grid-template-columns: minmax(0,1fr); }
+    .prep-head .meta { text-align: left; }
+  }
+  @media print {
+    .a-toast, .prep-actions, .whatsapp-float { display: none !important; }
+    body { background: #fff; }
+    .prep-page { margin: 0; max-width: none; padding: 0; }
+    .prep-card { box-shadow: none; border-radius: 0; padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="prep-page">
+  <div class="prep-actions">
+    <a href="commandes.html" class="a-btn a-btn-outline">← Retour aux commandes</a>
+    <button class="a-btn a-btn-primary" onclick="window.print()" id="print-btn"></button>
+  </div>
+  <div class="prep-card" id="prep-card"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  document.getElementById('print-btn').innerHTML = ubIcon('printer') + ' Imprimer';
+
+  const params = new URLSearchParams(location.search);
+  const [orders, products] = await Promise.all([ubAdminGetOrders(), ubAdminGetProducts()]);
+  const productsById = ubProductsById(products);
+  const order = orders.find(o => o.id === params.get('id'));
+  const card = document.getElementById('prep-card');
+
+  if (!order) {
+    card.innerHTML = `<div class="empty-state">${ubIcon('receipt')}<p>Commande introuvable.</p></div>`;
+    return;
+  }
+
+  document.getElementById('doc-title').textContent = `Bon de commande ${order.id} — Urbann Beauty`;
+  const lines = ubOrderLines(order, productsById);
+  const statusLabel = { livree: 'Livrée', en_cours: 'En préparation / expédiée', en_attente: 'En attente', annulee: 'Annulée' }[order.status] || order.status;
+
+  card.innerHTML = `
+    <div class="prep-head">
+      <div>
+        <div class="brand" id="prep-logo">Urbann<span>Beauty</span></div>
+        <div style="font-size:.8rem;color:var(--a-ink-soft);margin-top:8px">Bon de préparation interne — non destiné au client</div>
+      </div>
+      <div class="meta">
+        <h2>Bon de commande ${order.id}</h2>
+        <div>Date : ${new Date(order.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+        <div>Statut : <strong>${statusLabel}</strong></div>
+      </div>
+    </div>
+
+    <div class="prep-grid">
+      <div>
+        <div class="prep-section-title">Client</div>
+        <p><strong>${order.client}</strong></p>
+        <p>${order.phone || '—'}</p>
+      </div>
+      <div>
+        <div class="prep-section-title">Adresse de livraison</div>
+        <p>${order.address || '—'}</p>
+      </div>
+    </div>
+
+    <div class="prep-section-title">À préparer</div>
+    ${lines.map((l, i) => `
+      <div class="prep-item">
+        <div class="prep-item-head">
+          <strong>${l.name}</strong>
+          <span>Qté ${l.qty}</span>
+        </div>
+        ${(l.clientNote || l.clientPhotoPath) ? `
+          <div class="prep-note">
+            <div class="prep-note-label">${ubIcon('camera')} Info fournie par la cliente</div>
+            ${l.clientNote ? `<p class="prep-note-text">${ubEscapeHtml(l.clientNote)}</p>` : ''}
+            ${l.clientPhotoPath ? `<div id="prep-photo-${i}" class="loading">Chargement de la photo...</div>` : ''}
+          </div>` : ''}
+      </div>`).join('')}
+
+    <div class="prep-foot">
+      Document interne — à ne pas remettre à la cliente.
+    </div>
+  `;
+  ubApplyLogo(document.getElementById('prep-logo'));
+
+  lines.forEach(async (l, i) => {
+    if (!l.clientPhotoPath) return;
+    const url = await ubAdminGetClientPhotoUrl(l.clientPhotoPath);
+    const el = document.getElementById(`prep-photo-${i}`);
+    if (!el) return;
+    el.outerHTML = url ? `<img src="${url}" alt="Photo envoyée par la cliente">` : `<p class="prep-note-text" style="color:var(--a-danger)">Photo introuvable.</p>`;
+  });
+}
+main();
+</script>
+</body>
+</html>

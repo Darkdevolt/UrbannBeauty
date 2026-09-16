@@ -38,6 +38,7 @@ async function ubAdminSaveProduct(p) {
     stock: p.stock, rating: p.rating, reviews: p.reviews, tag: p.tag || null, description: p.desc,
     image_url: p.img, video_url: p.video || null, gallery_images: p.gallery || [], updated_at: new Date().toISOString(),
     shade_hex: p.shadeHex || null, shade_label: p.shadeLabel || null,
+    requires_client_note: !!p.requiresClientNote, client_note_prompt: p.requiresClientNote ? (p.clientNotePrompt || null) : null,
   });
   if (error) console.error('ubAdminSaveProduct', error);
   return !error;
@@ -202,13 +203,16 @@ async function ubAdminGetNewsletterSubscribers() {
 
 /* ---------- Commandes ---------- */
 async function ubAdminGetOrders() {
-  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty, product_name, unit_price, unit_cost)').order('order_date', { ascending: false });
+  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty, product_name, unit_price, unit_cost, client_note, client_photo_path)').order('order_date', { ascending: false });
   if (error) { console.error('ubAdminGetOrders', error); return []; }
   return data.map(o => ({
     id: o.id, client: ubEscapeHtml(o.client_name), phone: ubEscapeHtml(o.phone), address: ubEscapeHtml(o.address), date: o.order_date,
     payment: ubEscapeHtml(o.payment_method), paymentStatus: o.payment_status, status: o.status,
     packagingItemId: o.packaging_item_id, packagingCost: o.packaging_cost,
-    items: (o.order_items || []).map(it => ({ productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price, cost: it.unit_cost })),
+    items: (o.order_items || []).map(it => ({
+      productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price, cost: it.unit_cost,
+      clientNote: it.client_note || null, clientPhotoPath: it.client_photo_path || null,
+    })),
   }));
 }
 async function ubAdminUpdateOrderStatus(id, status) {
@@ -300,8 +304,22 @@ function ubOrderLines(order, productsById) {
       qty: l.qty,
       price: l.price != null ? l.price : (p ? p.price : 0),
       cost: l.cost != null ? l.cost : (p ? p.costPrice : 0) || 0,
+      clientNote: l.clientNote || null, clientPhotoPath: l.clientPhotoPath || null,
     };
   });
+}
+function ubOrderHasClientInfo(order) {
+  return order.items.some(l => l.clientNote || l.clientPhotoPath);
+}
+/* Le bucket "client-uploads" est prive (photos personnelles des clientes) : on ne
+   stocke que le chemin en base, et on genere une URL signee temporaire a l'affichage,
+   uniquement joignable par un admin connecte (voir policy storage "admin read client
+   photos"). Expire au bout d'une heure, largement suffisant pour une consultation. */
+async function ubAdminGetClientPhotoUrl(path) {
+  if (!path) return null;
+  const { data, error } = await ubSupabase.storage.from('client-uploads').createSignedUrl(path, 3600);
+  if (error) { console.error('ubAdminGetClientPhotoUrl', error); return null; }
+  return data.signedUrl;
 }
 function ubOrderTotal(order, productsById) {
   return ubOrderLines(order, productsById).reduce((s, l) => s + l.qty * l.price, 0);

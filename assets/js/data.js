@@ -124,6 +124,7 @@ function ubMapProduct(p) {
     stock: p.stock, rating: Number(p.rating), reviews: p.reviews, tag: p.tag,
     desc: p.description, img: p.image_url, video: p.video_url, gallery: p.gallery_images || [],
     shadeHex: p.shade_hex || null, shadeLabel: p.shade_label || null,
+    requiresClientNote: !!p.requires_client_note, clientNotePrompt: p.client_note_prompt || null,
   };
 }
 /* products_storefront est une vue sans la colonne cost_price (prix d'achat) : le prix
@@ -173,6 +174,8 @@ async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items }
     p_payment_method: paymentMethod,
     p_items: items.map(l => ({
       product_id: l.id, qty: l.qty,
+      ...(l.clientNote ? { client_note: l.clientNote } : {}),
+      ...(l.clientPhotoPath ? { client_photo_path: l.clientPhotoPath } : {}),
       ...(l.boxInstanceId ? { box_instance_id: l.boxInstanceId, box_template_id: l.boxTemplateId } : {}),
     })),
   });

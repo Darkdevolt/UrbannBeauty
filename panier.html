@@ -1,6 +1,18 @@
-<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Panier — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css"></head><body>
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Panier — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css">
+<style>
+.note-overlay{position:fixed;inset:0;background:rgba(36,27,46,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+.note-overlay.open{display:flex}
+.note-modal{background:var(--white);border-radius:var(--radius-lg);max-width:440px;width:100%;max-height:90vh;overflow:auto;padding:24px}
+.note-modal h3{margin:0 0 4px}
+.note-close{float:right;background:none;border:0;cursor:pointer;color:var(--ink-soft)}
+.note-modal textarea{width:100%;border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;font:inherit;margin-top:12px;resize:vertical}
+.note-photo-zone{display:block;border:2px dashed var(--mauve-200);border-radius:var(--radius-md);padding:20px;text-align:center;cursor:pointer;margin-top:12px;font-size:.84rem}
+.note-photo-zone img{max-width:100%;max-height:160px;border-radius:8px;display:block;margin:0 auto}
+</style>
+</head><body>
 <div id="site-header"></div><div class="breadcrumb"><div class="container"><a href="index.html">Accueil</a><span>/</span><span>Panier</span></div></div>
 <section style="padding-top:48px"><div class="container"><div class="section-head" style="text-align:left;margin-bottom:36px"><span class="eyebrow">Votre sélection</span><h2>Mon panier</h2><p>Vérifiez votre sélection avant de finaliser votre commande.</p></div><div id="cart-content"></div></div></section><div id="site-footer"></div>
+<div class="note-overlay" id="note-overlay"><div class="note-modal" id="note-modal-body"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
 <script>
 ubRenderHeader('boutique');ubRenderFooter();
@@ -136,13 +148,61 @@ async function renderCart(){
   currentSubtotal=subtotal;
   const shipping=subtotal>=50000?0:(zones[0]?zones[0].fee:2500), total=subtotal+shipping;
   const boxRowsHTML = boxGroupList.map(g=>`<tr class="cart-box-row"><td colspan="3"><div class="cart-box-label">${ubIcon('bag')} <strong>Box Cadeau — ${g.label}</strong>${!g.available?' <span style="color:var(--danger)">(indisponible, à retirer)</span>':''}<span class="cart-box-items">${g.items.map(l=>l.product.name).join(', ')}</span></div></td><td><strong>${ubFormatPrice(g.price)}</strong></td><td><button class="remove-btn" aria-label="Retirer la box" onclick="ubRemoveBoxFromCart('${g.instanceId}');renderCart();">${ubIcon('trash')}</button></td></tr>`).join('');
-  const regularRowsHTML = regularLines.map(l=>`<tr><td><a href="produit.html?id=${l.product.id}" class="cart-product"><img src="${l.product.img}" alt="${l.product.name}"><div><strong>${l.product.name}</strong><span>${catsById[l.product.category]?.name||''}</span></div></a></td><td>${ubFormatPrice(l.product.price)}</td><td><div class="qty-selector"><button onclick="ubUpdateLine('${l.product.id}',${l.qty-1})">−</button><span>${l.qty}</span><button onclick="ubUpdateLine('${l.product.id}',${l.qty+1})">+</button></div></td><td><strong>${ubFormatPrice(l.product.price*l.qty)}</strong></td><td><button class="remove-btn" aria-label="Supprimer" onclick="ubRemoveFromCart('${l.product.id}');renderCart();">${ubIcon('trash')}</button></td></tr>`).join('');
+  const regularRowsHTML = regularLines.map(l=>{
+    const needsNote = l.product.requiresClientNote;
+    const hasNote = !!(l.clientNote || l.clientPhotoPath);
+    const noteBadge = needsNote ? `<button type="button" onclick="ubOpenNoteModal('${l.product.id}')" style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.72rem;border:1px solid ${hasNote?'var(--success)':'var(--mauve-300)'};color:${hasNote?'var(--success)':'var(--mauve-600)'};background:${hasNote?'rgba(76,154,106,.08)':'var(--mauve-50)'};padding:5px 10px;border-radius:999px;cursor:pointer">${hasNote?ubIcon('check'):ubIcon('camera')} ${hasNote?'Info fournie — modifier':'Info requise avant validation'}</button>` : '';
+    return `<tr><td><a href="produit.html?id=${l.product.id}" class="cart-product"><img src="${l.product.img}" alt="${l.product.name}"><div><strong>${l.product.name}</strong><span>${catsById[l.product.category]?.name||''}</span></div></a>${noteBadge}</td><td>${ubFormatPrice(l.product.price)}</td><td><div class="qty-selector"><button onclick="ubUpdateLine('${l.product.id}',${l.qty-1})">−</button><span>${l.qty}</span><button onclick="ubUpdateLine('${l.product.id}',${l.qty+1})">+</button></div></td><td><strong>${ubFormatPrice(l.product.price*l.qty)}</strong></td><td><button class="remove-btn" aria-label="Supprimer" onclick="ubRemoveFromCart('${l.product.id}');renderCart();">${ubIcon('trash')}</button></td></tr>`;
+  }).join('');
   container.innerHTML=`<div class="cart-layout"><div><div class="cart-table-wrap"><table class="cart-table"><thead><tr><th>Produit</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th></tr></thead><tbody>${boxRowsHTML}${regularRowsHTML}</tbody></table></div><a href="boutique.html" style="display:inline-block;margin-top:18px;font-size:.82rem;color:var(--mauve-600)">← Continuer mes achats</a></div><div class="cart-summary"><h3>Récapitulatif</h3><div class="summary-row"><span>Sous-total</span><span>${ubFormatPrice(subtotal)}</span></div><div class="summary-row"><span>Livraison</span><span id="ship-value">${shipping===0?'Offerte':ubFormatPrice(shipping)}</span></div><p id="ship-hint" style="font-size:.72rem;color:${shipping>0?'var(--ink-soft)':'var(--success)'}">${shipping>0?'Livraison offerte dès 50 000 FCFA.':'Vous bénéficiez de la livraison offerte.'}</p><div class="summary-row" id="discount-row" style="display:none;color:var(--success)"><span>Réduction (<span id="discount-code-label"></span>)</span><span id="discount-value"></span></div><div class="coupon-row"><input type="text" id="co-promo" placeholder="Code promo" value="${appliedPromo?appliedPromo.code:''}"><button class="btn btn-outline btn-sm" onclick="ubApplyPromo()">Appliquer</button></div><p id="promo-msg" style="font-size:.72rem;margin:2px 0 0"></p><div class="summary-row total"><span>Total</span><span id="total-value">${ubFormatPrice(total)}</span></div><div class="deposit-box"><div class="summary-row"><span>Acompte obligatoire (20%)</span><strong id="deposit-value">${ubFormatPrice(ubDepositAmount(total))}</strong></div><div class="summary-row"><span>Solde restant</span><span id="remainder-value">${ubFormatPrice(total-ubDepositAmount(total))}</span></div><p style="font-size:.7rem;color:var(--ink-soft);margin:4px 0 0">Un acompte minimum de 20% est requis pour valider toute commande, y compris en paiement à la livraison.</p></div><div class="checkout-form"><div class="field"><label>Nom complet *</label><input id="co-name" type="text" placeholder="Votre nom"></div><div class="field"><label>Téléphone *</label><input id="co-phone" type="tel" placeholder="77 000 00 00"></div><div class="field"><label>Zone de livraison *</label><select id="co-zone" onchange="ubRecalcSummary()">${zones.map((z,i)=>`<option value="${z.id}" ${i===0?'selected':''}>${z.name} — ${z.fee===0?'Gratuit':ubFormatPrice(z.fee)}</option>`).join('')}</select></div><div class="field"><label>Adresse précise (quartier, repère...)</label><input id="co-address" type="text" placeholder="Ex : Villa 12, Cité Keur Gorgui"></div><div class="field"><label>Mode de paiement *</label><div class="payment-methods">${UB_PAYMENT_METHODS.map((m,i)=>`<label class="payment-option"><input type="radio" name="payment" value="${m}" ${i===0?'checked':''} onchange="ubTogglePaymentNote()"><span>${m}</span></label>`).join('')}</div><div id="wave-pay-note" class="wave-pay-note"></div></div><div id="checkout-error" class="checkout-error" style="display:none"></div></div><button class="btn btn-primary btn-block" style="margin-top:16px" id="checkout-submit" onclick="ubSubmitOrder()">Passer la commande</button><p style="font-size:.7rem;color:var(--ink-soft);text-align:center;margin-top:12px">Paiement sécurisé · Commande préparée avec soin</p></div></div>`;
   ubTogglePaymentNote();
   ubRecalcSummary();
 }
 
 function ubUpdateLine(id,qty){ if(qty<=0) ubRemoveFromCart(id); else ubSetQty(id,qty); renderCart(); }
+
+function ubOpenNoteModal(productId){
+  const line = currentLines.find(l=>l.product.id===productId && !l.boxInstanceId);
+  if(!line) return;
+  const product = line.product;
+  const overlay = document.getElementById('note-overlay'), body = document.getElementById('note-modal-body');
+  let photoPath = line.clientPhotoPath || null;
+  overlay.classList.add('open');
+  overlay.onclick = e=>{ if(e.target===overlay) overlay.classList.remove('open') };
+
+  function render(){
+    body.innerHTML = `<button class="note-close" onclick="document.getElementById('note-overlay').classList.remove('open')">${ubIcon('close')}</button>
+      <h3>${product.name}</h3>
+      <p style="color:var(--ink-soft);font-size:.85rem;margin:4px 0 0">${product.clientNotePrompt || "Merci de préciser ce dont vous avez besoin pour ce produit."}</p>
+      <textarea id="note-text" rows="3" placeholder="Votre précision (optionnel si vous joignez une photo)">${line.clientNote || ''}</textarea>
+      <label class="note-photo-zone" for="note-photo-input" id="note-photo-zone">
+        ${photoPath ? `${ubIcon('check')} Photo jointe — touchez pour la remplacer` : `${ubIcon('camera')}<br>Joindre une photo (optionnel si vous précisez par texte)`}
+      </label>
+      <input type="file" id="note-photo-input" accept="image/*" hidden>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+        <button class="btn" type="button" onclick="document.getElementById('note-overlay').classList.remove('open')">Annuler</button>
+        <button class="btn btn-primary" type="button" id="note-save">Enregistrer</button>
+      </div>`;
+    document.getElementById('note-photo-input').addEventListener('change', async e=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const zone = document.getElementById('note-photo-zone');
+      zone.innerHTML = 'Envoi de la photo...';
+      const path = await ubUploadClientPhoto(file);
+      if(!path){ ubShowToast("Échec de l'envoi de la photo, réessayez"); zone.innerHTML = `${ubIcon('camera')}<br>Joindre une photo (optionnel si vous précisez par texte)`; return; }
+      photoPath = path;
+      zone.innerHTML = `${ubIcon('check')} Photo jointe — touchez pour la remplacer`;
+    });
+    document.getElementById('note-save').addEventListener('click', ()=>{
+      const note = document.getElementById('note-text').value.trim();
+      if(!note && !photoPath){ ubShowToast('Merci de préciser par texte ou de joindre une photo.'); return; }
+      ubSetCartLineNote(productId, note, photoPath);
+      overlay.classList.remove('open');
+      renderCart();
+    });
+  }
+  render();
+}
 
 async function ubSubmitOrder(){
   const btn=document.getElementById('checkout-submit'), errBox=document.getElementById('checkout-error');
@@ -157,6 +217,8 @@ async function ubSubmitOrder(){
 
   const showError = (msg) => { errBox.textContent=msg; errBox.style.display='block'; };
   if(!currentLines.length) return showError('Votre panier est vide.');
+  const missingNote = currentLines.find(l=>!l.boxInstanceId && l.product.requiresClientNote && !(l.clientNote || l.clientPhotoPath));
+  if(missingNote) return showError(`Merci de renseigner l'info demandée pour "${missingNote.product.name}" (bouton sur la ligne du produit) avant de valider votre commande.`);
   if(!name) return showError('Merci de renseigner votre nom complet.');
   if(!phone || phone.replace(/\D/g,'').length < 9) return showError('Merci de renseigner un numéro de téléphone valide.');
   if(!zone) return showError('Merci de choisir votre zone de livraison.');
@@ -170,7 +232,7 @@ async function ubSubmitOrder(){
   btn.disabled=true; btn.textContent='Traitement en cours...';
   const result = await ubPlaceOrder({
     clientName: name, phone, address, paymentMethod: payment,
-    items: currentLines.map(l => ({ id: l.product.id, qty: l.qty, boxInstanceId: l.boxInstanceId, boxTemplateId: l.boxTemplateId })),
+    items: currentLines.map(l => ({ id: l.product.id, qty: l.qty, boxInstanceId: l.boxInstanceId, boxTemplateId: l.boxTemplateId, clientNote: l.clientNote, clientPhotoPath: l.clientPhotoPath })),
   });
   btn.disabled=false; btn.textContent='Passer la commande';
 

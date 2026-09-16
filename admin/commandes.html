@@ -108,7 +108,7 @@ async function main() {
         <td><strong>${o.id}</strong></td>
         <td>${o.client}</td>
         <td>${new Date(o.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-        <td>${ubOrderItemCount(o)} article${ubOrderItemCount(o) > 1 ? 's' : ''}</td>
+        <td>${ubOrderItemCount(o)} article${ubOrderItemCount(o) > 1 ? 's' : ''}${ubOrderHasClientInfo(o) ? ` <span title="Info fournie par la cliente" style="color:var(--a-mauve)">${ubIcon('camera')}</span>` : ''}</td>
         <td>${o.payment}</td>
         <td>
           <select class="a-select" style="padding:6px 10px;font-size:.78rem" onchange="ubUpdatePayment('${o.id}', this.value)">
@@ -132,7 +132,7 @@ async function main() {
             <option value="annulee" ${o.status === 'annulee' ? 'selected' : ''}>Annulée</option>
           </select>
         </td>
-        <td><a class="a-icon-action" style="display:inline-flex" href="recu.html?id=${o.id}" target="_blank" title="Voir / imprimer le reçu">${ubIcon('receipt')}</a></td>
+        <td><a class="a-icon-action" style="display:inline-flex" href="recu.html?id=${o.id}" target="_blank" title="Voir / imprimer le reçu">${ubIcon('receipt')}</a> <a class="a-icon-action" style="display:inline-flex" href="bon-commande.html?id=${o.id}" target="_blank" title="Voir / imprimer le bon de commande (préparation)">${ubIcon('orders')}</a></td>
         <td>
           <div class="a-actions-cell">
             <a class="a-icon-action" style="color:#25D366" href="${ubWhatsAppOrderUpdateLink(o, UB_ORDER_STATUS_MSG[o.status])}" target="_blank" rel="noopener" title="Envoyer une mise à jour sur WhatsApp">${ubIcon('whatsapp')}</a>

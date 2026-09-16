@@ -74,6 +74,19 @@
               </div>
             </div>
           </div>
+          <div class="a-field full" style="border:1px solid var(--a-line);border-radius:10px;padding:12px 14px">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer">
+              <input type="checkbox" id="f-needs-note" style="width:auto;accent-color:var(--a-mauve)">
+              Ce produit nécessite une info de la cliente avant préparation
+            </label>
+            <div id="note-fields" style="display:none;margin-top:12px">
+              <div class="a-field full">
+                <label>Ce qu'on demande à la cliente</label>
+                <input type="text" id="f-note-prompt" placeholder="Ex : Prenez une photo de votre poignet pour qu'on choisisse la bonne teinte">
+                <span style="font-size:.76rem;color:var(--a-ink-soft)">Affiché au checkout : la cliente pourra répondre par texte et/ou en joignant une photo, rattachés à sa commande.</span>
+              </div>
+            </div>
+          </div>
           <div class="a-field full">
             <label>Description</label>
             <textarea id="f-desc" rows="4" required placeholder="Décrivez le produit, ses bénéfices, son utilisation..."></textarea>
@@ -218,6 +231,10 @@ async function main() {
     document.getElementById('shade-fields').style.display = document.getElementById('f-has-shade').checked ? 'grid' : 'none';
   }
   document.getElementById('f-has-shade').addEventListener('change', ubSyncShadeFields);
+  function ubSyncNoteFields() {
+    document.getElementById('note-fields').style.display = document.getElementById('f-needs-note').checked ? 'block' : 'none';
+  }
+  document.getElementById('f-needs-note').addEventListener('change', ubSyncNoteFields);
 
   function ubOpenModal(id) {
     const modal = document.getElementById('product-modal');
@@ -243,6 +260,9 @@ async function main() {
       document.getElementById('f-shade-label').value = p.shadeLabel || '';
       document.getElementById('f-shade-hex').value = p.shadeHex || '#c68863';
       ubSyncShadeFields();
+      document.getElementById('f-needs-note').checked = !!p.requiresClientNote;
+      document.getElementById('f-note-prompt').value = p.clientNotePrompt || '';
+      ubSyncNoteFields();
       currentPhotos = [p.img, ...(p.gallery || [])].filter(Boolean);
       renderPhotoPreview();
     } else {
@@ -252,6 +272,8 @@ async function main() {
       document.getElementById('f-has-shade').checked = false;
       document.getElementById('f-shade-hex').value = '#c68863';
       ubSyncShadeFields();
+      document.getElementById('f-needs-note').checked = false;
+      ubSyncNoteFields();
     }
     modal.classList.add('open');
   }
@@ -300,6 +322,8 @@ async function main() {
       desc: document.getElementById('f-desc').value,
       shadeLabel: document.getElementById('f-has-shade').checked ? (document.getElementById('f-shade-label').value.trim() || null) : null,
       shadeHex: document.getElementById('f-has-shade').checked ? document.getElementById('f-shade-hex').value : null,
+      requiresClientNote: document.getElementById('f-needs-note').checked,
+      clientNotePrompt: document.getElementById('f-needs-note').checked ? (document.getElementById('f-note-prompt').value.trim() || null) : null,
       img: currentPhotos[0] || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop',
       gallery: currentPhotos.slice(1),
       video: currentVideo || null,

@@ -42,6 +42,16 @@ function ubSetQty(id, qty) {
   const line = cart.find(l => l.id === id);
   if (line) { line.qty = Math.max(1, qty); ubSaveCart(cart); }
 }
+/* Attache l'info demandee par un produit (texte et/ou photo, voir product.requiresClientNote)
+   a sa ligne de panier : elle voyagera avec la commande jusqu'a l'admin au checkout. */
+function ubSetCartLineNote(id, note, photoPath) {
+  const cart = ubGetCart();
+  const line = cart.find(l => l.id === id && !l.boxInstanceId);
+  if (!line) return;
+  line.clientNote = note || null;
+  line.clientPhotoPath = photoPath || null;
+  ubSaveCart(cart);
+}
 function ubCartTotalItems() {
   return ubGetCart().reduce((s, l) => s + l.qty, 0);
 }

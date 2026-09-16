@@ -42,6 +42,21 @@ async function ubUploadImage(file, folder) {
   const { data } = ubSupabase.storage.from('media').getPublicUrl(path);
   return data.publicUrl;
 }
+/* Upload d'une photo envoyee par une cliente au checkout (ex: photo de teint pour un
+   fond de teint) vers un bucket prive distinct de "media" : n'importe quelle
+   visiteuse peut deposer une photo, mais seul un admin connecte peut la consulter
+   (voir policies storage.objects "client upload own photo" / "admin read client
+   photos"). On retourne le CHEMIN dans le bucket, pas une URL publique : le bucket
+   n'etant pas public, l'affichage cote admin passe par une URL signee temporaire
+   (voir ubAdminGetClientPhotoUrl dans admin.js). */
+async function ubUploadClientPhoto(file) {
+  if (!file || !file.type.startsWith('image/')) return null;
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `notes/${Date.now()}-${Math.round(Math.random() * 1e6)}.${ext}`;
+  const { error } = await ubSupabase.storage.from('client-uploads').upload(path, file, { contentType: file.type });
+  if (error) { console.error('ubUploadClientPhoto', error); return null; }
+  return path;
+}
 async function ubUploadVideo(file, folder) {
   if (!file || !file.type.startsWith('video/')) return null;
   const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
