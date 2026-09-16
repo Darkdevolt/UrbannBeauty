@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Promotions — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>.a-checkbox-row{display:flex;align-items:center;gap:9px;margin-bottom:10px}.a-checkbox-row input{width:auto}</style>
+</head>
+<body>
+<div class="admin-shell" id="admin-shell"></div>
+
+<div class="a-modal-overlay" id="pr-modal">
+  <div class="a-modal" style="max-width:480px">
+    <div class="a-modal-head"><h3 id="pr-modal-title">Ajouter un code promo</h3><button class="a-modal-close" onclick="ubClosePrModal()"></button></div>
+    <div class="a-modal-body">
+      <form id="pr-form">
+        <input type="hidden" id="pr-id">
+        <div class="a-field"><label>Code (tel que la cliente le saisira)</label><input type="text" id="pr-code" required placeholder="URBANN15" style="text-transform:uppercase"></div>
+        <div class="a-field"><label>Réduction (%)</label><input type="number" id="pr-percent" required min="1" max="100" placeholder="15"></div>
+        <div class="a-field"><label>Description (affichée à la cliente)</label><input type="text" id="pr-label" required placeholder="Première commande"></div>
+        <div class="a-checkbox-row"><input type="checkbox" id="pr-active" checked><label for="pr-active" style="margin:0">Code actif (utilisable dans le panier)</label></div>
+        <div class="a-checkbox-row"><input type="checkbox" id="pr-banner"><label for="pr-banner" style="margin:0">Afficher dans le bandeau en haut du site</label></div>
+        <p style="font-size:.78rem;color:var(--a-ink-soft);margin:0">Le bandeau ne s'affiche que si cette case est cochée sur un code actif — sinon le site n'affiche aucune promotion.</p>
+      </form>
+    </div>
+    <div class="a-modal-foot"><button class="a-btn a-btn-outline" onclick="ubClosePrModal()">Annuler</button><button class="a-btn a-btn-primary" onclick="ubSavePromo()">Enregistrer</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script><script src="../assets/js/data.js"></script><script src="../assets/js/media.js"></script><script src="assets/admin.js"></script>
+<script>
+let promos = [];
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('promotions', 'Promotions', "Créez et activez vos codes promo quand vous le décidez — rien ne s'affiche sur le site tant qu'aucun code n'est actif");
+  const close = document.querySelector('.a-modal-close'); if (close) close.innerHTML = ubIcon('close');
+
+  promos = await ubAdminGetPromoCodes();
+  renderContent();
+
+  function renderContent() {
+    document.getElementById('a-content').innerHTML = `
+      <div class="a-toolbar">
+        <p style="color:var(--a-ink-soft);font-size:.88rem;margin:0">${promos.length} code${promos.length > 1 ? 's' : ''} · un seul devrait être coché "bandeau" à la fois pour ne pas prêter à confusion</p>
+        <button class="a-btn a-btn-primary" onclick="ubOpenPrModal()">${ubIcon('plus')} Ajouter un code</button>
+      </div>
+      <div class="a-panel">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead><tr><th>Code</th><th>Réduction</th><th>Description</th><th>Statut</th><th>Bandeau</th><th>Actions</th></tr></thead>
+            <tbody id="pr-tbody"></tbody>
+          </table>
+        </div>
+      </div>`;
+    renderTable();
+  }
+
+  function renderTable() {
+    document.getElementById('pr-tbody').innerHTML = promos.length ? promos.map(p => `
+      <tr>
+        <td><strong>${p.code}</strong></td>
+        <td>-${p.percent}%</td>
+        <td><span style="font-size:.82rem;color:var(--a-ink-soft)">${p.label}</span></td>
+        <td>${p.active ? '<span class="a-badge success">Actif</span>' : '<span class="a-badge neutral">Inactif</span>'}</td>
+        <td>${p.showBanner && p.active ? '<span class="a-badge success">Visible</span>' : '<span class="a-badge neutral">Masqué</span>'}</td>
+        <td>
+          <div class="a-actions-cell">
+            <button class="a-icon-action" onclick="ubOpenPrModal('${p.id}')" title="Modifier">${ubIcon('edit')}</button>
+            <button class="a-icon-action" onclick="ubDeletePromo('${p.id}')" title="Supprimer">${ubIcon('trash')}</button>
+          </div>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="6"><div class="empty-state">${ubIcon('chart')}<p>Aucun code promo pour le moment. Le site n'affiche aucune promotion tant que vous n'en créez pas.</p></div></td></tr>`;
+  }
+
+  function ubOpenPrModal(id) {
+    if (id) {
+      const p = promos.find(x => x.id === id);
+      document.getElementById('pr-modal-title').textContent = 'Modifier le code promo';
+      document.getElementById('pr-id').value = p.id;
+      document.getElementById('pr-code').value = p.code;
+      document.getElementById('pr-percent').value = p.percent;
+      document.getElementById('pr-label').value = p.label;
+      document.getElementById('pr-active').checked = p.active !== false;
+      document.getElementById('pr-banner').checked = p.showBanner === true;
+    } else {
+      document.getElementById('pr-modal-title').textContent = 'Ajouter un code promo';
+      document.getElementById('pr-form').reset();
+      document.getElementById('pr-id').value = '';
+      document.getElementById('pr-active').checked = true;
+      document.getElementById('pr-banner').checked = false;
+    }
+    document.getElementById('pr-modal').classList.add('open');
+  }
+  function ubClosePrModal() { document.getElementById('pr-modal').classList.remove('open'); }
+
+  window.ubSavePromo = async function () {
+    const form = document.getElementById('pr-form');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const data = {
+      id: document.getElementById('pr-id').value || undefined,
+      code: document.getElementById('pr-code').value.trim(),
+      percent: Number(document.getElementById('pr-percent').value),
+      label: document.getElementById('pr-label').value.trim(),
+      active: document.getElementById('pr-active').checked,
+      showBanner: document.getElementById('pr-banner').checked,
+    };
+    const ok = await ubAdminSavePromoCode(data);
+    if (!ok) { ubAToast("Erreur lors de l'enregistrement — ce code existe peut-être déjà"); return; }
+    ubAToast(data.id ? 'Code promo mis à jour' : 'Code promo ajouté');
+    ubClosePrModal();
+    promos = await ubAdminGetPromoCodes();
+    renderTable();
+  };
+
+  window.ubDeletePromo = async function (id) {
+    if (!confirm('Supprimer définitivement ce code promo ?')) return;
+    const ok = await ubAdminDeletePromoCode(id);
+    if (!ok) { ubAToast('Erreur lors de la suppression'); return; }
+    promos = promos.filter(p => p.id !== id);
+    ubAToast('Code promo supprimé');
+    renderTable();
+  };
+
+  window.ubOpenPrModal = ubOpenPrModal;
+  window.ubClosePrModal = ubClosePrModal;
+}
+main();
+</script>
+</body>
+</html>

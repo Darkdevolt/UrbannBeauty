@@ -45,6 +45,14 @@ async function ubRequestReturn({ orderId, phone, clientName, productId, qty, rea
   return !error;
 }
 
+/* Codes promo : geres depuis l'admin, inactifs par defaut. Rien ne s'affiche sur le
+   site (bandeau ni saisie panier) tant que l'admin n'a pas active un code. */
+async function ubGetActivePromoCodes() {
+  const { data, error } = await ubSupabase.from('promo_codes').select('*').eq('active', true);
+  if (error || !data) { console.error('ubGetActivePromoCodes', error); return []; }
+  return data.map(c => ({ code: c.code, percent: c.percent, label: c.label, showBanner: c.show_banner }));
+}
+
 /* Zones de livraison : gérées depuis l'admin (nom + frais associés) */
 const UB_DELIVERY_ZONES_FALLBACK = [{ id: null, name: 'Dakar et environs', fee: 2500 }];
 async function ubGetDeliveryZones() {

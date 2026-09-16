@@ -7,11 +7,11 @@ ubRenderHeader('boutique');ubRenderFooter();
 
 const UB_PAYMENT_METHODS = ['Wave', 'Paiement à la livraison'];
 const UB_WAVE_PAYMENT_LINK = 'https://pay.wave.com/m/M_sn_DP533wZ-yIia/c/sn/';
-const UB_PROMO_CODES = { URBANN15: { percent: 15, label: '-15% première commande' } };
 let currentLines = [];
 let currentZones = [];
 let currentSubtotal = 0;
 let appliedPromo = null;
+let availablePromoCodes = {}; // rempli depuis l'admin (promo_codes), vide par defaut
 
 function ubCurrentZoneFee(){
   const id = document.getElementById('co-zone')?.value;
@@ -62,7 +62,7 @@ function ubApplyPromo(){
   const input=document.getElementById('co-promo'), msg=document.getElementById('promo-msg');
   const code=(input.value||'').trim().toUpperCase();
   if(!code){ msg.textContent='Merci de saisir un code promo.'; msg.style.color='var(--danger)'; return; }
-  const promo=UB_PROMO_CODES[code];
+  const promo=availablePromoCodes[code];
   if(!promo){ appliedPromo=null; msg.textContent='Ce code promo n\'est pas valide.'; msg.style.color='var(--danger)'; ubRecalcSummary(); return; }
   appliedPromo={ code, ...promo };
   msg.textContent=`Code ${code} appliqué : ${promo.label}.`;
@@ -111,9 +111,10 @@ async function renderCart(){
     currentLines=[];
     return;
   }
-  const [allProducts, allCategories, zones, boxTemplates] = await Promise.all([ubGetAllProducts(), ubGetAllCategories(), ubGetDeliveryZones(), ubGetGiftBoxTemplates()]);
+  const [allProducts, allCategories, zones, boxTemplates, promoCodes] = await Promise.all([ubGetAllProducts(), ubGetAllCategories(), ubGetDeliveryZones(), ubGetGiftBoxTemplates(), ubGetActivePromoCodes()]);
   const productsById=Object.fromEntries(allProducts.map(p=>[p.id,p])), catsById=ubCatsById(allCategories);
   const boxTemplatesById=Object.fromEntries(boxTemplates.map(t=>[t.id,t]));
+  availablePromoCodes=Object.fromEntries(promoCodes.map(c=>[c.code.toUpperCase(),{percent:c.percent,label:c.label}]));
   const lines=cart.map(l=>({...l,product:productsById[l.id]})).filter(l=>l.product);
   currentLines=lines;
   currentZones=zones;

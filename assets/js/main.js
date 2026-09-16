@@ -80,7 +80,7 @@ function ubRenderHeader(active) {
     { href: 'contact.html', label: 'Contact', key: 'contact' },
   ];
   el.innerHTML = `
-    <div class="topbar">Livraison offerte dès 50 000 FCFA d'achat &nbsp;•&nbsp; <strong>-15%</strong> sur votre première commande avec le code <strong>URBANN15</strong></div>
+    <div class="topbar" id="ub-topbar">Livraison offerte dès 50 000 FCFA d'achat</div>
     <header class="site-header">
       <nav class="nav">
         <button class="burger" aria-label="Menu" id="ub-burger">${ubIcon('menu')}</button>
@@ -120,6 +120,16 @@ function ubRenderHeader(active) {
   searchInputMobile.addEventListener('keydown', (e) => { if (e.key === 'Enter') goSearch(searchInputMobile.value); });
   ubUpdateCartCount();
   ubApplyLogo(document.getElementById('ub-logo'));
+
+  /* Le bandeau code promo ne s'affiche que si l'admin a active un code avec
+     "afficher dans le bandeau" (admin/promotions.html) -- rien par defaut. */
+  ubGetActivePromoCodes().then(codes => {
+    const promo = codes.find(c => c.showBanner);
+    const topbar = document.getElementById('ub-topbar');
+    if (promo && topbar) {
+      topbar.innerHTML = `Livraison offerte dès 50 000 FCFA d'achat &nbsp;•&nbsp; <strong>-${promo.percent}%</strong> ${promo.label ? `${promo.label} ` : ''}avec le code <strong>${promo.code}</strong>`;
+    }
+  });
 }
 
 function ubRenderFooter() {

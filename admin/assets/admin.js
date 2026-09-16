@@ -144,6 +144,26 @@ async function ubAdminSetOrderPackaging(orderId, packagingItemId, packagingCost)
   return !error;
 }
 
+/* ---------- Codes promo (bandeau + panier) ---------- */
+async function ubAdminGetPromoCodes() {
+  const { data, error } = await ubSupabase.from('promo_codes').select('*').order('created_at', { ascending: false });
+  if (error) { console.error('ubAdminGetPromoCodes', error); return []; }
+  return data.map(c => ({ id: c.id, code: c.code, percent: c.percent, label: c.label, active: c.active, showBanner: c.show_banner }));
+}
+async function ubAdminSavePromoCode(c) {
+  const { error } = await ubSupabase.from('promo_codes').upsert({
+    id: c.id || undefined, code: c.code.toUpperCase().trim(), percent: c.percent, label: c.label,
+    active: c.active !== false, show_banner: c.showBanner === true,
+  });
+  if (error) console.error('ubAdminSavePromoCode', error);
+  return !error;
+}
+async function ubAdminDeletePromoCode(id) {
+  const { error } = await ubSupabase.from('promo_codes').delete().eq('id', id);
+  if (error) console.error('ubAdminDeletePromoCode', error);
+  return !error;
+}
+
 /* ---------- Zones de livraison ---------- */
 async function ubAdminGetZones() {
   const { data, error } = await ubSupabase.from('delivery_zones').select('*').order('sort_order', { ascending: true });
@@ -471,6 +491,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
     { href: 'media.html', key: 'media', label: 'Médiathèque', icon: 'image' },
     { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders' },
     { href: 'box-cadeau.html', key: 'boxcadeau', label: 'Box Cadeau', icon: 'box' },
+    { href: 'promotions.html', key: 'promotions', label: 'Promotions', icon: 'chart' },
     { href: 'avis.html', key: 'avis', label: 'Avis clients', icon: 'heart' },
     { href: 'messages.html', key: 'messages', label: 'Messages & Newsletter', icon: 'mail' },
     { href: 'clients.html', key: 'clients', label: 'Clients', icon: 'users' },

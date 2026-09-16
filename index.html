@@ -44,7 +44,7 @@
   <div class="container">
     <div class="ub-category-layout">
       <div class="ub-category-rail" id="cat-rail"></div>
-      <a href="boutique.html" class="ub-welcome-offer" id="welcome-offer"><span>OFFRE DE BIENVENUE</span><strong>−15%</strong><p>sur votre première commande<br>avec le code <b>URBANN15</b></p><button>J'en profite <em>→</em></button><i></i></a>
+      <a href="boutique.html" class="ub-welcome-offer" id="welcome-offer" style="display:none"><span>OFFRE DE BIENVENUE</span><strong id="welcome-offer-pct"></strong><p id="welcome-offer-text"></p><button>J'en profite <em>→</em></button><i></i></a>
     </div>
   </div>
 </section>
@@ -87,10 +87,19 @@
 <script>
 async function main() {
   ubRenderHeader('accueil');
-  const [, categories, products, testimonials] = await Promise.all([ubApplyManagedMedia(), ubGetAllCategories(), ubGetAllProducts(), ubGetTestimonials()]);
+  const [, categories, products, testimonials, promoCodes] = await Promise.all([ubApplyManagedMedia(), ubGetAllCategories(), ubGetAllProducts(), ubGetTestimonials(), ubGetActivePromoCodes()]);
   const catsById = ubCatsById(categories);
 
   ubRenderFooter();
+  const bannerPromo = promoCodes.find(c=>c.showBanner);
+  const catLayout = document.querySelector('.ub-category-layout');
+  if(bannerPromo){
+    document.getElementById('welcome-offer').style.display='';
+    document.getElementById('welcome-offer-pct').textContent='−'+bannerPromo.percent+'%';
+    document.getElementById('welcome-offer-text').innerHTML=`${bannerPromo.label||'Offre en cours'}<br>avec le code <b>${bannerPromo.code}</b>`;
+  } else if(catLayout){
+    catLayout.classList.add('no-promo');
+  }
   document.getElementById('cat-rail').innerHTML=categories.map(c=>{const label=c.name.replace('Soins ','');return `<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${ubGetCategoryImage(c)}" alt="${c.name}"></span><b>${label.charAt(0).toUpperCase()+label.slice(1)}</b></a>`;}).join('');
   const bestsellers=products.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4);
   document.getElementById('bestsellers-grid').innerHTML=bestsellers.length?bestsellers.map(p=>ubProductCardHTML(p,catsById)).join(''):`<div class="ub-grid-empty">${ubIcon('bag')}<p>Nos produits arrivent très bientôt.</p><a href="boutique.html" class="btn btn-outline btn-sm">Voir la boutique</a></div>`;
