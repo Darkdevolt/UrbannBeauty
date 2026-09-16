@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trouver ma teinte — Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css"><link rel="stylesheet" href="assets/css/cart-buttons.css">
+<style>
+  .teint-hero { padding: 56px 0 8px; }
+  .teint-box { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 28px; max-width: 640px; margin: 0 auto; }
+  .teint-upload { display: block; border: 2px dashed var(--mauve-200); border-radius: var(--radius-md); padding: 40px 20px; text-align: center; cursor: pointer; transition: .2s; }
+  .teint-upload:hover { border-color: var(--mauve-400); background: var(--mauve-50); }
+  .teint-upload svg { width: 34px; height: 34px; color: var(--mauve-500); margin-bottom: 10px; }
+  .teint-canvas-wrap { position: relative; border-radius: var(--radius-md); overflow: hidden; line-height: 0; background: var(--off-white); }
+  .teint-canvas-wrap canvas { width: 100%; display: block; cursor: crosshair; }
+  .teint-marker { position: absolute; width: 28px; height: 28px; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px var(--mauve-500), 0 2px 10px rgba(0,0,0,.35); transform: translate(-50%, -50%); pointer-events: none; }
+  .teint-hint { text-align: center; font-size: .8rem; color: var(--ink-soft); margin-top: 12px; }
+  .teint-result-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
+  .teint-swatch { width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line), 0 0 0 4px var(--white); flex-shrink: 0; }
+  .teint-match-list { display: grid; gap: 10px; margin-top: 20px; }
+  .teint-match-card { display: flex; align-items: center; gap: 14px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius-md); text-decoration: none; color: inherit; }
+  .teint-match-card:hover { border-color: var(--mauve-300); background: var(--mauve-50); }
+  .teint-match-card img { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+  .teint-match-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; margin-right: 6px; border: 1px solid rgba(0,0,0,.12); }
+  .teint-match-pct { margin-left: auto; font-weight: 700; color: var(--mauve-600); white-space: nowrap; padding-left: 10px; }
+  .teint-disclaimer { font-size: .76rem; color: var(--ink-soft); background: var(--off-white); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 22px; }
+  .teint-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
+</style>
+</head>
+<body>
+<div id="site-header"></div>
+<div class="breadcrumb"><div class="container"><a href="index.html">Accueil</a><span>/</span><a href="boutique.html?cat=maquillage">Maquillage</a><span>/</span><span>Trouver ma teinte</span></div></div>
+
+<section class="teint-hero"><div class="container" style="text-align:center;max-width:640px;margin-inline:auto">
+  <span class="eyebrow">Diagnostic teint</span>
+  <h1>Trouvez votre fond de teint idéal</h1>
+  <p style="color:var(--ink-soft)">Une photo de votre poignet, de votre main ou de votre joue suffit : nous vous proposons les teintes les plus proches parmi nos fonds de teint disponibles.</p>
+</div></section>
+
+<section style="padding:24px 0 70px"><div class="container">
+  <div class="teint-box" id="teint-box"></div>
+</div></section>
+
+<div id="site-footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/icons.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/media.js"></script>
+<script src="assets/js/main.js"></script>
+<script src="assets/js/teinte.js"></script>
+<script>
+(async function () {
+  ubRenderHeader('');
+  ubRenderFooter();
+
+  const box = document.getElementById('teint-box');
+  let sampledHex = null;
+
+  function renderUpload() {
+    box.innerHTML = `
+      <label class="teint-upload" for="teint-file">
+        ${ubIcon('camera')}
+        <p><strong>Prendre ou importer une photo</strong></p>
+        <p style="font-size:.82rem;color:var(--ink-soft);margin-top:4px">Poignet, dos de la main ou joue, à la lumière du jour de préférence.</p>
+      </label>
+      <input type="file" id="teint-file" accept="image/*" hidden>
+    `;
+    document.getElementById('teint-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (file) await renderCanvas(file);
+    });
+  }
+
+  async function renderCanvas(file) {
+    box.innerHTML = `
+      <p style="text-align:center;font-weight:600;margin-bottom:14px">Touchez la zone de peau la plus représentative de votre teint</p>
+      <div class="teint-canvas-wrap" id="teint-canvas-wrap"><canvas id="teint-canvas"></canvas></div>
+      <p class="teint-hint">Astuce : évitez les zones d'ombre, de reflet ou de maquillage.</p>
+      <div class="teint-actions">
+        <button class="btn" id="teint-retake" type="button">Changer de photo</button>
+        <button class="btn btn-primary" id="teint-confirm" type="button" disabled>Voir mes teintes correspondantes</button>
+      </div>
+    `;
+    const canvas = document.getElementById('teint-canvas');
+    try { await ubDrawPhotoToCanvas(file, canvas); }
+    catch (e) { ubShowToast("Cette photo n'a pas pu être lue, réessayez."); renderUpload(); return; }
+
+    const wrap = document.getElementById('teint-canvas-wrap');
+    const confirmBtn = document.getElementById('teint-confirm');
+    let marker = null;
+
+    function place(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+      const x = (clientX - rect.left) * scaleX, y = (clientY - rect.top) * scaleY;
+      sampledHex = ubSampleColorAt(canvas, x, y, Math.max(10, canvas.width * 0.03));
+      if (!marker) { marker = document.createElement('div'); marker.className = 'teint-marker'; wrap.appendChild(marker); }
+      marker.style.left = ((clientX - rect.left) / rect.width * 100) + '%';
+      marker.style.top = ((clientY - rect.top) / rect.height * 100) + '%';
+      marker.style.background = sampledHex;
+      confirmBtn.disabled = false;
+    }
+    canvas.addEventListener('click', (e) => place(e.clientX, e.clientY));
+    document.getElementById('teint-retake').addEventListener('click', renderUpload);
+    confirmBtn.addEventListener('click', renderResults);
+  }
+
+  async function renderResults() {
+    box.innerHTML = `<p style="text-align:center;color:var(--ink-soft)">Recherche des teintes les plus proches...</p>`;
+    const products = await ubGetAllProducts();
+    const matches = ubFindShadeMatches(sampledHex, products);
+    const header = `
+      <div class="teint-result-row">
+        <span class="teint-swatch" style="background:${sampledHex}"></span>
+        <span>Couleur captée : <strong>${sampledHex}</strong></span>
+      </div>`;
+
+    if (!matches.length) {
+      box.innerHTML = header + `
+        <div class="empty-cart" style="padding:20px 0">
+          <h3>Pas encore de fond de teint en stock</h3>
+          <p>Revenez bientôt, nous ajoutons régulièrement de nouvelles teintes.</p>
+        </div>
+        <div class="teint-actions"><button class="btn" id="teint-retake2" type="button">Refaire une photo</button></div>`;
+      document.getElementById('teint-retake2').addEventListener('click', renderUpload);
+      return;
+    }
+
+    box.innerHTML = header + `
+      <div class="teint-match-list">
+        ${matches.slice(0, 6).map(m => `
+          <a class="teint-match-card" href="produit.html?id=${m.product.id}">
+            <img src="${m.product.img}" alt="${m.product.name}">
+            <div style="flex:1;min-width:0">
+              <strong>${m.product.name}</strong><br>
+              <span style="font-size:.82rem;color:var(--ink-soft)"><span class="teint-match-swatch" style="background:${m.product.shadeHex}"></span>${m.product.shadeLabel || 'Teinte'}</span>
+            </div>
+            <span class="teint-match-pct">${m.match}%</span>
+          </a>
+        `).join('')}
+      </div>
+      <div class="teint-disclaimer">Ce diagnostic est indicatif : l'éclairage et l'écran de votre téléphone influencent le rendu des couleurs. En cas de doute entre deux teintes, contactez-nous sur WhatsApp avant de commander.</div>
+      <div class="teint-actions"><button class="btn" id="teint-retake3" type="button">Refaire une photo</button></div>`;
+    document.getElementById('teint-retake3').addEventListener('click', renderUpload);
+  }
+
+  renderUpload();
+})();
+</script>
+</body>
+</html>

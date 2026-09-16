@@ -37,6 +37,7 @@ async function ubAdminSaveProduct(p) {
     cost_price: p.costPrice != null ? p.costPrice : null,
     stock: p.stock, rating: p.rating, reviews: p.reviews, tag: p.tag || null, description: p.desc,
     image_url: p.img, video_url: p.video || null, gallery_images: p.gallery || [], updated_at: new Date().toISOString(),
+    shade_hex: p.shadeHex || null, shade_label: p.shadeLabel || null,
   });
   if (error) console.error('ubAdminSaveProduct', error);
   return !error;

@@ -55,6 +55,17 @@
             <label>Quantité en stock</label>
             <input type="number" id="f-stock" required min="0" placeholder="42">
           </div>
+          <div class="a-field">
+            <label>Teinte — nom (fond de teint uniquement)</label>
+            <input type="text" id="f-shade-label" placeholder="Ex : Beige doré N°3">
+          </div>
+          <div class="a-field">
+            <label>Teinte — couleur de référence</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" id="f-shade-hex" value="#c68863" style="width:48px;height:38px;padding:2px;border:1px solid var(--a-line);border-radius:8px;cursor:pointer">
+              <span style="font-size:.78rem;color:var(--a-ink-soft)">Utilisée par l'outil "Trouver ma teinte" pour comparer avec la photo de la cliente. Laissez vide si ce n'est pas un fond de teint.</span>
+            </div>
+          </div>
           <div class="a-field full">
             <label>Description</label>
             <textarea id="f-desc" rows="4" required placeholder="Décrivez le produit, ses bénéfices, son utilisation..."></textarea>
@@ -165,7 +176,7 @@ async function main() {
         <td>
           <div class="a-prod-cell">
             <img src="${p.img}" alt="">
-            <div><strong>${p.name}</strong><span>Réf. UB-${p.id.toUpperCase()}</span></div>
+            <div><strong>${p.name}</strong><span>Réf. UB-${p.id.toUpperCase()}${p.shadeHex ? ` · <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${p.shadeHex};vertical-align:middle;border:1px solid rgba(0,0,0,.15)"></span> ${p.shadeLabel || 'Teinte'}` : ''}</span></div>
           </div>
         </td>
         <td>${categoriesById[p.category]?.name || '—'}</td>
@@ -215,12 +226,15 @@ async function main() {
       document.getElementById('f-oldprice').value = p.oldPrice || '';
       document.getElementById('f-stock').value = p.stock;
       document.getElementById('f-desc').value = p.desc;
+      document.getElementById('f-shade-label').value = p.shadeLabel || '';
+      document.getElementById('f-shade-hex').value = p.shadeHex || '#c68863';
       currentPhotos = [p.img, ...(p.gallery || [])].filter(Boolean);
       renderPhotoPreview();
     } else {
       document.getElementById('modal-title').textContent = 'Ajouter un produit';
       document.getElementById('product-form').reset();
       document.getElementById('f-id').value = '';
+      document.getElementById('f-shade-hex').value = '#c68863';
     }
     modal.classList.add('open');
   }
@@ -267,6 +281,8 @@ async function main() {
       oldPrice: document.getElementById('f-oldprice').value ? Number(document.getElementById('f-oldprice').value) : null,
       stock: Number(document.getElementById('f-stock').value),
       desc: document.getElementById('f-desc').value,
+      shadeLabel: document.getElementById('f-shade-label').value.trim() || null,
+      shadeHex: document.getElementById('f-shade-label').value.trim() ? document.getElementById('f-shade-hex').value : null,
       img: currentPhotos[0] || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop',
       gallery: currentPhotos.slice(1),
       video: currentVideo || null,

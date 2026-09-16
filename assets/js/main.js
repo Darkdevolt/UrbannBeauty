@@ -156,6 +156,7 @@ function ubRenderFooter() {
               <li><a href="boutique.html?cat=corps">Soins du corps</a></li>
               <li><a href="boutique.html?cat=maquillage">Maquillage</a></li>
               <li><a href="boutique.html?cat=parfums">Parfums</a></li>
+              <li><a href="diagnostic-teint.html">Trouver ma teinte</a></li>
             </ul>
           </div>
           <div>
