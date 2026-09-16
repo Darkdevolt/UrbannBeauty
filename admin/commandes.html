@@ -126,7 +126,12 @@ async function main() {
           </select>
         </td>
         <td><a class="a-icon-action" style="display:inline-flex" href="recu.html?id=${o.id}" target="_blank" title="Voir / imprimer le reçu">${ubIcon('receipt')}</a></td>
-        <td><button class="a-icon-action" onclick="ubDeleteOrder('${o.id}')" title="Supprimer définitivement cette commande">${ubIcon('trash')}</button></td>
+        <td>
+          <div class="a-actions-cell">
+            <a class="a-icon-action" style="color:#25D366" href="${ubWhatsAppOrderUpdateLink(o, UB_ORDER_STATUS_MSG[o.status])}" target="_blank" rel="noopener" title="Envoyer une mise à jour sur WhatsApp">${ubIcon('whatsapp')}</a>
+            <button class="a-icon-action" onclick="ubDeleteOrder('${o.id}')" title="Supprimer définitivement cette commande">${ubIcon('trash')}</button>
+          </div>
+        </td>
       </tr>`).join('') : `<tr><td colspan="10"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
   }
 

@@ -112,12 +112,12 @@ async function ubAdminGetNewsletterSubscribers() {
 
 /* ---------- Commandes ---------- */
 async function ubAdminGetOrders() {
-  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty)').order('order_date', { ascending: false });
+  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty, product_name, unit_price)').order('order_date', { ascending: false });
   if (error) { console.error('ubAdminGetOrders', error); return []; }
   return data.map(o => ({
     id: o.id, client: ubEscapeHtml(o.client_name), phone: ubEscapeHtml(o.phone), address: ubEscapeHtml(o.address), date: o.order_date,
     payment: ubEscapeHtml(o.payment_method), paymentStatus: o.payment_status, status: o.status,
-    items: (o.order_items || []).map(it => ({ productId: it.product_id, qty: it.qty })),
+    items: (o.order_items || []).map(it => ({ productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price })),
   }));
 }
 async function ubAdminUpdateOrderStatus(id, status) {
@@ -132,6 +132,45 @@ async function ubAdminDeleteOrder(id) {
   const { error } = await ubSupabase.from('orders').delete().eq('id', id);
   if (error) console.error('ubAdminDeleteOrder', error);
   return !error;
+}
+async function ubAdminUpdateOrderDelivery(id, patch) {
+  const { error } = await ubSupabase.from('orders').update(patch).eq('id', id);
+  if (error) console.error('ubAdminUpdateOrderDelivery', error);
+  return !error;
+}
+/* Echange la position de file de deux commandes pour les reordonner sans laisser de trou. */
+async function ubAdminSwapQueuePosition(idA, posA, idB, posB) {
+  const [r1, r2] = await Promise.all([
+    ubSupabase.from('orders').update({ queue_position: posB }).eq('id', idA),
+    ubSupabase.from('orders').update({ queue_position: posA }).eq('id', idB),
+  ]);
+  return !r1.error && !r2.error;
+}
+
+/* ---------- Mise a jour WhatsApp du statut d'une commande ---------- */
+const UB_ORDER_STATUS_MSG = {
+  en_attente: 'est en attente de traitement',
+  en_cours: 'est en cours de préparation / expédition',
+  livree: 'a bien été livrée',
+  annulee: 'a été annulée',
+};
+const UB_DELIVERY_STATUS_MSG = {
+  a_preparer: 'est en cours de préparation',
+  prete: 'est prête et va bientôt partir en livraison',
+  en_livraison: 'est en cours de livraison',
+  livree: 'a bien été livrée',
+  echec: 'a rencontré un souci lors de la livraison — nous revenons vers vous rapidement',
+  annulee: 'a été annulée',
+};
+function ubPhoneToWhatsAppNumber(phone) {
+  let digits = String(phone || '').replace(/\D/g, '');
+  if (digits.length === 9) digits = '221' + digits; // numero local senegalais sans indicatif
+  return digits;
+}
+function ubWhatsAppOrderUpdateLink(order, phrase) {
+  const firstName = (order.client || '').split(' ')[0] || '';
+  const message = `Bonjour ${firstName}, votre commande ${order.id} chez Urbann Beauty ${phrase || 'a bien été enregistrée'}. Merci pour votre confiance ! 💜`;
+  return `https://wa.me/${ubPhoneToWhatsAppNumber(order.phone)}?text=${encodeURIComponent(message)}`;
 }
 
 /* ---------- Reinitialisation (donnees de test / transactionnelles) ----------
@@ -155,11 +194,21 @@ async function ubAdminVerifyPassword(password) {
   return !error;
 }
 
+const UB_ARCHIVED_PRODUCT_IMG = 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=400&auto=format&fit=crop';
 function ubProductsById(products) { return Object.fromEntries(products.map(p => [p.id, p])); }
+/* Chaque ligne de commande garde le nom/prix du produit au moment de l'achat (product_name/
+   unit_price, figes par ub_place_order) : la facture reste exacte meme si le produit est
+   ensuite renomme, change de prix ou est supprime. On ne retombe sur la fiche produit en
+   direct que pour d'anciennes commandes passees avant l'ajout de ce figeage. */
 function ubOrderLines(order, productsById) {
   return order.items.map(l => {
     const p = productsById[l.productId];
-    return { productId: l.productId, name: p ? p.name : 'Produit supprimé', qty: l.qty, price: p ? p.price : 0 };
+    return {
+      productId: l.productId,
+      name: l.name || (p ? p.name : 'Produit archivé (supprimé depuis)'),
+      qty: l.qty,
+      price: l.price != null ? l.price : (p ? p.price : 0),
+    };
   });
 }
 function ubOrderTotal(order, productsById) {
@@ -223,11 +272,16 @@ function ubComputeBestSellers(orders, productsById, limit = 5) {
   const sales = {};
   orders.forEach(o => {
     if (o.status === 'annulee') return;
-    o.items.forEach(l => { sales[l.productId] = (sales[l.productId] || 0) + l.qty; });
+    o.items.forEach(l => {
+      const key = l.productId || l.name || 'inconnu';
+      if (!sales[key]) {
+        const live = l.productId ? productsById[l.productId] : null;
+        sales[key] = { qty: 0, product: live || { id: l.productId, name: l.name || 'Produit archivé (supprimé depuis)', img: UB_ARCHIVED_PRODUCT_IMG, price: l.price || 0 } };
+      }
+      sales[key].qty += l.qty;
+    });
   });
-  return Object.entries(sales)
-    .map(([productId, qty]) => ({ product: productsById[productId], qty }))
-    .filter(x => x.product)
+  return Object.values(sales)
     .sort((a, b) => b.qty - a.qty)
     .slice(0, limit);
 }

@@ -35,6 +35,7 @@ let step1Verified = false;
 
 async function main() {
   if (!(await ubAdminGuard())) return;
+  step1Verified = false;
   const session = await ubAdminGetSession();
   await ubAdminRenderShell('parametres', 'Paramètres', 'Gestion du compte et outils de maintenance de la boutique');
 
