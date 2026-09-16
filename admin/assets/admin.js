@@ -66,13 +66,14 @@ async function ubAdminGetTestimonials() {
   return data.map(t => ({
     id: t.id, type: t.type, name: t.name, role: t.role, text: t.text, rating: t.rating,
     avatar: t.avatar_url, screenshot: t.screenshot_url, published: t.published, sortOrder: t.sort_order,
+    productId: t.product_id,
   }));
 }
 async function ubAdminSaveTestimonial(t) {
   const { error } = await ubSupabase.from('testimonials').upsert({
     id: t.id || undefined, type: t.type, name: t.name, role: t.role || null, text: t.text || null,
     rating: t.rating || null, avatar_url: t.avatar || null, screenshot_url: t.screenshot || null,
-    published: t.published !== false, sort_order: t.sortOrder || 0,
+    published: t.published !== false, sort_order: t.sortOrder || 0, product_id: t.productId || null,
   });
   if (error) console.error('ubAdminSaveTestimonial', error);
   return !error;
@@ -467,7 +468,13 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
         </div>
         <div class="a-topbar-actions">
           <a href="https://wa.me/${UB_CONTACT.whatsapp}" target="_blank" rel="noopener" class="a-icon-btn" title="Assistance WhatsApp en cas de pépin" style="color:#25D366">${ubIcon('whatsapp')}</a>
-          <button class="a-icon-btn">${ubIcon('bell')}<span class="dot"></span></button>
+          <div style="position:relative">
+            <button class="a-icon-btn" id="a-bell-btn">${ubIcon('bell')}<span class="dot" id="a-bell-dot" style="display:none"></span></button>
+            <div id="a-bell-panel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:300px;background:#fff;border:1px solid var(--a-line);border-radius:14px;box-shadow:0 14px 34px rgba(46,25,67,.14);padding:14px;z-index:200">
+              <strong style="font-size:.86rem">Alertes stock faible</strong>
+              <div id="a-bell-list" style="margin-top:10px;display:grid;gap:8px;max-height:280px;overflow-y:auto"></div>
+            </div>
+          </div>
           <a href="../index.html" class="a-btn a-btn-outline a-btn-sm" target="_blank">Voir le site</a>
         </div>
       </div>
@@ -476,6 +483,23 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
   `;
 
   ubApplyLogo(document.getElementById('a-brand-logo'));
+
+  ubAdminGetProducts().then(products => {
+    const low = products.filter(p => p.stock <= 5).sort((a, b) => a.stock - b.stock);
+    const dot = document.getElementById('a-bell-dot');
+    const list = document.getElementById('a-bell-list');
+    if (!dot || !list) return;
+    if (low.length) { dot.style.display = 'block'; dot.textContent = ''; }
+    list.innerHTML = low.length
+      ? low.map(p => `<a href="produits.html" style="display:flex;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--a-ink);text-decoration:none"><span>${p.name}</span><strong style="color:${p.stock === 0 ? 'var(--a-danger)' : 'var(--a-warning)'}">${p.stock} en stock</strong></a>`).join('')
+      : `<p style="font-size:.8rem;color:var(--a-ink-soft);margin:0">Aucune alerte — tous les stocks sont corrects.</p>`;
+  });
+  const bellBtn = document.getElementById('a-bell-btn');
+  const bellPanel = document.getElementById('a-bell-panel');
+  if (bellBtn && bellPanel) {
+    bellBtn.addEventListener('click', (e) => { e.stopPropagation(); bellPanel.style.display = bellPanel.style.display === 'none' ? 'block' : 'none'; });
+    document.addEventListener('click', (e) => { if (!bellPanel.contains(e.target) && e.target !== bellBtn) bellPanel.style.display = 'none'; });
+  }
 
   const burger = document.getElementById('a-burger');
   const sidebar = document.getElementById('a-sidebar');

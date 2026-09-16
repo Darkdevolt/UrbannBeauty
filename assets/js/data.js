@@ -18,8 +18,31 @@ async function ubGetTestimonials() {
   if (error || !data) { console.error('ubGetTestimonials', error); return UB_TESTIMONIALS_FALLBACK; }
   return data.map(t => ({
     id: t.id, type: t.type, name: t.name, role: t.role, text: t.text, rating: t.rating,
-    avatar: t.avatar_url, screenshot: t.screenshot_url,
+    avatar: t.avatar_url, screenshot: t.screenshot_url, productId: t.product_id,
   }));
+}
+/* Avis rattachés à un produit précis (fiche produit) ; si aucun avis n'est encore
+   rattaché à ce produit, on retombe sur les avis génériques du site. */
+async function ubGetProductTestimonials(productId) {
+  const all = await ubGetTestimonials();
+  const specific = all.filter(t => t.productId === productId);
+  return specific.length ? specific : all;
+}
+
+/* ---------- Suivi de commande public (numéro de commande + téléphone) ---------- */
+async function ubTrackOrder(orderId, phone) {
+  const { data, error } = await ubSupabase.rpc('ub_track_order', { p_order_id: orderId, p_phone: phone });
+  if (error) { console.error('ubTrackOrder', error); return null; }
+  return (data && data[0]) || null;
+}
+
+/* ---------- Demande de retour publique ---------- */
+async function ubRequestReturn({ orderId, phone, clientName, productId, qty, reason }) {
+  const { error } = await ubSupabase.from('returns').insert({
+    order_id: orderId, phone, client_name: clientName || null, product_id: productId || null,
+    qty: qty || 1, reason: reason || null, status: 'demande',
+  });
+  return !error;
 }
 
 /* Zones de livraison : gérées depuis l'admin (nom + frais associés) */

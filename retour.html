@@ -1,0 +1,58 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Demander un retour — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css"></head><body>
+<div id="site-header"></div>
+<section class="page-hero"><div class="container"><span class="eyebrow" style="justify-content:center">Service après-vente</span><h1>Demander un retour ou un échange</h1><p style="max-width:600px;margin:0 auto;color:var(--ink-soft)">Article non ouvert, dans son emballage d'origine, sous 7 jours après réception. Remplissez ce formulaire, nous vous recontactons rapidement.</p></div></section>
+<section><div class="container" style="max-width:640px">
+  <form class="contact-form" id="return-form">
+    <div class="form-row-2">
+      <div class="field"><label>Numéro de commande *</label><input type="text" id="rf-order" required placeholder="CMD-1234"></div>
+      <div class="field"><label>Téléphone utilisé pour la commande *</label><input type="tel" id="rf-phone" required placeholder="77 000 00 00"></div>
+    </div>
+    <div class="field"><label>Nom complet</label><input type="text" id="rf-name" placeholder="Votre nom"></div>
+    <div class="field"><label>Motif du retour *</label>
+      <select id="rf-reason" required>
+        <option value="">Sélectionnez un motif</option>
+        <option>Produit défectueux</option>
+        <option>Ne correspond pas à la description</option>
+        <option>Erreur de commande</option>
+        <option>Changement d'avis</option>
+        <option>Autre</option>
+      </select>
+    </div>
+    <div class="field"><label>Précisions (optionnel)</label><textarea id="rf-notes" rows="4" placeholder="Décrivez le problème rencontré..."></textarea></div>
+    <p id="rf-error" class="checkout-error" style="display:none"></p>
+    <button class="btn btn-primary" type="submit" id="rf-submit">Envoyer la demande</button>
+    <p style="font-size:.72rem;color:var(--ink-soft);margin:0">Nous vous répondons sous 24 à 48h ouvrées pour organiser la suite.</p>
+  </form>
+  <div id="rf-success" style="display:none" class="empty-cart"></div>
+</div></section>
+<div id="site-footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
+<script>
+ubRenderHeader('');ubRenderFooter();
+
+const params = new URLSearchParams(location.search);
+if (params.get('order')) document.getElementById('rf-order').value = params.get('order');
+
+document.getElementById('return-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('rf-error'), btn = document.getElementById('rf-submit');
+  errBox.style.display = 'none';
+  const orderId = document.getElementById('rf-order').value.trim();
+  const phone = document.getElementById('rf-phone').value.trim();
+  const name = document.getElementById('rf-name').value.trim();
+  const reason = document.getElementById('rf-reason').value;
+  const notes = document.getElementById('rf-notes').value.trim();
+  if (!orderId || !phone || !reason) { errBox.textContent = 'Merci de renseigner le numéro de commande, le téléphone et le motif.'; errBox.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Envoi en cours...';
+  const ok = await ubRequestReturn({ orderId, phone, clientName: name, reason: notes ? `${reason} — ${notes}` : reason });
+  btn.disabled = false; btn.textContent = 'Envoyer la demande';
+
+  if (!ok) { errBox.textContent = "Une erreur est survenue, merci de réessayer ou de nous écrire sur WhatsApp."; errBox.style.display = 'block'; return; }
+  document.getElementById('return-form').style.display = 'none';
+  const success = document.getElementById('rf-success');
+  success.style.display = 'block';
+  success.innerHTML = `${ubIcon('check')}<h3>Demande envoyée !</h3><p style="color:var(--ink-soft)">Nous avons bien reçu votre demande pour la commande <strong>${orderId}</strong>. Notre équipe vous contacte sous 24 à 48h.</p><a href="index.html" class="btn btn-primary">Retour à l'accueil</a>`;
+});
+</script>
+</body></html>

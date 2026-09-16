@@ -154,6 +154,8 @@ function ubRenderFooter() {
               <li><a href="contact.html">Contact</a></li>
               <li><a href="infos.html#livraison">Livraison &amp; retours</a></li>
               <li><a href="infos.html#faq">FAQ</a></li>
+              <li><a href="suivi.html">Suivre ma commande</a></li>
+              <li><a href="retour.html">Demander un retour</a></li>
             </ul>
           </div>
           <div>
@@ -166,7 +168,7 @@ function ubRenderFooter() {
           </div>
         </div>
         <div class="footer-bottom">
-          <span>© 2026 Urbann Beauty. Tous droits réservés.</span>
+          <span>© 2026 Urbann Beauty. Tous droits réservés. · <a href="confidentialite.html" style="color:inherit;text-decoration:underline">Confidentialité</a></span>
           <div class="payment-icons">
             <span>Wave</span>
           </div>

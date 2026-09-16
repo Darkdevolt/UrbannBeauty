@@ -42,6 +42,7 @@
         </div>
 
         <div class="a-field"><label>Nom du client (affiché publiquement, optionnel)</label><input type="text" id="t-name" placeholder="Ex : Aïcha K."></div>
+        <div class="a-field"><label>Produit concerné (optionnel — sinon avis générique du site)</label><select id="t-product"><option value="">Avis général (aucun produit précis)</option></select></div>
 
         <div id="t-fields-texte">
           <div class="a-field"><label>Rôle / statut</label><input type="text" id="t-role" placeholder="Ex : Cliente vérifiée"></div>
@@ -88,6 +89,7 @@
 <script src="assets/admin.js"></script>
 <script>
 let testimonials = [];
+let allProducts = [];
 let currentAvatar = null;
 let currentShot = null;
 
@@ -98,7 +100,8 @@ async function main() {
   const close = document.querySelector('.a-modal-close'); if (close) close.innerHTML = ubIcon('close');
   document.querySelectorAll('.upload-zone').forEach(z => { z.innerHTML = z.innerHTML.replace('{{upload}}', ubIcon('upload')); });
 
-  testimonials = await ubAdminGetTestimonials();
+  [testimonials, allProducts] = await Promise.all([ubAdminGetTestimonials(), ubAdminGetProducts()]);
+  document.getElementById('t-product').innerHTML += allProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
   renderContent();
 
   function renderContent() {
@@ -110,7 +113,7 @@ async function main() {
       <div class="a-panel">
         <div class="a-table-wrap">
           <table class="a-table">
-            <thead><tr><th>Aperçu</th><th>Client</th><th>Type</th><th>Contenu</th><th>Statut</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Aperçu</th><th>Client</th><th>Produit</th><th>Type</th><th>Contenu</th><th>Statut</th><th>Actions</th></tr></thead>
             <tbody id="t-tbody"></tbody>
           </table>
         </div>
@@ -124,6 +127,7 @@ async function main() {
       <tr>
         <td><div class="avis-thumb-wrap"><img class="avis-thumb" src="${t.type === 'capture' ? (t.screenshot || '') : (t.avatar || 'https://i.pravatar.cc/80')}" alt=""></div></td>
         <td><strong>${t.name || 'Anonyme'}</strong>${t.role ? `<br><span style="font-size:.76rem;color:var(--a-ink-soft)">${t.role}</span>` : ''}</td>
+        <td><span style="font-size:.82rem">${t.productId ? (allProducts.find(p => p.id === t.productId)?.name || '—') : '<span style="color:var(--a-ink-soft)">Avis général</span>'}</span></td>
         <td>${t.type === 'capture' ? `<span class="a-badge neutral">${ubIcon('whatsapp')} Capture</span>` : `<span class="a-badge neutral">${ubIcon('star')} Texte</span>`}</td>
         <td style="max-width:280px"><span style="font-size:.82rem;color:var(--a-ink-soft)">${(t.text || '').slice(0, 90) || '—'}</span></td>
         <td>${t.published ? '<span class="a-badge success">Visible</span>' : '<span class="a-badge neutral">Masqué</span>'}</td>
@@ -133,7 +137,7 @@ async function main() {
             <button class="a-icon-action" onclick="ubDeleteTestimonial('${t.id}')" title="Supprimer">${ubIcon('trash')}</button>
           </div>
         </td>
-      </tr>`).join('') : `<tr><td colspan="6"><div class="empty-state">${ubIcon('heart')}<p>Aucun avis pour le moment. Ajoutez le premier témoignage client.</p></div></td></tr>`;
+      </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('heart')}<p>Aucun avis pour le moment. Ajoutez le premier témoignage client.</p></div></td></tr>`;
   }
 
   function updateTypeUI(type) {
@@ -153,6 +157,7 @@ async function main() {
       document.getElementById('t-modal-title').textContent = 'Modifier l\'avis';
       document.getElementById('t-id').value = t.id;
       document.getElementById('t-name').value = t.name || '';
+      document.getElementById('t-product').value = t.productId || '';
       document.getElementById('t-role').value = t.role || '';
       document.getElementById('t-rating').value = t.rating || 5;
       document.getElementById('t-text-avis').value = t.type === 'texte' ? (t.text || '') : '';
@@ -202,6 +207,7 @@ async function main() {
 
     const data = {
       id, type, name,
+      productId: document.getElementById('t-product').value || null,
       role: type === 'texte' ? document.getElementById('t-role').value.trim() : null,
       text: type === 'texte' ? document.getElementById('t-text-avis').value.trim() : document.getElementById('t-text-caption').value.trim(),
       rating: type === 'texte' ? Number(document.getElementById('t-rating').value) : null,

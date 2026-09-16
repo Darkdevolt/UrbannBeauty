@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Politique de confidentialité — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css">
+<style>.legal-block{max-width:760px;margin:0 auto}.legal-block h2{font-size:1.2rem;margin:32px 0 10px}.legal-block h2:first-child{margin-top:0}.legal-block p,.legal-block li{color:var(--ink-soft);font-size:.9rem;line-height:1.7}.legal-block ul{padding-left:20px}</style>
+</head><body>
+<div id="site-header"></div>
+<section class="page-hero"><div class="container"><span class="eyebrow" style="justify-content:center">Vos données</span><h1>Politique de confidentialité</h1><p style="max-width:600px;margin:0 auto;color:var(--ink-soft)">Dernière mise à jour : septembre 2026</p></div></section>
+<section><div class="container legal-block">
+  <h2>Quelles données collectons-nous ?</h2>
+  <p>Lorsque vous passez commande, nous demandons votre nom, votre numéro de téléphone et votre adresse de livraison. Lorsque vous nous contactez ou vous inscrivez à la newsletter, nous conservons votre nom et/ou votre email. Ces informations sont nécessaires pour traiter votre commande, vous livrer et vous recontacter si besoin.</p>
+
+  <h2>Pourquoi utilisons-nous ces données ?</h2>
+  <ul>
+    <li>Traiter et livrer votre commande</li>
+    <li>Vous contacter en cas de question sur votre commande (téléphone, WhatsApp)</li>
+    <li>Répondre à vos messages via le formulaire de contact</li>
+    <li>Vous envoyer nos actualités si vous vous êtes inscrite à la newsletter</li>
+    <li>Gérer un retour ou un échange si vous en faites la demande</li>
+  </ul>
+
+  <h2>Qui a accès à vos données ?</h2>
+  <p>Vos données sont stockées de façon sécurisée et ne sont accessibles qu'à l'équipe Urbann Beauty. Nous ne vendons ni ne partageons vos données avec des tiers à des fins commerciales. Nos prestataires techniques (hébergement, base de données) n'accèdent à vos données que pour assurer le fonctionnement du site.</p>
+
+  <h2>Combien de temps conservons-nous vos données ?</h2>
+  <p>Vos informations de commande sont conservées le temps nécessaire au suivi commercial et comptable. Vous pouvez demander la suppression de vos données à tout moment (voir ci-dessous), sous réserve des obligations légales de conservation des documents commerciaux.</p>
+
+  <h2>Vos droits</h2>
+  <p>Vous pouvez à tout moment nous demander d'accéder à vos données, de les corriger, ou de les supprimer. Pour la newsletter, un lien de désinscription est disponible dans chaque email, ou vous pouvez simplement nous le demander directement.</p>
+
+  <h2>Nous contacter</h2>
+  <p>Pour toute question sur vos données personnelles, contactez-nous via WhatsApp au <strong id="legal-phone"></strong> ou via notre <a href="contact.html">formulaire de contact</a>.</p>
+</div></section>
+<div id="site-footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
+<script>
+ubRenderHeader('');ubRenderFooter();
+document.getElementById('legal-phone').textContent = UB_CONTACT.phoneDisplay;
+</script>
+</body></html>

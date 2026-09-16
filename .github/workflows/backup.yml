@@ -1,0 +1,62 @@
+name: Sauvegarde automatique Supabase
+
+on:
+  schedule:
+    # 03:00 UTC chaque jour (le projet Supabase est sur le plan gratuit, sans
+    # sauvegarde/point-in-time recovery integree -- voir l'incident de suppression
+    # accidentelle de la table products documente dans l'historique du projet).
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verifier que le secret est configure
+        run: |
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "::error::Le secret SUPABASE_SERVICE_ROLE_KEY n'est pas configure. Voir README.md pour la procedure."
+            exit 1
+          fi
+
+      - name: Exporter les tables Supabase
+        env:
+          SUPABASE_URL: https://tbowuuxvjaadawhmpumr.supabase.co
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          DATE=$(date -u +%Y-%m-%d)
+          OUT="backups/$DATE"
+          mkdir -p "$OUT"
+          TABLES="products categories orders order_items suppliers media_config returns testimonials delivery_zones contact_messages newsletter_subscribers gift_box_templates"
+          for T in $TABLES; do
+            echo "Export de $T..."
+            curl -sf "$SUPABASE_URL/rest/v1/$T?select=*" \
+              -H "apikey: $SUPABASE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_KEY" \
+              -o "$OUT/$T.raw.json"
+            python3 -m json.tool "$OUT/$T.raw.json" > "$OUT/$T.json"
+            rm "$OUT/$T.raw.json"
+          done
+          echo "DATE=$DATE" >> "$GITHUB_ENV"
+
+      - name: Supprimer les sauvegardes de plus de 30 jours
+        run: |
+          find backups -maxdepth 1 -mindepth 1 -type d -mtime +30 -exec rm -rf {} \; || true
+
+      - name: Commit et push
+        run: |
+          git config user.name "urbann-beauty-backup-bot"
+          git config user.email "actions@github.com"
+          git add backups
+          if git diff --cached --quiet; then
+            echo "Rien de nouveau a sauvegarder."
+          else
+            git commit -m "chore(backup): sauvegarde automatique du $DATE"
+            git push
+          fi

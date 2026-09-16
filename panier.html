@@ -70,6 +70,23 @@ function ubApplyPromo(){
   ubRecalcSummary();
 }
 
+function ubCopyWaveAmount(amount){
+  const text = String(amount);
+  const done = () => {
+    const btn = document.getElementById('wave-copy-btn');
+    if(!btn) return;
+    const original = btn.dataset.label || btn.textContent;
+    btn.dataset.label = original;
+    btn.textContent = 'Montant copié ✓';
+    setTimeout(() => { btn.textContent = original; }, 2000);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>ubShowToast('Impossible de copier, notez le montant manuellement'));
+  } else {
+    ubShowToast('Copie non supportée, notez le montant manuellement');
+  }
+}
+
 function ubTogglePaymentNote(){
   const selected = document.querySelector('input[name="payment"]:checked')?.value;
   const note = document.getElementById('wave-pay-note');
@@ -77,11 +94,13 @@ function ubTogglePaymentNote(){
   const wasChecked = document.getElementById('co-wave-confirm')?.checked || false;
   const total = ubCurrentTotal();
   const deposit = ubDepositAmount(total);
+  const amountToPay = selected === 'Paiement à la livraison' ? deposit : total;
+  const amountBox = `<div class="wave-amount-box"><div><span>Montant exact à payer sur Wave</span><strong>${ubFormatPrice(amountToPay)}</strong></div><button type="button" id="wave-copy-btn" class="btn btn-outline btn-sm" onclick="ubCopyWaveAmount(${amountToPay})">Copier le montant</button></div>`;
   note.style.display='flex';
   if(selected === 'Paiement à la livraison'){
-    note.innerHTML = `<span>Un acompte de <strong>${ubFormatPrice(deposit)}</strong> (20% minimum, obligatoire pour valider la commande) est à régler maintenant via Wave. Le solde de <strong>${ubFormatPrice(total-deposit)}</strong> sera réglé à la livraison. Payez l'acompte en cliquant sur ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a><label class="wave-confirm-row"><input type="checkbox" id="co-wave-confirm" ${wasChecked?'checked':''}> <span>Je confirme avoir payé l'acompte de ${ubFormatPrice(deposit)} via Wave</span></label>`;
+    note.innerHTML = amountBox + `<span>Cet acompte (20% minimum) est obligatoire pour valider la commande. Le solde de <strong>${ubFormatPrice(total-deposit)}</strong> sera réglé à la livraison. Ouvrez Wave et collez le montant copié ci-dessus, via ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a><label class="wave-confirm-row"><input type="checkbox" id="co-wave-confirm" ${wasChecked?'checked':''}> <span>Je confirme avoir payé l'acompte de ${ubFormatPrice(deposit)} via Wave</span></label>`;
   } else {
-    note.innerHTML = `<span>Réglez le montant total de <strong>${ubFormatPrice(total)}</strong> via Wave en cliquant sur ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a><label class="wave-confirm-row"><input type="checkbox" id="co-wave-confirm" ${wasChecked?'checked':''}> <span>Je confirme avoir payé ${ubFormatPrice(total)} via Wave</span></label>`;
+    note.innerHTML = amountBox + `<span>Ouvrez Wave et collez le montant copié ci-dessus, via ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a><label class="wave-confirm-row"><input type="checkbox" id="co-wave-confirm" ${wasChecked?'checked':''}> <span>Je confirme avoir payé ${ubFormatPrice(total)} via Wave</span></label>`;
   }
 }
 

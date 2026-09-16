@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Suivre ma commande — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css">
+<style>
+.track-result{background:var(--off-white);border:1px solid var(--line);border-radius:var(--radius-md);padding:26px;margin-top:26px}
+.track-status-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.track-badge{padding:6px 14px;border-radius:999px;font-size:.78rem;font-weight:600}
+.track-badge.en_attente{background:#f0edf4;color:var(--ink-soft)}
+.track-badge.en_cours,.track-badge.a_preparer,.track-badge.prete{background:#fbf1e3;color:#c98a3e}
+.track-badge.en_livraison{background:#e6f0fb;color:#3e7dc9}
+.track-badge.livree{background:#e6f6ec;color:var(--success)}
+.track-badge.annulee,.track-badge.echec{background:#fbe9ec;color:var(--danger)}
+.track-items{margin-top:16px;border-top:1px solid var(--line);padding-top:16px}
+.track-items div{display:flex;justify-content:space-between;font-size:.86rem;padding:6px 0;color:var(--ink-soft)}
+</style>
+</head><body>
+<div id="site-header"></div>
+<section class="page-hero"><div class="container"><span class="eyebrow" style="justify-content:center">Après votre achat</span><h1>Suivre ma commande</h1><p style="max-width:600px;margin:0 auto;color:var(--ink-soft)">Entrez votre numéro de commande et le téléphone utilisé pour voir son état actuel.</p></div></section>
+<section><div class="container" style="max-width:560px">
+  <form class="contact-form" id="track-form">
+    <div class="field"><label>Numéro de commande</label><input type="text" id="tf-order" required placeholder="CMD-1234"></div>
+    <div class="field"><label>Téléphone utilisé pour la commande</label><input type="tel" id="tf-phone" required placeholder="77 000 00 00"></div>
+    <p id="tf-error" class="checkout-error" style="display:none"></p>
+    <button class="btn btn-primary" type="submit" id="tf-submit">Voir le statut</button>
+  </form>
+  <div id="track-result"></div>
+</div></section>
+<div id="site-footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script>
+<script>
+ubRenderHeader('');ubRenderFooter();
+
+const STATUS_LABELS = { en_attente: 'En attente', en_cours: 'En préparation / expédiée', livree: 'Livrée', annulee: 'Annulée' };
+const DELIVERY_LABELS = { a_preparer: 'À préparer', prete: 'Prête', en_livraison: 'En cours de livraison', livree: 'Livrée', echec: 'Échec de livraison', annulee: 'Annulée' };
+const PAYMENT_LABELS = { paye: 'Payé', en_attente: 'En attente', rembourse: 'Remboursé' };
+
+document.getElementById('track-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('tf-error'), btn = document.getElementById('tf-submit'), resultBox = document.getElementById('track-result');
+  errBox.style.display = 'none'; resultBox.innerHTML = '';
+  const orderId = document.getElementById('tf-order').value.trim();
+  const phone = document.getElementById('tf-phone').value.trim();
+  if (!orderId || !phone) { errBox.textContent = 'Merci de renseigner le numéro de commande et le téléphone.'; errBox.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Recherche...';
+  const order = await ubTrackOrder(orderId, phone);
+  btn.disabled = false; btn.textContent = 'Voir le statut';
+
+  if (!order) { errBox.textContent = "Aucune commande trouvée avec ce numéro et ce téléphone. Vérifiez vos informations ou contactez-nous sur WhatsApp."; errBox.style.display = 'block'; return; }
+
+  const items = order.items || [];
+  resultBox.innerHTML = `
+    <div class="track-result">
+      <h3 style="margin:0 0 4px">Commande ${order.id}</h3>
+      <p style="color:var(--ink-soft);font-size:.84rem;margin:0 0 16px">Passée le ${new Date(order.order_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+      <div class="track-status-row">
+        <span class="track-badge ${order.status}">${STATUS_LABELS[order.status] || order.status}</span>
+        <span class="track-badge ${order.delivery_status || order.status}">${DELIVERY_LABELS[order.delivery_status] || 'À préparer'}</span>
+        <span class="track-badge ${order.payment_status}">${PAYMENT_LABELS[order.payment_status] || order.payment_status}</span>
+      </div>
+      ${order.delivery_person ? `<p style="font-size:.84rem;margin:0 0 6px"><strong>Livreur :</strong> ${order.delivery_person}</p>` : ''}
+      ${order.delivery_date ? `<p style="font-size:.84rem;margin:0 0 6px"><strong>Date de livraison prévue :</strong> ${new Date(order.delivery_date).toLocaleDateString('fr-FR')}</p>` : ''}
+      <p style="font-size:.84rem;margin:0"><strong>Adresse :</strong> ${order.address || '—'}</p>
+      <div class="track-items">
+        ${items.map(i => `<div><span>${i.name} × ${i.qty}</span><strong>${ubFormatPrice(i.price * i.qty)}</strong></div>`).join('') || '<p style="color:var(--ink-soft)">Détail des articles indisponible.</p>'}
+      </div>
+    </div>`;
+});
+</script>
+</body></html>
