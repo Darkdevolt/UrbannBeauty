@@ -55,6 +55,8 @@ Le projet Supabase est sur le plan gratuit : **aucune sauvegarde ni point-in-tim
 
 Un workflow GitHub Actions (`.github/workflows/backup.yml`) exporte chaque nuit à 3h UTC toutes les tables importantes vers `backups/<date>/*.json`, committées directement dans ce dépôt (donc consultables/restaurables via l'historique Git). Rétention : 30 jours glissants.
 
+Le même workflow purge aussi les photos que les clientes joignent au checkout (bucket Storage privé `client-uploads`, ex : photo de teint pour un fond de teint) après 7 jours — le temps de préparer la commande, pas une archive permanente de photos personnelles.
+
 **Pour l'activer** (à faire une seule fois, directement sur GitHub — jamais dans une conversation avec un assistant) :
 1. Allez sur `Supabase Dashboard → Project Settings → API` et copiez la clé **`service_role`** (⚠️ jamais la clé `anon` — la `service_role` donne un accès complet, à ne partager avec personne).
 2. Sur GitHub : `Settings → Secrets and variables → Actions → New repository secret`.

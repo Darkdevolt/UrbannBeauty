@@ -49,6 +49,45 @@ jobs:
         run: |
           find backups -maxdepth 1 -mindepth 1 -type d -mtime +30 -exec rm -rf {} \; || true
 
+      - name: Purger les photos clientes de plus de 7 jours
+        env:
+          SUPABASE_URL: https://tbowuuxvjaadawhmpumr.supabase.co
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, datetime
+
+          base = os.environ['SUPABASE_URL']
+          key = os.environ['SUPABASE_KEY']
+          headers = {'apikey': key, 'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'}
+
+          def call(method, path, body=None):
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+              with urllib.request.urlopen(req) as resp:
+                  raw = resp.read()
+                  return json.loads(raw) if raw else None
+
+          # Les photos que les clientes joignent au checkout (ex: photo de teint pour
+          # un fond de teint) ne sont gardees que 7 jours : le temps que l'admin
+          # prepare la commande, pas une archive permanente de photos personnelles.
+          objects = call('POST', '/storage/v1/object/list/client-uploads', {'prefix': 'notes/', 'limit': 1000}) or []
+          cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+          old_paths = [
+              'notes/' + o['name'] for o in objects
+              if o.get('created_at') and datetime.datetime.fromisoformat(o['created_at'].replace('Z', '+00:00')) < cutoff
+          ]
+
+          if not old_paths:
+              print('Aucune photo cliente de plus de 7 jours.')
+          else:
+              print(f'Suppression de {len(old_paths)} photo(s) cliente(s) de plus de 7 jours...')
+              call('DELETE', '/storage/v1/object/client-uploads', {'prefixes': old_paths})
+              for p in old_paths:
+                  call('PATCH', f'/rest/v1/order_items?client_photo_path=eq.{p}', {'client_photo_path': None})
+              print('Purge terminee.')
+          PY
+
       - name: Commit et push
         run: |
           git config user.name "urbann-beauty-backup-bot"

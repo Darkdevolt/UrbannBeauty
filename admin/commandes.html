@@ -108,7 +108,7 @@ async function main() {
         <td><strong>${o.id}</strong></td>
         <td>${o.client}</td>
         <td>${new Date(o.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-        <td>${ubOrderItemCount(o)} article${ubOrderItemCount(o) > 1 ? 's' : ''}${ubOrderHasClientInfo(o) ? ` <span title="Info fournie par la cliente" style="color:var(--a-mauve)">${ubIcon('camera')}</span>` : ''}</td>
+        <td>${ubOrderItemCount(o)} article${ubOrderItemCount(o) > 1 ? 's' : ''}${ubOrderHasClientInfo(o) ? ` <span title="Info fournie par la cliente" style="display:inline-flex;vertical-align:-3px;color:var(--a-mauve)">${ubIcon('camera')}</span>` : ''}</td>
         <td>${o.payment}</td>
         <td>
           <select class="a-select" style="padding:6px 10px;font-size:.78rem" onchange="ubUpdatePayment('${o.id}', this.value)">
