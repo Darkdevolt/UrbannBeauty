@@ -284,7 +284,7 @@ section { padding: 88px 0; }
   .nav-links a { display: block; padding: 14px 4px; border-bottom: 1px solid var(--line); }
   .burger { display: flex; position: relative; z-index: 95; }
   .nav-search-mobile { display: block; list-style: none; margin-bottom: 18px; }
-  .nav-search-mobile .search-box { min-width: 0; width: 100%; padding: 12px 16px; }
+  .nav-search-mobile .search-box { display: flex; min-width: 0; width: 100%; padding: 12px 16px; }
   .logo, .nav-actions { position: relative; z-index: 95; }
 }
 
@@ -825,8 +825,9 @@ section { padding: 88px 0; }
 
 /* ---------- Cart page ---------- */
 .cart-layout { display: grid; grid-template-columns: minmax(0,1fr) 380px; gap: 40px; align-items: start; }
+.cart-layout > div { min-width: 0; }
 .cart-table-wrap { overflow-x: auto; }
-.cart-table { width: 100%; border-collapse: collapse; }
+.cart-table { width: 100%; min-width: 560px; border-collapse: collapse; }
 .cart-table th {
   text-align: left; font-size: .76rem; text-transform: uppercase; letter-spacing: .05em;
   color: var(--ink-soft); padding-bottom: 14px; border-bottom: 1px solid var(--line);
