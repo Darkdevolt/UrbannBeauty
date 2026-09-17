@@ -285,12 +285,29 @@ async function ubSubmitOrder(){
   const finalTotal=ubCurrentTotal();
   const depositPaid=ubDepositAmount(finalTotal);
   const remainderDue=finalTotal-depositPaid;
+  const orderedLines=currentLines;
   ubSaveCart([]);
   appliedPromo=null;
   wavePaymentProofPath=null;
   const balanceNote = payment==='Paiement à la livraison'
     ? ` Acompte de <strong>${ubFormatPrice(depositPaid)}</strong> réglé via Wave — solde de <strong>${ubFormatPrice(remainderDue)}</strong> à régler à la livraison.`
     : ` Montant total de <strong>${ubFormatPrice(finalTotal)}</strong> réglé via Wave.`;
+
+  if(zone.whatsappHandoff){
+    const itemsList = orderedLines.map(l=>`- ${l.product.name} x${l.qty}`).join('\n');
+    const waText = `Nouvelle commande ${result.orderId} — ${zone.name}\n`
+      + `Client : ${name}\n`
+      + `Téléphone : ${phone}\n`
+      + `Point de RDV / adresse : ${addressDetail || 'non précisé, à demander au client'}\n\n`
+      + `Articles :\n${itemsList}\n\n`
+      + `Montant total : ${ubFormatPrice(finalTotal)}\n`
+      + (payment==='Paiement à la livraison' ? `Acompte déjà réglé via Wave : ${ubFormatPrice(depositPaid)}\nSolde à récupérer à la livraison : ${ubFormatPrice(remainderDue)}` : `Montant déjà réglé via Wave : ${ubFormatPrice(finalTotal)}`);
+    const waLink = `https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent(waText)}`;
+    document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée.${balanceNote}</p><p style="color:var(--ink-soft)">Ce mode de livraison (${zone.name}) est coordonné directement sur WhatsApp : continuez pour nous envoyer le récapitulatif et organiser la remise.</p><a href="${waLink}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;border-color:#25D366">${ubIcon('whatsapp')} Continuer sur WhatsApp</a><br><a href="boutique.html" style="display:inline-block;margin-top:14px;font-size:.82rem;color:var(--mauve-600)">Continuer mes achats</a></div>`;
+    window.open(waLink, '_blank');
+    return;
+  }
+
   document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée.${balanceNote} Nous vous contacterons au ${phone} pour la confirmer.</p><a href="boutique.html" class="btn btn-primary">Continuer mes achats</a></div>`;
 }
 

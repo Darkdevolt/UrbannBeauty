@@ -170,11 +170,12 @@ async function ubAdminDeletePromoCode(id) {
 async function ubAdminGetZones() {
   const { data, error } = await ubSupabase.from('delivery_zones').select('*').order('sort_order', { ascending: true });
   if (error) { console.error('ubAdminGetZones', error); return []; }
-  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee, active: z.active, sortOrder: z.sort_order }));
+  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee, active: z.active, sortOrder: z.sort_order, whatsappHandoff: !!z.whatsapp_handoff }));
 }
 async function ubAdminSaveZone(z) {
   const { error } = await ubSupabase.from('delivery_zones').upsert({
     id: z.id || undefined, name: z.name, fee: z.fee, active: z.active !== false, sort_order: z.sortOrder || 0,
+    whatsapp_handoff: !!z.whatsappHandoff,
   });
   if (error) console.error('ubAdminSaveZone', error);
   return !error;

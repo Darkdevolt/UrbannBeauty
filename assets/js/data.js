@@ -74,7 +74,7 @@ const UB_DELIVERY_ZONES_FALLBACK = [{ id: null, name: 'Dakar et environs', fee: 
 async function ubGetDeliveryZones() {
   const { data, error } = await ubSupabase.from('delivery_zones').select('*').eq('active', true).order('sort_order', { ascending: true });
   if (error || !data || !data.length) { console.error('ubGetDeliveryZones', error); return UB_DELIVERY_ZONES_FALLBACK; }
-  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee }));
+  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee, whatsappHandoff: !!z.whatsapp_handoff }));
 }
 
 /* Messages de contact et inscriptions newsletter : enregistres reellement
