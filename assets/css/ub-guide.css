@@ -1,0 +1,184 @@
+/* ============================================
+   URBANN BEAUTY — Rouge à lèvres guide (assistant de navigation)
+   ============================================ */
+
+#ub-guide-root { position: fixed; z-index: 999; bottom: 90px; left: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; font-family: var(--font-body, 'Poppins', sans-serif); }
+
+/* ---------- Le rouge à lèvres flottant (silhouette, pas une boule) ---------- */
+.ub-guide-orb {
+  position: relative;
+  width: 44px;
+  height: 74px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  animation: ub-orb-float 4.5s ease-in-out infinite;
+  transition: transform .25s ease;
+}
+.ub-guide-orb:hover { transform: translateY(-3px) scale(1.05); }
+.ub-guide-orb:active { transform: scale(.96); }
+
+.ub-lip-glow {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  width: 48px; height: 48px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(213, 92, 152, .55) 0%, rgba(142, 86, 189, .35) 55%, transparent 75%);
+  filter: blur(4px);
+  animation: ub-orb-pulse 2.6s ease-out infinite;
+  pointer-events: none;
+}
+
+.ub-lip-case {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 26px; height: 36px;
+  border-radius: 7px 7px 5px 5px;
+  background: linear-gradient(155deg, var(--mauve-500, #8e56bd) 0%, var(--mauve-700, #5c3280) 55%, var(--mauve-900, #2e1943) 100%);
+  box-shadow: inset -4px 0 6px rgba(46, 25, 67, .5), inset 3px 0 5px rgba(255, 255, 255, .18), 0 6px 14px rgba(69, 37, 99, .4);
+}
+.ub-lip-case::after {
+  content: '';
+  position: absolute; top: 5px; left: 5px; width: 4px; height: 22px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .32);
+}
+
+.ub-lip-band {
+  position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%);
+  width: 28px; height: 5px; border-radius: 3px;
+  background: linear-gradient(90deg, #e9cf9e, var(--gold, #cba15c), #e9cf9e);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+
+.ub-lip-bullet {
+  position: absolute; left: 50%; bottom: 37px; transform: translateX(-50%) rotate(-3deg);
+  width: 22px; height: 30px;
+  border-radius: 50% 50% 46% 46% / 68% 68% 32% 32%;
+  background: radial-gradient(circle at 34% 24%, #ffe0ee 0%, #f6a8cd 28%, #dd5f97 58%, #b53c73 82%, #7d2851 100%);
+  box-shadow:
+    inset -4px -5px 7px rgba(125, 40, 81, .55),
+    inset 3px 5px 6px rgba(255, 255, 255, .6),
+    0 6px 14px rgba(197, 74, 131, .45);
+}
+.ub-lip-bullet::after {
+  content: '';
+  position: absolute; top: 14%; left: 22%;
+  width: 30%; height: 20%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .85);
+  filter: blur(1.5px);
+  transform: rotate(-20deg);
+}
+
+@keyframes ub-orb-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes ub-orb-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes ub-orb-pulse {
+  0% { transform: scale(1); opacity: .7; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+
+/* ---------- Bulle d'accroche (une fois) ---------- */
+.ub-guide-hint {
+  position: absolute; left: 54px; bottom: 22px;
+  background: var(--ink, #241b2e); color: #fff;
+  padding: 8px 14px; border-radius: var(--radius-pill, 999px);
+  font-size: .82rem; white-space: nowrap;
+  box-shadow: var(--shadow-md, 0 10px 30px rgba(0,0,0,.15));
+  animation: ub-hint-in .3s ease;
+}
+.ub-guide-hint::after {
+  content: ''; position: absolute; left: -5px; top: 50%; transform: translateY(-50%);
+  border-width: 6px 6px 6px 0; border-style: solid; border-color: transparent var(--ink, #241b2e) transparent transparent;
+}
+@keyframes ub-hint-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ---------- Panneau guide ---------- */
+.ub-guide-panel {
+  position: absolute;
+  bottom: 88px; left: 0;
+  width: min(340px, calc(100vw - 48px));
+  max-height: min(70vh, 520px);
+  background: var(--white, #fff);
+  border-radius: var(--radius-lg, 24px);
+  box-shadow: var(--shadow-lg, 0 20px 50px rgba(0,0,0,.2));
+  border: 1px solid var(--line, #ece4f3);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  opacity: 0; transform: translateY(12px) scale(.97);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.ub-guide-panel.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+.ub-guide-panel-head {
+  background: linear-gradient(135deg, var(--mauve-700, #5c3280), var(--mauve-900, #2e1943));
+  color: #fff; padding: 16px 18px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ub-guide-panel-head .ub-guide-mini-orb {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 32% 26%, #ead9f5 0%, #d8bced 20%, #a873d1 50%, #74409e 100%);
+  box-shadow: inset -3px -4px 6px rgba(46,25,67,.5), inset 3px 4px 5px rgba(245,238,251,.8);
+}
+.ub-guide-panel-head .ub-guide-mini-orb svg { width: 15px; height: 15px; color: #fff; }
+.ub-guide-panel-head div { flex: 1; }
+.ub-guide-panel-head strong { display: block; font-family: var(--font-display, serif); font-size: 1rem; }
+.ub-guide-panel-head span { font-size: .78rem; opacity: .8; }
+.ub-guide-panel-close { background: rgba(255,255,255,.15); border: none; color: #fff; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ub-guide-panel-close:hover { background: rgba(255,255,255,.28); }
+.ub-guide-panel-close svg { width: 14px; height: 14px; }
+
+.ub-guide-panel-body { padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+
+.ub-guide-search { position: relative; }
+.ub-guide-search input {
+  width: 100%; padding: 11px 40px 11px 14px; border-radius: var(--radius-pill, 999px);
+  border: 1.5px solid var(--line, #ece4f3); font-family: inherit; font-size: .88rem; color: var(--ink, #241b2e);
+  background: var(--cream, #f7f3fa);
+}
+.ub-guide-search input:focus { outline: none; border-color: var(--mauve-400, #a873d1); }
+.ub-guide-search button { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; border: none; background: linear-gradient(135deg, var(--mauve-500, #8e56bd), var(--mauve-700, #5c3280)); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.ub-guide-search button svg { width: 15px; height: 15px; }
+
+.ub-guide-label { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft, #5c5468); margin: 0; }
+
+.ub-guide-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ub-guide-chip {
+  border: 1px solid var(--line, #ece4f3); background: #fff; color: var(--ink, #241b2e);
+  padding: 7px 13px; border-radius: var(--radius-pill, 999px); font-size: .8rem; cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.ub-guide-chip:hover { border-color: var(--mauve-400, #a873d1); background: var(--mauve-50, #f5eefb); }
+
+.ub-guide-results { display: flex; flex-direction: column; gap: 8px; }
+.ub-guide-result {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  border: 1px solid var(--line, #ece4f3); background: #fff; border-radius: var(--radius-md, 14px);
+  padding: 10px 12px; cursor: pointer; transition: border-color .15s ease, background .15s ease;
+}
+.ub-guide-result:hover { border-color: var(--mauve-400, #a873d1); background: var(--mauve-50, #f5eefb); }
+.ub-guide-result .ub-guide-result-ico { width: 30px; height: 30px; border-radius: 50%; background: var(--mauve-50, #f5eefb); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--mauve-600, #74409e); }
+.ub-guide-result .ub-guide-result-ico svg { width: 15px; height: 15px; }
+.ub-guide-result strong { display: block; font-size: .86rem; color: var(--ink, #241b2e); }
+.ub-guide-result span { font-size: .76rem; color: var(--ink-soft, #5c5468); }
+
+.ub-guide-empty { font-size: .82rem; color: var(--ink-soft, #5c5468); text-align: center; padding: 6px 0; }
+
+.ub-guide-status { font-size: .82rem; color: var(--mauve-700, #5c3280); background: var(--mauve-50, #f5eefb); border-radius: var(--radius-md, 14px); padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
+.ub-guide-status svg { width: 16px; height: 16px; flex-shrink: 0; animation: ub-orb-spin 1s linear infinite; }
+
+@media (max-width: 560px) {
+  #ub-guide-root { bottom: 82px; left: 16px; }
+  .ub-guide-orb { width: 36px; height: 60px; }
+  .ub-lip-glow { width: 40px; height: 40px; bottom: 6px; }
+  .ub-lip-case { width: 21px; height: 29px; }
+  .ub-lip-band { width: 23px; height: 4px; bottom: 27px; }
+  .ub-lip-bullet { width: 18px; height: 24px; bottom: 30px; }
+  .ub-guide-panel { bottom: 74px; }
+}
