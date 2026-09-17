@@ -74,7 +74,7 @@ const UB_DELIVERY_ZONES_FALLBACK = [{ id: null, name: 'Dakar et environs', fee: 
 async function ubGetDeliveryZones() {
   const { data, error } = await ubSupabase.from('delivery_zones').select('*').eq('active', true).order('sort_order', { ascending: true });
   if (error || !data || !data.length) { console.error('ubGetDeliveryZones', error); return UB_DELIVERY_ZONES_FALLBACK; }
-  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee, whatsappHandoff: !!z.whatsapp_handoff }));
+  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee, whatsappHandoff: !!z.whatsapp_handoff, isPickup: !!z.is_pickup }));
 }
 
 /* Messages de contact et inscriptions newsletter : enregistres reellement
@@ -93,6 +93,8 @@ const UB_CONTACT = {
   phoneDisplay: '+221 78 305 36 57',
   whatsapp: '221783053657',
   city: 'Dakar, Sénégal',
+  /* Repère volontairement approximatif (pas de numéro/étage) pour des raisons de sécurité. */
+  pickupAddress: 'Dakar Plateau, derrière l\'Assemblée nationale',
 };
 
 function ubFormatPrice(v) {

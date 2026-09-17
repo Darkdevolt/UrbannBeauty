@@ -23,8 +23,12 @@
         <div class="a-field"><label>Ordre d'affichage</label><input type="number" id="z-order" min="0" value="0"></div>
         <div class="a-field"><div class="a-checkbox-row"><input type="checkbox" id="z-active" checked><label for="z-active" style="margin:0">Zone active (proposée au client)</label></div></div>
         <div class="a-field">
+          <div class="a-checkbox-row"><input type="checkbox" id="z-pickup" onchange="if(this.checked){document.getElementById('z-whatsapp').checked=true}"><label for="z-pickup" style="margin:0">Retrait en magasin (pas de livraison)</label></div>
+          <span style="font-size:.76rem;color:var(--a-ink-soft)">La cliente vient récupérer elle-même sa commande. Le frais de livraison est forcé à 0 et l'adresse précise (repère de sécurité) est proposée à la cliente au lieu de lui être demandée.</span>
+        </div>
+        <div class="a-field">
           <div class="a-checkbox-row"><input type="checkbox" id="z-whatsapp"><label for="z-whatsapp" style="margin:0">Après la commande, renvoyer la cliente vers WhatsApp</label></div>
-          <span style="font-size:.76rem;color:var(--a-ink-soft)">Pour un mode non géré par le site (ex : coursier Yango). La cliente est redirigée vers votre WhatsApp avec le récapitulatif de sa commande, pour que vous coordonniez vous-même le livreur.</span>
+          <span style="font-size:.76rem;color:var(--a-ink-soft)">Pour un mode non géré par le site (retrait en magasin, ou coursier externe type Yango). La cliente est redirigée vers votre WhatsApp avec le récapitulatif de sa commande.</span>
         </div>
       </form>
     </div>
@@ -69,7 +73,7 @@ async function main() {
     const sorted = [...zones].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     document.getElementById('zone-tbody').innerHTML = sorted.length ? sorted.map(z => `
       <tr>
-        <td><strong>${z.name}</strong>${z.whatsappHandoff ? ` <span class="a-badge neutral" title="Renvoie vers WhatsApp après la commande">${ubIcon('whatsapp')} WhatsApp</span>` : ''}</td>
+        <td><strong>${z.name}</strong>${z.isPickup ? ` <span class="a-badge gold" title="Retrait en magasin">${ubIcon('bag')} Retrait</span>` : ''}${z.whatsappHandoff ? ` <span class="a-badge neutral" title="Renvoie vers WhatsApp après la commande">${ubIcon('whatsapp')} WhatsApp</span>` : ''}</td>
         <td>${ubFormatPrice(z.fee)}</td>
         <td>${z.active ? '<span class="a-badge success">Active</span>' : '<span class="a-badge neutral">Désactivée</span>'}</td>
         <td>
@@ -90,6 +94,7 @@ async function main() {
       document.getElementById('z-fee').value = z.fee;
       document.getElementById('z-order').value = z.sortOrder || 0;
       document.getElementById('z-active').checked = z.active !== false;
+      document.getElementById('z-pickup').checked = !!z.isPickup;
       document.getElementById('z-whatsapp').checked = !!z.whatsappHandoff;
     } else {
       document.getElementById('zone-modal-title').textContent = 'Ajouter une zone';
@@ -97,6 +102,7 @@ async function main() {
       document.getElementById('z-id').value = '';
       document.getElementById('z-order').value = zones.length;
       document.getElementById('z-active').checked = true;
+      document.getElementById('z-pickup').checked = false;
       document.getElementById('z-whatsapp').checked = false;
     }
     document.getElementById('zone-modal').classList.add('open');
@@ -112,6 +118,7 @@ async function main() {
       fee: Number(document.getElementById('z-fee').value),
       sortOrder: Number(document.getElementById('z-order').value) || 0,
       active: document.getElementById('z-active').checked,
+      isPickup: document.getElementById('z-pickup').checked,
       whatsappHandoff: document.getElementById('z-whatsapp').checked,
     };
     const ok = await ubAdminSaveZone(data);

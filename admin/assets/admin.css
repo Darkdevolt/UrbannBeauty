@@ -237,6 +237,8 @@ h1,h2,h3,h4 { font-family: 'Playfair Display', serif; margin: 0; color: var(--a-
 .a-badge.warning { background: var(--a-warning-bg); color: var(--a-warning); }
 .a-badge.danger { background: var(--a-danger-bg); color: var(--a-danger); }
 .a-badge.neutral { background: #f0edf4; color: var(--a-ink-soft); }
+.a-badge.gold { background: #f7ecd9; color: #8a6a2f; }
+.a-badge svg { width: 13px; height: 13px; }
 
 .a-actions-cell { display: flex; gap: 6px; }
 .a-icon-action {

@@ -103,8 +103,8 @@ async function main() {
           <p>${order.phone || '—'}</p>
         </div>
         <div>
-          <div class="receipt-section-title">Adresse de livraison</div>
-          <p>${order.address || '—'}</p>
+          <div class="receipt-section-title">${order.isPickup ? 'Retrait en magasin' : 'Adresse de livraison'}</div>
+          <p>${order.isPickup ? UB_CONTACT.pickupAddress : (order.address || '—')}</p>
         </div>
       </div>
 

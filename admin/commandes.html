@@ -106,7 +106,7 @@ async function main() {
     document.getElementById('orders-tbody').innerHTML = list.length ? list.map(o => `
       <tr>
         <td><strong>${o.id}</strong></td>
-        <td>${o.client}</td>
+        <td>${o.client}${o.isPickup ? ` <span title="Retrait en magasin" style="display:inline-flex;width:14px;height:14px;vertical-align:-3px;color:#8a6a2f">${ubIcon('bag')}</span>` : ''}</td>
         <td>${new Date(o.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
         <td>${ubOrderItemCount(o)} article${ubOrderItemCount(o) > 1 ? 's' : ''}${ubOrderHasClientInfo(o) ? ` <span title="Info fournie par la cliente" style="display:inline-flex;vertical-align:-3px;color:var(--a-mauve)">${ubIcon('camera')}</span>` : ''}</td>
         <td>${o.payment}</td>

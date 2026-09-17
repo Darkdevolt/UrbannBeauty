@@ -30,6 +30,8 @@ const UB_GUIDE_SITEMAP = [
     keywords: ['retour', 'retourner', 'echange', 'echanger', 'rembourser', 'remboursement'] },
   { title: 'Livraison', desc: 'Zones, délais et frais de livraison', href: 'infos.html#livraison',
     keywords: ['livraison', 'delai', 'frais de port', 'expedition', 'zone de livraison'] },
+  { title: 'Retrait en magasin', desc: 'Récupérer sa commande soi-même, gratuitement', href: 'infos.html#faq',
+    keywords: ['retrait', 'retrait en magasin', 'recuperer', 'venir chercher', 'magasin', 'point de retrait'] },
   { title: 'FAQ', desc: 'Questions fréquentes', href: 'infos.html#faq',
     keywords: ['faq', 'question', 'aide', 'renseignement'] },
   { title: 'Contact', desc: 'Nous écrire ou nous appeler', href: 'contact.html',

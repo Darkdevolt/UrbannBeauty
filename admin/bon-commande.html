@@ -25,7 +25,8 @@
   .prep-head .meta h2 { font: 700 1.15rem 'Space Mono', monospace; margin-bottom: 6px; color: #fff; }
   .prep-head .meta div { font-size: .8rem; color: #c9bba3; }
   .prep-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 26px; }
-  .prep-badge { font-size: .72rem; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: #3a3128; color: #e8a33d; }
+  .prep-badge { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: #3a3128; color: #e8a33d; }
+  .prep-badge svg { width: 13px; height: 13px; }
   .prep-section-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: #e8a33d; margin: 26px 0 12px; font-weight: 700; }
   .prep-section-title:first-of-type { margin-top: 0; }
   .prep-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; }
@@ -125,6 +126,7 @@ async function main() {
     </div>
 
     <div class="prep-badges">
+      ${order.isPickup ? `<span class="prep-badge" style="background:#f7ecd9;color:#8a6a2f">${ubIcon('bag')} Retrait en magasin</span>` : ''}
       <span class="prep-badge">Commande : ${STATUS[order.status] || order.status}</span>
       <span class="prep-badge">Livraison : ${DELIVERY[order.deliveryStatus] || 'À préparer'}</span>
       <span class="prep-badge">Paiement : ${PAYMENT[order.paymentStatus] || order.paymentStatus}</span>
@@ -139,7 +141,7 @@ async function main() {
         ${waLink ? `<a class="prep-wa" href="${waLink}" target="_blank" rel="noopener">${ubIcon('whatsapp')} Contacter sur WhatsApp</a>` : ''}
       </div>
       <div>
-        <p class="label">Adresse de livraison</p><p>${order.address || '—'}</p>
+        <p class="label">${order.isPickup ? 'Retrait en magasin' : 'Adresse de livraison'}</p><p>${order.isPickup ? (order.address || 'Retrait en magasin') : (order.address || '—')}</p>
         ${order.deliveryPerson ? `<p class="label" style="margin-top:10px">Livreur</p><p>${order.deliveryPerson}</p>` : ''}
         ${order.deliveryDate ? `<p class="label" style="margin-top:10px">Date de livraison prévue</p><p>${new Date(order.deliveryDate).toLocaleDateString('fr-FR')}</p>` : ''}
       </div>

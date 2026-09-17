@@ -170,12 +170,12 @@ async function ubAdminDeletePromoCode(id) {
 async function ubAdminGetZones() {
   const { data, error } = await ubSupabase.from('delivery_zones').select('*').order('sort_order', { ascending: true });
   if (error) { console.error('ubAdminGetZones', error); return []; }
-  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee, active: z.active, sortOrder: z.sort_order, whatsappHandoff: !!z.whatsapp_handoff }));
+  return data.map(z => ({ id: z.id, name: z.name, fee: z.fee, active: z.active, sortOrder: z.sort_order, whatsappHandoff: !!z.whatsapp_handoff, isPickup: !!z.is_pickup }));
 }
 async function ubAdminSaveZone(z) {
   const { error } = await ubSupabase.from('delivery_zones').upsert({
     id: z.id || undefined, name: z.name, fee: z.fee, active: z.active !== false, sort_order: z.sortOrder || 0,
-    whatsapp_handoff: !!z.whatsappHandoff,
+    whatsapp_handoff: !!z.whatsappHandoff, is_pickup: !!z.isPickup,
   });
   if (error) console.error('ubAdminSaveZone', error);
   return !error;
@@ -213,7 +213,7 @@ async function ubAdminGetOrders() {
     deliveryStatus: o.delivery_status, deliveryPerson: o.delivery_person, deliveryDate: o.delivery_date, deliveryNotes: o.delivery_notes,
     packagingItemId: o.packaging_item_id, packagingCost: o.packaging_cost,
     subtotal: o.subtotal, promoCode: o.promo_code, discountAmount: o.discount_amount, deliveryFee: o.delivery_fee,
-    orderTotal: o.order_total, depositAmount: o.deposit_amount, paymentProofPath: o.payment_proof_path,
+    orderTotal: o.order_total, depositAmount: o.deposit_amount, paymentProofPath: o.payment_proof_path, isPickup: !!o.is_pickup,
     items: (o.order_items || []).map(it => ({
       productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price, cost: it.unit_cost,
       clientNote: it.client_note || null, clientPhotoPath: it.client_photo_path || null,

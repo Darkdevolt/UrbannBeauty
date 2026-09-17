@@ -40,6 +40,7 @@
     <details><summary>Puis-je suivre ma commande ?</summary><p>Oui, notre équipe vous tient informé par téléphone ou WhatsApp à chaque étape, de la préparation à la livraison.</p></details>
     <details><summary>Puis-je retourner ou échanger un article ?</summary><p>Oui, sous 7 jours après réception, à condition que l'article soit non ouvert et dans son emballage d'origine. Contactez-nous pour lancer la démarche.</p></details>
     <details><summary>Livrez-vous en dehors de Dakar ?</summary><p>Oui, contactez-nous pour connaître les délais et frais de livraison vers votre région.</p></details>
+    <details><summary>Puis-je récupérer ma commande moi-même ?</summary><p>Oui : choisissez « Retrait en magasin » (gratuit) lors du paiement. Notre point de retrait se trouve à <span id="faq-pickup-address">Dakar Plateau, derrière l'Assemblée nationale</span> — nous vous contactons sur WhatsApp après votre commande pour convenir de l'heure.</p></details>
     <details><summary>Le code promo ne fonctionne pas, que faire ?</summary><p>Vérifiez qu'il est saisi sans espace ni faute de frappe. Si le problème persiste, contactez-nous via WhatsApp.</p></details>
   </div>
 </div></section>
@@ -49,6 +50,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script><script src="assets/js/ub-guide.js"></script>
 <script>
 ubRenderHeader('');ubRenderFooter();
+document.getElementById('faq-pickup-address').textContent = UB_CONTACT.pickupAddress;
 ubGetDeliveryZones().then(zones=>{
   document.getElementById('zone-list').innerHTML=zones.map(z=>`<div><span>${z.name}</span><strong>${z.fee===0?'Gratuit':ubFormatPrice(z.fee)}</strong></div>`).join('');
 });

@@ -50,7 +50,20 @@ function ubDepositAmount(total){
   return Math.ceil((total != null ? total : ubCurrentTotal()) * UB_DEPOSIT_RATE);
 }
 
+function ubSelectedZone(){
+  const id = document.getElementById('co-zone')?.value;
+  return currentZones.find(z => String(z.id) === id) || currentZones[0];
+}
+
 function ubRecalcSummary(){
+  const zone = ubSelectedZone();
+  const pickupHint = document.getElementById('pickup-hint');
+  const addressLabel = document.getElementById('address-label');
+  const addressInput = document.getElementById('co-address');
+  if(pickupHint) pickupHint.style.display = zone && zone.isPickup ? 'block' : 'none';
+  if(addressLabel) addressLabel.textContent = zone && zone.isPickup ? 'Précision (heure de passage souhaitée...)' : 'Adresse précise (quartier, repère...)';
+  if(addressInput) addressInput.placeholder = zone && zone.isPickup ? 'Ex : je passerai en fin de journée' : 'Ex : Villa 12, Cité Keur Gorgui';
+
   const discount = ubDiscountAmount();
   const shipping = (currentSubtotal - discount) >= 50000 ? 0 : ubCurrentZoneFee();
   const total = currentSubtotal - discount + shipping;
@@ -177,7 +190,7 @@ async function renderCart(){
     const noteBadge = needsNote ? `<button type="button" onclick="ubOpenNoteModal('${l.product.id}')" style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.72rem;border:1px solid ${hasNote?'var(--success)':'var(--mauve-300)'};color:${hasNote?'var(--success)':'var(--mauve-600)'};background:${hasNote?'rgba(76,154,106,.08)':'var(--mauve-50)'};padding:5px 10px;border-radius:999px;cursor:pointer">${hasNote?ubIcon('check'):ubIcon('camera')} ${hasNote?'Info fournie — modifier':'Info requise avant validation'}</button>` : '';
     return `<tr><td><a href="produit.html?id=${l.product.id}" class="cart-product"><img src="${l.product.img}" alt="${l.product.name}"><div><strong>${l.product.name}</strong><span>${catsById[l.product.category]?.name||''}</span></div></a>${noteBadge}</td><td>${ubFormatPrice(l.product.price)}</td><td><div class="qty-selector"><button onclick="ubUpdateLine('${l.product.id}',${l.qty-1})">−</button><span>${l.qty}</span><button onclick="ubUpdateLine('${l.product.id}',${l.qty+1})">+</button></div></td><td><strong>${ubFormatPrice(l.product.price*l.qty)}</strong></td><td><button class="remove-btn" aria-label="Supprimer" onclick="ubRemoveFromCart('${l.product.id}');renderCart();">${ubIcon('trash')}</button></td></tr>`;
   }).join('');
-  container.innerHTML=`<div class="cart-layout"><div><div class="cart-table-wrap"><table class="cart-table"><thead><tr><th>Produit</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th></tr></thead><tbody>${boxRowsHTML}${regularRowsHTML}</tbody></table></div><a href="boutique.html" style="display:inline-block;margin-top:18px;font-size:.82rem;color:var(--mauve-600)">← Continuer mes achats</a></div><div class="cart-summary"><h3>Récapitulatif</h3><div class="summary-row"><span>Sous-total</span><span>${ubFormatPrice(subtotal)}</span></div><div class="summary-row"><span>Livraison</span><span id="ship-value">${shipping===0?'Offerte':ubFormatPrice(shipping)}</span></div><p id="ship-hint" style="font-size:.72rem;color:${shipping>0?'var(--ink-soft)':'var(--success)'}">${shipping>0?'Livraison offerte dès 50 000 FCFA.':'Vous bénéficiez de la livraison offerte.'}</p><div class="summary-row" id="discount-row" style="display:none;color:var(--success)"><span>Réduction (<span id="discount-code-label"></span>)</span><span id="discount-value"></span></div><div class="coupon-row"><input type="text" id="co-promo" placeholder="Code promo" value="${appliedPromo?appliedPromo.code:''}"><button class="btn btn-outline btn-sm" onclick="ubApplyPromo()">Appliquer</button></div><p id="promo-msg" style="font-size:.72rem;margin:2px 0 0"></p><div class="summary-row total"><span>Total</span><span id="total-value">${ubFormatPrice(total)}</span></div><div class="deposit-box"><div class="summary-row"><span>Acompte obligatoire (20%)</span><strong id="deposit-value">${ubFormatPrice(ubDepositAmount(total))}</strong></div><div class="summary-row"><span>Solde restant</span><span id="remainder-value">${ubFormatPrice(total-ubDepositAmount(total))}</span></div><p style="font-size:.7rem;color:var(--ink-soft);margin:4px 0 0">Un acompte minimum de 20% est requis pour valider toute commande, y compris en paiement à la livraison.</p></div><div class="checkout-form"><div class="field"><label>Nom complet *</label><input id="co-name" type="text" placeholder="Votre nom"></div><div class="field"><label>Téléphone *</label><input id="co-phone" type="tel" placeholder="77 000 00 00"></div><div class="field"><label>Zone de livraison *</label><select id="co-zone" onchange="ubRecalcSummary()">${zones.map((z,i)=>`<option value="${z.id}" ${i===0?'selected':''}>${z.name} — ${z.fee===0?'Gratuit':ubFormatPrice(z.fee)}</option>`).join('')}</select></div><div class="field"><label>Adresse précise (quartier, repère...)</label><input id="co-address" type="text" placeholder="Ex : Villa 12, Cité Keur Gorgui"></div><div class="field"><label>Mode de paiement *</label><div class="payment-methods">${UB_PAYMENT_METHODS.map((m,i)=>`<label class="payment-option"><input type="radio" name="payment" value="${m}" ${i===0?'checked':''} onchange="ubTogglePaymentNote()"><span>${m}</span></label>`).join('')}</div><div id="wave-pay-note" class="wave-pay-note"></div></div><div id="checkout-error" class="checkout-error" style="display:none"></div></div><button class="btn btn-primary btn-block" style="margin-top:16px" id="checkout-submit" onclick="ubSubmitOrder()">Passer la commande</button><p style="font-size:.7rem;color:var(--ink-soft);text-align:center;margin-top:12px">Paiement sécurisé · Commande préparée avec soin</p></div></div>`;
+  container.innerHTML=`<div class="cart-layout"><div><div class="cart-table-wrap"><table class="cart-table"><thead><tr><th>Produit</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th></tr></thead><tbody>${boxRowsHTML}${regularRowsHTML}</tbody></table></div><a href="boutique.html" style="display:inline-block;margin-top:18px;font-size:.82rem;color:var(--mauve-600)">← Continuer mes achats</a></div><div class="cart-summary"><h3>Récapitulatif</h3><div class="summary-row"><span>Sous-total</span><span>${ubFormatPrice(subtotal)}</span></div><div class="summary-row"><span>Livraison</span><span id="ship-value">${shipping===0?'Offerte':ubFormatPrice(shipping)}</span></div><p id="ship-hint" style="font-size:.72rem;color:${shipping>0?'var(--ink-soft)':'var(--success)'}">${shipping>0?'Livraison offerte dès 50 000 FCFA.':'Vous bénéficiez de la livraison offerte.'}</p><div class="summary-row" id="discount-row" style="display:none;color:var(--success)"><span>Réduction (<span id="discount-code-label"></span>)</span><span id="discount-value"></span></div><div class="coupon-row"><input type="text" id="co-promo" placeholder="Code promo" value="${appliedPromo?appliedPromo.code:''}"><button class="btn btn-outline btn-sm" onclick="ubApplyPromo()">Appliquer</button></div><p id="promo-msg" style="font-size:.72rem;margin:2px 0 0"></p><div class="summary-row total"><span>Total</span><span id="total-value">${ubFormatPrice(total)}</span></div><div class="deposit-box"><div class="summary-row"><span>Acompte obligatoire (20%)</span><strong id="deposit-value">${ubFormatPrice(ubDepositAmount(total))}</strong></div><div class="summary-row"><span>Solde restant</span><span id="remainder-value">${ubFormatPrice(total-ubDepositAmount(total))}</span></div><p style="font-size:.7rem;color:var(--ink-soft);margin:4px 0 0">Un acompte minimum de 20% est requis pour valider toute commande, y compris en paiement à la livraison.</p></div><div class="checkout-form"><div class="field"><label>Nom complet *</label><input id="co-name" type="text" placeholder="Votre nom"></div><div class="field"><label>Téléphone *</label><input id="co-phone" type="tel" placeholder="77 000 00 00"></div><div class="field"><label>Zone de livraison *</label><select id="co-zone" onchange="ubRecalcSummary()">${zones.map((z,i)=>`<option value="${z.id}" ${i===0?'selected':''}>${z.name} — ${z.fee===0?'Gratuit':ubFormatPrice(z.fee)}</option>`).join('')}</select><p id="pickup-hint" style="display:none;font-size:.78rem;line-height:1.5;color:var(--mauve-700);background:var(--mauve-50);border-radius:var(--radius-sm);padding:8px 10px;margin:8px 0 0"><span style="display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-right:4px">${ubIcon('bag')}</span>Retrait gratuit à notre point de vente : <strong>${UB_CONTACT.pickupAddress}</strong>. Nous vous contacterons sur WhatsApp pour convenir de l'heure.</p></div><div class="field"><label id="address-label">Adresse précise (quartier, repère...)</label><input id="co-address" type="text" placeholder="Ex : Villa 12, Cité Keur Gorgui"></div><div class="field"><label>Mode de paiement *</label><div class="payment-methods">${UB_PAYMENT_METHODS.map((m,i)=>`<label class="payment-option"><input type="radio" name="payment" value="${m}" ${i===0?'checked':''} onchange="ubTogglePaymentNote()"><span>${m}</span></label>`).join('')}</div><div id="wave-pay-note" class="wave-pay-note"></div></div><div id="checkout-error" class="checkout-error" style="display:none"></div></div><button class="btn btn-primary btn-block" style="margin-top:16px" id="checkout-submit" onclick="ubSubmitOrder()">Passer la commande</button><p style="font-size:.7rem;color:var(--ink-soft);text-align:center;margin-top:12px">Paiement sécurisé · Commande préparée avec soin</p></div></div>`;
   ubTogglePaymentNote();
   ubRecalcSummary();
 }
@@ -295,15 +308,28 @@ async function ubSubmitOrder(){
 
   if(zone.whatsappHandoff){
     const itemsList = orderedLines.map(l=>`- ${l.product.name} x${l.qty}`).join('\n');
-    const waText = `Nouvelle commande ${result.orderId} — ${zone.name}\n`
-      + `Client : ${name}\n`
-      + `Téléphone : ${phone}\n`
-      + `Point de RDV / adresse : ${addressDetail || 'non précisé, à demander au client'}\n\n`
-      + `Articles :\n${itemsList}\n\n`
-      + `Montant total : ${ubFormatPrice(finalTotal)}\n`
-      + (payment==='Paiement à la livraison' ? `Acompte déjà réglé via Wave : ${ubFormatPrice(depositPaid)}\nSolde à récupérer à la livraison : ${ubFormatPrice(remainderDue)}` : `Montant déjà réglé via Wave : ${ubFormatPrice(finalTotal)}`);
+    const amountsBlock = payment==='Paiement à la livraison'
+      ? `Acompte déjà réglé via Wave : ${ubFormatPrice(depositPaid)}\nSolde à récupérer à la livraison : ${ubFormatPrice(remainderDue)}`
+      : `Montant déjà réglé via Wave : ${ubFormatPrice(finalTotal)}`;
+    const waText = zone.isPickup
+      ? `Nouvelle commande à RETIRER EN MAGASIN — ${result.orderId}\n`
+        + `Client : ${name}\n`
+        + `Téléphone : ${phone}\n\n`
+        + `Articles :\n${itemsList}\n\n`
+        + `Montant total : ${ubFormatPrice(finalTotal)}\n`
+        + amountsBlock
+      : `Nouvelle commande ${result.orderId} — ${zone.name}\n`
+        + `Client : ${name}\n`
+        + `Téléphone : ${phone}\n`
+        + `Point de RDV / adresse : ${addressDetail || 'non précisé, à demander au client'}\n\n`
+        + `Articles :\n${itemsList}\n\n`
+        + `Montant total : ${ubFormatPrice(finalTotal)}\n`
+        + amountsBlock;
     const waLink = `https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent(waText)}`;
-    document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée.${balanceNote}</p><p style="color:var(--ink-soft)">Ce mode de livraison (${zone.name}) est coordonné directement sur WhatsApp : continuez pour nous envoyer le récapitulatif et organiser la remise.</p><a href="${waLink}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;border-color:#25D366">${ubIcon('whatsapp')} Continuer sur WhatsApp</a><br><a href="boutique.html" style="display:inline-block;margin-top:14px;font-size:.82rem;color:var(--mauve-600)">Continuer mes achats</a></div>`;
+    const handoffMsg = zone.isPickup
+      ? `Vous pourrez venir récupérer votre commande à : <strong>${UB_CONTACT.pickupAddress}</strong>. Continuez pour nous prévenir sur WhatsApp et convenir de l'heure.`
+      : `Ce mode de livraison (${zone.name}) est coordonné directement sur WhatsApp : continuez pour nous envoyer le récapitulatif et organiser la remise.`;
+    document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée.${balanceNote}</p><p style="color:var(--ink-soft)">${handoffMsg}</p><a href="${waLink}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;border-color:#25D366">${ubIcon('whatsapp')} Continuer sur WhatsApp</a><br><a href="boutique.html" style="display:inline-block;margin-top:14px;font-size:.82rem;color:var(--mauve-600)">Continuer mes achats</a></div>`;
     window.open(waLink, '_blank');
     return;
   }
