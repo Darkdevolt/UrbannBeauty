@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mes favoris — Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css"><link rel="stylesheet" href="assets/css/cart-buttons.css">
+<link rel="icon" type="image/png" href="https://tbowuuxvjaadawhmpumr.supabase.co/storage/v1/object/public/media/logo.png"></head><body>
+<div id="site-header"></div>
+<div class="breadcrumb"><div class="container"><a href="index.html">Accueil</a><span>/</span><span>Mes favoris</span></div></div>
+<section style="padding-top:48px"><div class="container">
+  <div class="catalog-head"><div><span class="eyebrow">Votre liste d'envies</span><h2>Mes favoris</h2><p>Gardés sur cet appareil, sans compte à créer.</p></div><div id="wish-actions" style="display:flex;gap:10px;flex-wrap:wrap"></div></div>
+  <div class="product-grid shop-product-grid" id="wish-grid"></div>
+</div></section>
+<section class="ub-recent-strip" id="recent-section" style="background:var(--off-white);display:none"><div class="container"><div class="section-head" style="text-align:left;margin-bottom:26px"><span class="eyebrow">Votre parcours</span><h2 style="margin:0">Vus récemment</h2></div><div class="product-grid" id="recent-grid"></div></div></section>
+<div id="site-footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script><script src="assets/js/ub-guide.js"></script>
+<script>
+async function main() {
+  ubRenderHeader('');
+  ubRenderFooter();
+  const [products, categories] = await Promise.all([ubGetAllProducts(), ubGetAllCategories()]);
+  const byId = Object.fromEntries(products.map(p => [p.id, p])), catsById = ubCatsById(categories);
+
+  function render() {
+    const wished = ubGetWishlist().map(id => byId[id]).filter(Boolean);
+    const inStock = wished.filter(p => p.stock > 0);
+    document.getElementById('wish-grid').innerHTML = wished.length
+      ? wished.map(p => ubProductCardHTML(p, catsById)).join('')
+      : `<div class="shop-empty" style="grid-column:1/-1"><span>♡</span><h3>Aucun favori pour l'instant</h3><p>Touchez le cœur sur un produit pour le retrouver ici.</p><a class="btn btn-primary" href="boutique.html">Explorer la boutique</a></div>`;
+    document.getElementById('wish-actions').innerHTML = inStock.length
+      ? `<button class="btn btn-primary" type="button" id="add-all">${ubIcon('bag')} Tout ajouter au panier (${inStock.length})</button>
+         <a class="btn btn-outline" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('Ma liste d\'envies Urbann Beauty 💜\n' + wished.map(p => `- ${p.name} (${ubFormatPrice(p.price)}) : ${new URL('produit.html?id=' + p.id, location.href).href}`).join('\n'))}">${ubIcon('whatsapp')} Partager ma liste</a>`
+      : '';
+    const addAll = document.getElementById('add-all');
+    if (addAll) addAll.addEventListener('click', () => {
+      inStock.forEach(p => ubAddToCart(p.id, 1, { silent: true }));
+      ubOpenCartDrawer();
+    });
+    const recent = ubGetRecentlyViewed().map(id => byId[id]).filter(p => p && !ubIsWished(p.id)).slice(0, 4);
+    document.getElementById('recent-section').style.display = recent.length ? '' : 'none';
+    document.getElementById('recent-grid').innerHTML = recent.map(p => ubProductCardHTML(p, catsById)).join('');
+    ubInitReveal();
+  }
+  render();
+  /* Retirer un favori depuis cette page le fait disparaitre de la grille. */
+  document.getElementById('wish-grid').addEventListener('click', e => { if (e.target.closest('[data-wish]')) setTimeout(render, 0); });
+}
+main();
+</script></body></html>

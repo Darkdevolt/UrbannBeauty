@@ -112,5 +112,15 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
     });
   });
 });
+
+/* Lien direct depuis la confirmation de commande ou un message WhatsApp :
+   suivi.html?order=CMD-...&phone=77... affiche le statut sans rien ressaisir. */
+(function () {
+  const params = new URLSearchParams(location.search);
+  const order = params.get('order'), phone = params.get('phone') || (ubStore('ub_customer', {}).phone || '');
+  if (order) document.getElementById('tf-order').value = order;
+  if (phone) document.getElementById('tf-phone').value = phone;
+  if (order && phone) document.getElementById('track-form').requestSubmit();
+})();
 </script>
 </body></html>

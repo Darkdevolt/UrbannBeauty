@@ -75,6 +75,9 @@
 <!-- NEW ARRIVALS -->
 <section class="ub-new-section"><div class="container"><div class="ub-section-split-head"><div><span class="eyebrow">Fraîchement arrivé</span><h2>Les dernières <em>pépites</em></h2></div><a href="boutique.html">Découvrir les nouveautés <b>→</b></a></div><div class="product-grid" id="new-grid"></div></div></section>
 
+<!-- RECENTLY VIEWED -->
+<section class="ub-recent-strip" id="recent-section" style="display:none;padding-top:0"><div class="container"><div class="ub-section-split-head"><div><span class="eyebrow">Reprenez où vous en étiez</span><h2>Vus <em>récemment</em></h2></div><a href="favoris.html">Mes favoris <b>→</b></a></div><div class="product-grid" id="recent-grid"></div></div></section>
+
 <!-- TESTIMONIALS -->
 <section class="ub-testimonials"><div class="container"><div class="section-head"><span class="eyebrow">Avis clients</span><h2>Elles nous font <em>confiance</em></h2><p>Plus de 2 300 avis vérifiés partagés par notre communauté.</p></div><div class="testi-grid" id="testi-grid"></div></div></section>
 
@@ -106,6 +109,9 @@ async function main() {
   const newArrivals=products.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4);
   document.getElementById('new-grid').innerHTML=newArrivals.length?newArrivals.map(p=>ubProductCardHTML(p,catsById)).join(''):`<div class="ub-grid-empty">${ubIcon('bag')}<p>De nouvelles pépites arrivent très bientôt.</p><a href="boutique.html" class="btn btn-outline btn-sm">Voir la boutique</a></div>`;
   document.getElementById('testi-grid').innerHTML=testimonials.map(t=>ubTestimonialCardHTML(t)).join('');
+  const productsById=Object.fromEntries(products.map(p=>[p.id,p]));
+  const recent=ubGetRecentlyViewed().map(id=>productsById[id]).filter(Boolean).slice(0,4);
+  if(recent.length){document.getElementById('recent-section').style.display='';document.getElementById('recent-grid').innerHTML=recent.map(p=>ubProductCardHTML(p,catsById)).join('');ubInitReveal();}
   document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=ubIcon(el.dataset.icon));
   document.getElementById('newsletter-form-home').addEventListener('submit', async (e) => {
     e.preventDefault();

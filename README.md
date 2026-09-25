@@ -45,6 +45,24 @@ npx serve .
 
 Connexion admin de démo : `admin@urbannbeauty.com` / `demo1234` (champs pré-remplis sur `/admin`).
 
+## Outils de conversion
+
+**Site public**
+- **Mini-panier latéral** à chaque ajout (au lieu d'une simple notification) : quantités, barre « livraison offerte », suggestions pour compléter la routine.
+- **Checkout en 3 étapes visibles** (Sélection → Coordonnées → Paiement) sur une seule page, avec coordonnées mémorisées sur l'appareil, guide de paiement Wave pas-à-pas, barre de validation collante sur mobile et aide WhatsApp contextuelle.
+- **Confirmation de commande** avec récapitulatif envoyable sur WhatsApp et lien direct de suivi (`suivi.html?order=…&phone=…`).
+- **Fiche produit** : « Acheter maintenant », barre d'achat collante, lot « Souvent achetés ensemble », urgence stock réelle, bouton « Me prévenir » sur WhatsApp pour les produits épuisés.
+- **Favoris** (`favoris.html`, sans compte) et **produits vus récemment** (accueil, fiche produit).
+- Filtres de la boutique enfin accessibles sur mobile, tri « Promotions d'abord », produits épuisés relégués en fin de liste.
+
+**Admin**
+- **Paniers abandonnés** (`admin/relances.html`) : chaque cliente qui laisse son nom/téléphone au panier sans commander apparaît ici après 45 min, avec relance WhatsApp en un clic (modèles prêts). Passage automatique en « Converti » dès qu'elle commande avec le même numéro.
+- **Clientes (CRM)** : regroupement par téléphone, segments (VIP, fidèles, nouvelles, à réactiver, solde à encaisser), fiche cliente avec historique, produits préférés, notes et étiquettes internes.
+- **Modèles WhatsApp** sur les commandes (reçue, paiement validé, en livraison, prête au retrait, livrée + demande d'avis…), proposés automatiquement après chaque changement de statut ou validation de paiement.
+- **Tableau de bord** : bloc « À traiter maintenant » et **entonnoir de conversion** (visites → produit vu → panier → coordonnées → commande) avec le point de blocage prioritaire.
+
+Tables Supabase associées : `cart_sessions`, `site_events` (anonyme, aucune donnée personnelle), `customer_notes`.
+
 ## Palette
 
 Blanc dominant avec touches de mauve (`--mauve-500: #8e56bd`) et accent doré discret, typographie Playfair Display (titres) + Poppins (texte).

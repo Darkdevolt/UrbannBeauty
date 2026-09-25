@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clients — Admin Urbann Beauty</title>
+<title>Clientes — Admin Urbann Beauty</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/admin.css">
@@ -11,6 +11,8 @@
 <body>
 
 <div class="admin-shell" id="admin-shell"></div>
+<div class="a-side-panel-overlay" id="panel-overlay"></div>
+<aside class="a-side-panel" id="client-panel" aria-label="Fiche cliente"></aside>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../assets/js/icons.js"></script>
@@ -18,73 +20,220 @@
 <script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
+const UB_VIP_THRESHOLD = 100000;
+const UB_REACTIVATE_DAYS = 60;
 let clients = [];
-let searchQ = '';
+let notes = {};
+let promo = null;
+let productsById = {};
+let state = { q: '', seg: 'all', sort: 'total' };
+
+const SEGMENTS = {
+  vip: { label: 'VIP', cls: 'success', test: c => c.total >= UB_VIP_THRESHOLD || c.activeOrders >= 4 },
+  fidele: { label: 'Fidèle', cls: 'neutral', test: c => c.activeOrders >= 2 },
+  nouvelle: { label: 'Nouvelle', cls: 'neutral', test: c => c.activeOrders === 1 && c.daysSinceLast <= UB_REACTIVATE_DAYS },
+  reactiver: { label: 'À réactiver', cls: 'warning', test: c => c.activeOrders >= 1 && c.daysSinceLast > UB_REACTIVATE_DAYS },
+  impayes: { label: 'Solde à encaisser', cls: 'danger', test: c => c.unpaid > 0 },
+};
+function mainSegment(c) {
+  if (SEGMENTS.vip.test(c)) return 'vip';
+  if (SEGMENTS.reactiver.test(c)) return 'reactiver';
+  if (SEGMENTS.fidele.test(c)) return 'fidele';
+  if (SEGMENTS.nouvelle.test(c)) return 'nouvelle';
+  return null;
+}
 
 async function main() {
   if (!(await ubAdminGuard())) return;
-  await ubAdminRenderShell('clients', 'Clients', 'Retrouvez toutes les clientes ayant commandé sur votre boutique, et identifiez vos meilleures clientes');
+  await ubAdminRenderShell('clients', 'Clientes (CRM)', 'Chaque cliente, son historique, ses préférences et les bons messages WhatsApp au bon moment');
 
-  const [orders, products] = await Promise.all([ubAdminGetOrders(), ubAdminGetProducts()]);
-  const productsById = ubProductsById(products);
-  const clientsMap = {};
-  orders.forEach(o => {
-    if (!clientsMap[o.client]) clientsMap[o.client] = { name: o.client, phone: o.phone, orders: 0, total: 0, lastDate: o.date };
+  const [orders, products, notesMap, promos] = await Promise.all([ubAdminGetOrders(), ubAdminGetProducts(), ubAdminGetCustomerNotes(), ubAdminGetPromoCodes()]);
+  productsById = ubProductsById(products);
+  notes = notesMap;
+  promo = promos.find(p => p.active) || null;
+
+  const map = {};
+  orders.slice().sort((a, b) => new Date(a.createdAt || a.date) - new Date(b.createdAt || b.date)).forEach(o => {
+    const key = ubPhoneKey(ubDecodeHtml(o.phone)) || 'nom:' + ubNormalize(o.client);
+    const c = map[key] || (map[key] = { key, name: o.client, phone: o.phone, orders: [], activeOrders: 0, total: 0, unpaid: 0, firstDate: o.date, lastDate: o.date, products: {} });
+    c.name = o.client; // le nom le plus recent l'emporte
+    c.orders.push(o);
+    if (new Date(o.date) > new Date(c.lastDate)) c.lastDate = o.date;
     if (o.status !== 'annulee') {
-      clientsMap[o.client].orders += 1;
-      clientsMap[o.client].total += ubOrderTotal(o, productsById);
+      const amount = ubOrderGrandTotal(o) ?? ubOrderTotal(o, productsById);
+      c.activeOrders += 1;
+      c.total += amount;
+      /* Seul le paiement a la livraison laisse un solde (acompte de 20% deja regle). */
+      if (o.paymentStatus !== 'paye' && ubDecodeHtml(o.payment) === 'Paiement à la livraison') c.unpaid += Math.max(0, amount - (o.depositAmount || 0));
+      ubOrderLines(o, productsById).forEach(l => { c.products[l.name] = (c.products[l.name] || 0) + l.qty; });
     }
-    if (new Date(o.date) > new Date(clientsMap[o.client].lastDate)) clientsMap[o.client].lastDate = o.date;
+    if (o.address) c.zone = o.address.split(',')[0].trim();
   });
-  clients = Object.values(clientsMap).sort((a, b) => b.total - a.total);
+  clients = Object.values(map).map(c => ({
+    ...c,
+    avg: c.activeOrders ? Math.round(c.total / c.activeOrders) : 0,
+    daysSinceLast: Math.floor((Date.now() - new Date(c.lastDate).getTime()) / 86400000),
+  }));
   renderContent();
+}
 
-  function renderContent() {
-    document.getElementById('a-content').innerHTML = `
-      <div class="a-toolbar">
-        <div class="a-search">${ubIcon('search')}<input type="text" id="search-input" placeholder="Rechercher une cliente..."></div>
+function renderContent() {
+  const buyers = clients.filter(c => c.activeOrders > 0);
+  const repeat = buyers.filter(c => c.activeOrders >= 2).length;
+  const counts = Object.fromEntries(Object.entries(SEGMENTS).map(([k, s]) => [k, clients.filter(s.test).length]));
+  document.getElementById('a-content').innerHTML = `
+    <div class="a-stats-grid">
+      <div class="a-panel a-stat-card"><div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('users')}</div><div class="value">${buyers.length}</div><div class="label">Clientes ayant acheté</div></div>
+      <div class="a-panel a-stat-card"><div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('heart')}</div><div class="value">${buyers.length ? Math.round(repeat / buyers.length * 100) : 0}%</div><div class="label">Taux de réachat (2 commandes et +)</div></div>
+      <div class="a-panel a-stat-card"><div class="icon" style="background:#fbf1e3;color:#c98a3e">${ubIcon('chart')}</div><div class="value">${ubFormatPrice(buyers.length ? Math.round(buyers.reduce((s, c) => s + c.total, 0) / buyers.length) : 0)}</div><div class="label">Valeur moyenne par cliente</div></div>
+      <div class="a-panel a-stat-card"><div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('clock')}</div><div class="value">${counts.reactiver}</div><div class="label">À réactiver (+${UB_REACTIVATE_DAYS} jours sans achat)</div></div>
+    </div>
+    <div class="a-seg-chips">
+      <button type="button" class="a-seg-chip ${state.seg === 'all' ? 'active' : ''}" data-seg="all">Toutes <b>${clients.length}</b></button>
+      ${Object.entries(SEGMENTS).map(([k, s]) => `<button type="button" class="a-seg-chip ${state.seg === k ? 'active' : ''}" data-seg="${k}">${s.label} <b>${counts[k]}</b></button>`).join('')}
+    </div>
+    <div class="a-toolbar">
+      <div class="a-search">${ubIcon('search')}<input type="text" id="search-input" placeholder="Nom, téléphone ou étiquette..." value="${ubEscapeHtml(state.q)}"></div>
+      <div class="a-filters">
+        <select class="a-select" id="sort-select">
+          <option value="total" ${state.sort === 'total' ? 'selected' : ''}>Trier : total dépensé</option>
+          <option value="recent" ${state.sort === 'recent' ? 'selected' : ''}>Trier : commande la plus récente</option>
+          <option value="orders" ${state.sort === 'orders' ? 'selected' : ''}>Trier : nombre de commandes</option>
+          <option value="oldest" ${state.sort === 'oldest' ? 'selected' : ''}>Trier : inactives depuis longtemps</option>
+        </select>
         <button class="a-btn a-btn-outline" onclick="ubExportClients()">${ubIcon('upload')} Exporter (Excel/CSV)</button>
       </div>
-      <div class="a-panel">
-        <div class="a-table-wrap">
-          <table class="a-table">
-            <thead><tr><th>Cliente</th><th>Téléphone</th><th>Commandes</th><th>Panier moyen</th><th>Total dépensé</th><th>Dernière commande</th><th>Statut</th></tr></thead>
-            <tbody id="clients-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    `;
-    document.getElementById('search-input').addEventListener('input', e => { searchQ = ubNormalize(e.target.value); renderTable(); });
-    renderTable();
-  }
-
-  function renderTable() {
-    const list = clients.filter(c => ubNormalize(c.name).includes(searchQ));
-    document.getElementById('clients-tbody').innerHTML = list.length ? list.map(c => `
-      <tr>
-        <td>
-          <div class="a-prod-cell">
-            <div class="avatar" style="width:38px;height:38px;border-radius:50%;background:var(--a-mauve-light);color:var(--a-mauve);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem">${c.name.split(' ').map(n=>n[0]).join('')}</div>
-            <div><strong>${c.name}</strong></div>
-          </div>
-        </td>
-        <td>${c.phone || '—'}</td>
-        <td>${c.orders} commande${c.orders > 1 ? 's' : ''}</td>
-        <td>${ubFormatPrice(c.orders ? Math.round(c.total / c.orders) : 0)}</td>
-        <td><strong>${ubFormatPrice(c.total)}</strong></td>
-        <td>${new Date(c.lastDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-        <td>${c.total > 80000 ? '<span class="a-badge success">VIP</span>' : '<span class="a-badge neutral">Régulière</span>'}</td>
-      </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('users')}<p>Aucune cliente ne correspond à votre recherche.</p></div></td></tr>`;
-  }
-
-  window.ubExportClients = function () {
-    const headers = ['Cliente', 'Téléphone', 'Nombre de commandes', 'Panier moyen (FCFA)', 'Total dépensé (FCFA)', 'Dernière commande', 'Statut'];
-    const rows = clients.map(c => [
-      c.name, c.phone || '', c.orders, c.orders ? Math.round(c.total / c.orders) : 0, c.total, c.lastDate, c.total > 80000 ? 'VIP' : 'Régulière',
-    ]);
-    ubExportCSV('urbann-beauty-clients.csv', headers, rows);
-  };
+    </div>
+    <div class="a-panel"><div class="a-table-wrap"><table class="a-table">
+      <thead><tr><th>Cliente</th><th>Téléphone</th><th>Commandes</th><th>Total dépensé</th><th>Panier moyen</th><th>Dernière commande</th><th>Segment</th><th>Actions</th></tr></thead>
+      <tbody id="clients-tbody"></tbody>
+    </table></div></div>`;
+  document.querySelectorAll('[data-seg]').forEach(b => b.addEventListener('click', () => { state.seg = b.dataset.seg; renderContent(); }));
+  document.getElementById('search-input').addEventListener('input', e => { state.q = e.target.value; renderTable(); });
+  document.getElementById('sort-select').addEventListener('change', e => { state.sort = e.target.value; renderTable(); });
+  renderTable();
 }
+
+function filtered() {
+  const q = ubNormalize(state.q), qDigits = q.replace(/\D/g, '');
+  const sorters = {
+    total: (a, b) => b.total - a.total,
+    recent: (a, b) => new Date(b.lastDate) - new Date(a.lastDate),
+    orders: (a, b) => b.activeOrders - a.activeOrders,
+    oldest: (a, b) => b.daysSinceLast - a.daysSinceLast,
+  };
+  return clients.filter(c => {
+    if (state.seg !== 'all' && !SEGMENTS[state.seg].test(c)) return false;
+    if (!q) return true;
+    const tags = (notes[c.key]?.tags || []).join(' ');
+    return ubNormalize(ubDecodeHtml(c.name)).includes(q) || ubNormalize(tags).includes(q) || (qDigits && c.key.includes(qDigits));
+  }).sort(sorters[state.sort]);
+}
+
+function renderTable() {
+  const list = filtered();
+  document.getElementById('clients-tbody').innerHTML = list.length ? list.map(c => {
+    const seg = mainSegment(c);
+    const tags = notes[c.key]?.tags || [];
+    return `<tr class="is-clickable" onclick="ubOpenClient('${c.key}')">
+      <td><div class="a-prod-cell"><div style="width:38px;height:38px;border-radius:50%;background:var(--a-mauve-light);color:var(--a-mauve);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0">${ubDecodeHtml(c.name).split(' ').filter(Boolean).slice(0, 2).map(n => ubEscapeHtml(n[0].toUpperCase())).join('')}</div><div><strong>${c.name}</strong><div>${tags.map(t => `<span class="a-tag">${ubEscapeHtml(t)}</span>`).join('')}${c.zone ? `<span style="font-size:.7rem;color:var(--a-ink-soft)">${c.zone}</span>` : ''}</div></div></div></td>
+      <td>${c.phone || '—'}</td>
+      <td>${c.activeOrders} commande${c.activeOrders > 1 ? 's' : ''}</td>
+      <td><strong>${ubFormatPrice(c.total)}</strong>${c.unpaid > 0 ? `<div style="font-size:.68rem;color:var(--a-danger)">${ubFormatPrice(c.unpaid)} à encaisser</div>` : ''}</td>
+      <td>${ubFormatPrice(c.avg)}</td>
+      <td>${new Date(c.lastDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}<div style="font-size:.68rem;color:var(--a-ink-soft)">${c.daysSinceLast === 0 ? "aujourd'hui" : `il y a ${c.daysSinceLast} j`}</div></td>
+      <td>${seg ? `<span class="a-badge ${SEGMENTS[seg].cls}">${SEGMENTS[seg].label}</span>` : '<span class="a-badge neutral">—</span>'}</td>
+      <td onclick="event.stopPropagation()"><div class="a-actions-cell">
+        ${c.phone ? `<button class="a-icon-action" style="color:#25D366" title="Message WhatsApp" onclick="ubClientWa('${c.key}')">${ubIcon('whatsapp')}</button>` : ''}
+        <button class="a-icon-action" title="Ouvrir la fiche" onclick="ubOpenClient('${c.key}')">${ubIcon('users')}</button>
+      </div></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8"><div class="empty-state">${ubIcon('users')}<p>Aucune cliente ne correspond.</p></div></td></tr>`;
+}
+
+window.ubClientWa = function (key) {
+  const c = clients.find(x => x.key === key);
+  if (!c) return;
+  ubOpenWaComposer({ title: `Message à ${ubDecodeHtml(c.name)}`, phone: ubDecodeHtml(c.phone), templates: ubClientWaTemplates(c, promo) });
+};
+
+const ORDER_STATUS_LABEL = { en_attente: 'En attente', en_cours: 'En cours', livree: 'Livrée', annulee: 'Annulée' };
+window.ubOpenClient = function (key) {
+  const c = clients.find(x => x.key === key);
+  if (!c) return;
+  const n = notes[key] || { note: '', tags: [] };
+  let tags = [...n.tags];
+  const panel = document.getElementById('client-panel'), overlay = document.getElementById('panel-overlay');
+  const favs = Object.entries(c.products).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const seg = mainSegment(c);
+  panel.innerHTML = `
+    <div class="a-side-panel-head">
+      <div style="flex:1;min-width:0"><h3 style="margin:0;font-size:1.15rem">${c.name}</h3><div style="font-size:.78rem;color:var(--a-ink-soft)">${c.phone || ''}${c.zone ? ' · ' + c.zone : ''} ${seg ? `<span class="a-badge ${SEGMENTS[seg].cls}" style="margin-left:6px">${SEGMENTS[seg].label}</span>` : ''}</div></div>
+      <button class="a-modal-close" type="button" onclick="ubCloseClient()">${ubIcon('close')}</button>
+    </div>
+    <div class="a-side-panel-body">
+      <div class="a-kpi-row">
+        <div><span>Total dépensé</span><strong>${ubFormatPrice(c.total)}</strong></div>
+        <div><span>Commandes</span><strong>${c.activeOrders}</strong></div>
+        <div><span>Panier moyen</span><strong>${ubFormatPrice(c.avg)}</strong></div>
+        <div><span>Cliente depuis</span><strong>${new Date(c.firstDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}</strong></div>
+        <div><span>Dernier achat</span><strong>il y a ${c.daysSinceLast} j</strong></div>
+        <div><span>À encaisser</span><strong style="color:${c.unpaid > 0 ? 'var(--a-danger)' : 'inherit'}">${ubFormatPrice(c.unpaid)}</strong></div>
+      </div>
+      ${c.phone ? `<div><div style="font-size:.78rem;font-weight:600;margin-bottom:8px">Envoyer un message</div><div class="a-wa-chips">${ubClientWaTemplates(c, promo).map((t, i) => `<button type="button" class="a-wa-chip" data-tpl="${i}">${t.label}</button>`).join('')}</div></div>` : ''}
+      <div>
+        <div style="font-size:.78rem;font-weight:600;margin-bottom:8px">Étiquettes</div>
+        <div id="tag-list"></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><input id="tag-input" class="a-select" style="flex:1" placeholder="Ex : peau sèche, teinte 5N, préfère le retrait..." list="tag-suggestions"><button class="a-btn a-btn-outline a-btn-sm" type="button" id="tag-add">Ajouter</button></div>
+        <datalist id="tag-suggestions">${['Peau sèche', 'Peau grasse', 'Peau mixte', 'Peau sensible', 'Préfère le retrait', 'Revendeuse', 'Influenceuse', 'Paie toujours en totalité', 'À rappeler'].map(t => `<option value="${t}">`).join('')}</datalist>
+      </div>
+      <div>
+        <div style="font-size:.78rem;font-weight:600;margin-bottom:8px">Notes internes</div>
+        <textarea id="note-input" rows="4" style="width:100%;border:1px solid var(--a-line);border-radius:12px;padding:10px 12px;font:inherit;font-size:.82rem;resize:vertical" placeholder="Préférences, teinte, anniversaire, remarques de livraison...">${ubEscapeHtml(n.note)}</textarea>
+        <button class="a-btn a-btn-primary a-btn-sm" type="button" id="note-save" style="margin-top:8px">Enregistrer la fiche</button>
+      </div>
+      ${favs.length ? `<div><div style="font-size:.78rem;font-weight:600;margin-bottom:8px">Produits préférés</div><div class="a-mini-list">${favs.map(([name, q]) => `<div><span>${ubEscapeHtml(name)}</span><strong>× ${q}</strong></div>`).join('')}</div></div>` : ''}
+      <div><div style="font-size:.78rem;font-weight:600;margin-bottom:8px">Historique des commandes</div><div class="a-mini-list">${c.orders.slice().reverse().map(o => `<div><span><strong>${o.id}</strong><br><small style="color:var(--a-ink-soft)">${new Date(o.date).toLocaleDateString('fr-FR')} · ${ubOrderItemCount(o)} article(s) · ${ORDER_STATUS_LABEL[o.status] || o.status}</small></span><span style="text-align:right"><strong>${ubFormatPrice(ubOrderGrandTotal(o) ?? ubOrderTotal(o, productsById))}</strong><br><a href="recu.html?id=${o.id}" target="_blank" style="font-size:.72rem;color:var(--a-mauve)">Reçu</a></span></div>`).join('')}</div></div>
+    </div>`;
+  const renderTags = () => {
+    document.getElementById('tag-list').innerHTML = tags.length ? tags.map((t, i) => `<span class="a-tag">${ubEscapeHtml(t)} <button type="button" data-rm="${i}" aria-label="Retirer">×</button></span>`).join('') : '<span style="font-size:.74rem;color:var(--a-ink-soft)">Aucune étiquette</span>';
+    document.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { tags.splice(+b.dataset.rm, 1); renderTags(); }));
+  };
+  renderTags();
+  const addTag = () => { const v = document.getElementById('tag-input').value.trim(); if (v && !tags.includes(v)) tags.push(v); document.getElementById('tag-input').value = ''; renderTags(); };
+  document.getElementById('tag-add').addEventListener('click', addTag);
+  document.getElementById('tag-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } });
+  document.getElementById('note-save').addEventListener('click', async () => {
+    const note = document.getElementById('note-input').value.trim();
+    if (document.getElementById('tag-input').value.trim()) addTag();
+    if (!(await ubAdminSaveCustomerNote(key, note, tags))) return ubAToast("Erreur lors de l'enregistrement");
+    notes[key] = { note, tags: [...tags] };
+    ubAToast('Fiche cliente enregistrée');
+    renderTable();
+  });
+  const templates = ubClientWaTemplates(c, promo);
+  panel.querySelectorAll('[data-tpl]').forEach(b => b.addEventListener('click', () => {
+    const t = templates[+b.dataset.tpl];
+    ubOpenWaComposer({ title: `Message à ${ubDecodeHtml(c.name)}`, phone: ubDecodeHtml(c.phone), templates: [t, ...templates.filter(x => x !== t)] });
+  }));
+  overlay.classList.add('open');
+  panel.classList.add('open');
+  overlay.onclick = ubCloseClient;
+};
+window.ubCloseClient = function () {
+  document.getElementById('client-panel').classList.remove('open');
+  document.getElementById('panel-overlay').classList.remove('open');
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') ubCloseClient(); });
+
+window.ubExportClients = function () {
+  const headers = ['Cliente', 'Téléphone', 'Zone', 'Nombre de commandes', 'Panier moyen (FCFA)', 'Total dépensé (FCFA)', 'Solde à encaisser (FCFA)', 'Dernière commande', 'Segment', 'Étiquettes', 'Notes'];
+  const rows = filtered().map(c => {
+    const seg = mainSegment(c);
+    return [ubDecodeHtml(c.name), ubDecodeHtml(c.phone), ubDecodeHtml(c.zone || ''), c.activeOrders, c.avg, c.total, c.unpaid, c.lastDate, seg ? SEGMENTS[seg].label : '', (notes[c.key]?.tags || []).join(', '), notes[c.key]?.note || ''];
+  });
+  ubExportCSV('urbann-beauty-clientes.csv', headers, rows);
+};
 main();
 </script>
 </body>

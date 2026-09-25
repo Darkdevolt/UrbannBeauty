@@ -135,12 +135,23 @@ async function main() {
         <td><a class="a-icon-action" style="display:inline-flex" href="recu.html?id=${o.id}" target="_blank" title="Voir / imprimer le reçu">${ubIcon('receipt')}</a> <a class="a-icon-action" style="display:inline-flex" href="bon-commande.html?id=${o.id}" target="_blank" title="Voir / imprimer le bon de commande (préparation)">${ubIcon('orders')}</a></td>
         <td>
           <div class="a-actions-cell">
-            <a class="a-icon-action" style="color:#25D366" href="${ubWhatsAppOrderUpdateLink(o, UB_ORDER_STATUS_MSG[o.status])}" target="_blank" rel="noopener" title="Envoyer une mise à jour sur WhatsApp">${ubIcon('whatsapp')}</a>
+            <button class="a-icon-action" style="color:#25D366" type="button" onclick="ubOrderWa('${o.id}')" title="Message WhatsApp (modèles prêts à envoyer)">${ubIcon('whatsapp')}</button>
             <button class="a-icon-action" onclick="ubDeleteOrder('${o.id}')" title="Supprimer définitivement cette commande">${ubIcon('trash')}</button>
           </div>
         </td>
       </tr>`).join('') : `<tr><td colspan="11"><div class="empty-state">${ubIcon('orders')}<p>Aucune commande ne correspond à votre recherche.</p></div></td></tr>`;
   }
+
+  window.ubOrderWa = function (id) {
+    const o = orders.find(x => x.id === id);
+    if (!o) return;
+    const templates = ubOrderWaTemplates(o);
+    /* Le modele le plus probable selon l'etape de la commande est propose en premier. */
+    const preferred = { en_attente: 'Commande reçue', en_cours: o.isPickup ? 'Prête au retrait' : 'En livraison', livree: 'Livrée + avis', annulee: 'Annulation' }[o.status];
+    if (o.status === 'en_attente' && o.paymentStatus === 'paye') templates.unshift(...templates.splice(templates.findIndex(t => t.label === 'Paiement validé'), 1));
+    else if (preferred) templates.unshift(...templates.splice(templates.findIndex(t => t.label === preferred), 1));
+    ubOpenWaComposer({ title: `Commande ${o.id} — ${ubDecodeHtml(o.client)}`, phone: ubDecodeHtml(o.phone), templates });
+  };
 
   window.ubUpdateStatus = async function (id, status) {
     const o = orders.find(x => x.id === id);
@@ -150,6 +161,10 @@ async function main() {
     o.status = status;
     ubAToast(`Statut de ${id} mis à jour`);
     renderContent();
+    ubAdminRefreshAlerts();
+    /* Enchainement automatique : le message WhatsApp correspondant au nouveau statut
+       est pret a partir, il suffit de valider (ou d'annuler). */
+    if (o.phone) ubOrderWa(id);
   };
   window.ubUpdatePayment = async function (id, paymentStatus) {
     const o = orders.find(x => x.id === id);
@@ -159,6 +174,11 @@ async function main() {
     o.paymentStatus = paymentStatus;
     ubAToast(`Paiement de ${id} mis à jour`);
     renderContent();
+    if (paymentStatus === 'paye' && o.phone && o.status !== 'annulee') {
+      const templates = ubOrderWaTemplates(o);
+      templates.unshift(...templates.splice(templates.findIndex(t => t.label === 'Paiement validé'), 1));
+      ubOpenWaComposer({ title: `Paiement validé — ${o.id}`, phone: ubDecodeHtml(o.phone), templates });
+    }
   };
 
   window.ubSetPackaging = async function (orderId, packagingItemId) {

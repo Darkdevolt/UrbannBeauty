@@ -517,16 +517,21 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
   const nav = [
     { group: 'Général' },
     { href: 'dashboard.html', key: 'dashboard', label: 'Tableau de bord', icon: 'dashboard' },
-    { group: 'Boutique' },
+    { group: 'Ventes & clientes' },
+    { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders', badge: 'orders' },
+    { href: 'relances.html', key: 'relances', label: 'Paniers abandonnés', icon: 'bag', badge: 'carts' },
+    { href: 'clients.html', key: 'clients', label: 'Clientes (CRM)', icon: 'users' },
+    { href: 'livraison.html', key: 'livraison', label: 'Livraisons', icon: 'truck' },
+    { href: 'retours.html', key: 'retours', label: 'Retours', icon: 'return' },
+    { group: 'Catalogue' },
     { href: 'produits.html', key: 'produits', label: 'Produits & Stock', icon: 'box' },
     { href: 'categories.html', key: 'categories', label: 'Catégories', icon: 'filter' },
-    { href: 'media.html', key: 'media', label: 'Médiathèque', icon: 'image' },
-    { href: 'commandes.html', key: 'commandes', label: 'Commandes & Ventes', icon: 'orders' },
     { href: 'box-cadeau.html', key: 'boxcadeau', label: 'Box Cadeau', icon: 'box' },
+    { href: 'media.html', key: 'media', label: 'Médiathèque', icon: 'image' },
+    { group: 'Marketing' },
     { href: 'promotions.html', key: 'promotions', label: 'Promotions', icon: 'chart' },
     { href: 'avis.html', key: 'avis', label: 'Avis clients', icon: 'heart' },
     { href: 'messages.html', key: 'messages', label: 'Messages & Newsletter', icon: 'mail' },
-    { href: 'clients.html', key: 'clients', label: 'Clients', icon: 'users' },
     { group: 'Comptabilite' },
     { href: 'finances.html', key: 'finances', label: 'Finances', icon: 'chart' },
     { href: 'fournisseurs.html', key: 'fournisseurs', label: 'Fournisseurs', icon: 'truck' },
@@ -541,7 +546,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
       <nav class="a-nav">
         ${nav.map(n => n.group
           ? `<div class="group-label">${n.group}</div>`
-          : `<a href="${n.href}" class="${n.key === active ? 'active' : ''}">${ubIcon(n.icon)} ${n.label}</a>`
+          : `<a href="${n.href}" class="${n.key === active ? 'active' : ''}">${ubIcon(n.icon)} ${n.label}${n.badge ? `<span class="a-nav-badge" data-nav-badge="${n.badge}" style="display:none"></span>` : ''}</a>`
         ).join('')}
       </nav>
       <div class="a-sidebar-footer">
@@ -567,7 +572,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
           <div style="position:relative">
             <button class="a-icon-btn" id="a-bell-btn">${ubIcon('bell')}<span class="dot" id="a-bell-dot" style="display:none"></span></button>
             <div id="a-bell-panel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:300px;background:#fff;border:1px solid var(--a-line);border-radius:14px;box-shadow:0 14px 34px rgba(46,25,67,.14);padding:14px;z-index:200">
-              <strong style="font-size:.86rem">Alertes stock faible</strong>
+              <strong style="font-size:.86rem">À traiter</strong>
               <div id="a-bell-list" style="margin-top:10px;display:grid;gap:8px;max-height:280px;overflow-y:auto"></div>
             </div>
           </div>
@@ -580,16 +585,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
 
   ubApplyLogo(document.getElementById('a-brand-logo'));
 
-  ubAdminGetProducts().then(products => {
-    const low = products.filter(p => p.stock <= 5).sort((a, b) => a.stock - b.stock);
-    const dot = document.getElementById('a-bell-dot');
-    const list = document.getElementById('a-bell-list');
-    if (!dot || !list) return;
-    if (low.length) { dot.style.display = 'block'; dot.textContent = ''; }
-    list.innerHTML = low.length
-      ? low.map(p => `<a href="produits.html" style="display:flex;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--a-ink);text-decoration:none"><span>${p.name}</span><strong style="color:${p.stock === 0 ? 'var(--a-danger)' : 'var(--a-warning)'}">${p.stock} en stock</strong></a>`).join('')
-      : `<p style="font-size:.8rem;color:var(--a-ink-soft);margin:0">Aucune alerte — tous les stocks sont corrects.</p>`;
-  });
+  ubAdminRefreshAlerts();
   const bellBtn = document.getElementById('a-bell-btn');
   const bellPanel = document.getElementById('a-bell-panel');
   if (bellBtn && bellPanel) {
@@ -690,4 +686,180 @@ async function ubQuickPromo(id, products, onSaved) {
   await ubAdminSaveProduct(p);
   ubAToast('Promotion mise à jour pour ' + p.name);
   if (onSaved) onSaved();
+}
+
+/* ============================================
+   RELATION CLIENTE & CONVERSION
+   ============================================ */
+
+/* Cle cliente stable : 9 derniers chiffres du telephone (77 123 45 67, +221771234567
+   et 00221 77... designent la meme personne). */
+function ubPhoneKey(phone) {
+  return String(phone || '').replace(/\D/g, '').slice(-9);
+}
+function ubSiteUrl(path) {
+  return new URL('../' + (path || ''), location.href).href;
+}
+function ubTimeAgo(date) {
+  const s = Math.max(0, (Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 3600) return `il y a ${Math.max(1, Math.round(s / 60))} min`;
+  if (s < 86400) return `il y a ${Math.round(s / 3600)} h`;
+  const d = Math.round(s / 86400);
+  return `il y a ${d} jour${d > 1 ? 's' : ''}`;
+}
+
+/* ---------- Paniers abandonnes ---------- */
+async function ubAdminGetCartSessions(days = 30) {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { data, error } = await ubSupabase.from('cart_sessions').select('*').gte('updated_at', since).order('updated_at', { ascending: false });
+  if (error) { console.error('ubAdminGetCartSessions', error); return []; }
+  return data.map(c => ({
+    id: c.id, client: ubEscapeHtml(c.client_name || ''), rawName: c.client_name || '', phone: ubEscapeHtml(c.phone || ''), rawPhone: c.phone || '',
+    zone: ubEscapeHtml(c.zone || ''), items: (c.items || []).map(i => ({ ...i, name: ubEscapeHtml(i.name || '') })), itemCount: c.item_count, value: c.cart_value,
+    step: c.step, status: c.status, orderId: c.order_id, relanceCount: c.relance_count, lastRelanceAt: c.last_relance_at,
+    createdAt: c.created_at, updatedAt: c.updated_at,
+  }));
+}
+async function ubAdminUpdateCartSession(id, patch) {
+  const { error } = await ubSupabase.from('cart_sessions').update(patch).eq('id', id);
+  if (error) console.error('ubAdminUpdateCartSession', error);
+  return !error;
+}
+async function ubAdminDeleteCartSession(id) {
+  const { error } = await ubSupabase.from('cart_sessions').delete().eq('id', id);
+  return !error;
+}
+/* Un panier est "abandonne" s'il n'a pas bouge depuis 45 min sans commande. */
+function ubCartIsAbandoned(c) {
+  return c.status !== 'converti' && c.status !== 'perdu' && (Date.now() - new Date(c.updatedAt).getTime()) > 45 * 60000;
+}
+
+/* ---------- Fiche cliente (notes & etiquettes) ---------- */
+async function ubAdminGetCustomerNotes() {
+  const { data, error } = await ubSupabase.from('customer_notes').select('*');
+  if (error) { console.error('ubAdminGetCustomerNotes', error); return {}; }
+  return Object.fromEntries(data.map(n => [n.phone_key, { note: n.note || '', tags: n.tags || [] }]));
+}
+async function ubAdminSaveCustomerNote(phoneKey, note, tags) {
+  const { error } = await ubSupabase.from('customer_notes').upsert({ phone_key: phoneKey, note: note || null, tags: tags || [], updated_at: new Date().toISOString() });
+  if (error) console.error('ubAdminSaveCustomerNote', error);
+  return !error;
+}
+
+/* ---------- Entonnoir de conversion ---------- */
+async function ubAdminGetFunnel(days = 30) {
+  const { data, error } = await ubSupabase.rpc('ub_funnel_stats', { p_days: days });
+  if (error) { console.error('ubAdminGetFunnel', error); return null; }
+  return data;
+}
+
+/* ---------- Modeles de messages WhatsApp ----------
+   Messages prets a l'emploi, pre-remplis avec le prenom, le numero de commande, les
+   montants et un lien de suivi : un clic ouvre WhatsApp avec le texte, il n'y a plus
+   qu'a appuyer sur Envoyer. */
+function ubFirstName(name) { return String(name || '').trim().split(/\s+/)[0] || ''; }
+function ubDecodeHtml(s) { const t = document.createElement('textarea'); t.innerHTML = s || ''; return t.value; }
+function ubOrderWaTemplates(order) {
+  const first = ubFirstName(ubDecodeHtml(order.client));
+  const hi = `Bonjour ${first} 💜`;
+  const total = order.orderTotal != null ? ubFormatPrice(order.orderTotal) : '';
+  const remainder = order.orderTotal != null && order.depositAmount != null && order.payment && ubDecodeHtml(order.payment) === 'Paiement à la livraison'
+    ? order.orderTotal - order.depositAmount : 0;
+  const track = ubSiteUrl(`suivi.html?order=${encodeURIComponent(order.id)}&phone=${encodeURIComponent(ubDecodeHtml(order.phone))}`);
+  return [
+    { label: 'Commande reçue', text: `${hi}\nNous avons bien reçu votre commande ${order.id}${total ? ` (${total})` : ''}. Nous vérifions votre paiement Wave et revenons vers vous très vite.\nMerci pour votre confiance !` },
+    { label: 'Paiement validé', text: `${hi}\nVotre paiement est validé ✅ Votre commande ${order.id} est en préparation.\nSuivez-la ici : ${track}` },
+    { label: 'Paiement à vérifier', text: `${hi}\nNous n'arrivons pas à retrouver le paiement Wave de votre commande ${order.id}. Pouvez-vous nous renvoyer la capture de la transaction ? Merci !` },
+    order.isPickup
+      ? { label: 'Prête au retrait', text: `${hi}\nVotre commande ${order.id} est prête ! Vous pouvez la récupérer à : ${UB_CONTACT.pickupAddress}.${remainder > 0 ? `\nSolde à régler sur place : ${ubFormatPrice(remainder)}.` : ''}\nÀ quelle heure passez-vous ?` }
+      : { label: 'En livraison', text: `${hi}\nVotre commande ${order.id} est en route 🚚${order.deliveryPerson ? ` avec ${order.deliveryPerson}` : ''}.${remainder > 0 ? `\nMerci de prévoir ${ubFormatPrice(remainder)} pour le solde.` : ''}\nSuivi : ${track}` },
+    { label: 'Livrée + avis', text: `${hi}\nVotre commande ${order.id} a bien été livrée, merci ! 🙏\nVotre avis nous aide énormément : il suffit d'un clic sur « Laisser un avis » ici : ${track}` },
+    { label: 'Annulation', text: `${hi}\nVotre commande ${order.id} a été annulée. N'hésitez pas à nous écrire si vous avez la moindre question.` },
+  ];
+}
+function ubCartWaTemplates(cart, promo) {
+  const first = ubFirstName(cart.rawName);
+  const hi = `Bonjour${first ? ' ' + first : ''} 💜 C'est Urbann Beauty.`;
+  const list = cart.items.slice(0, 5).map(i => `- ${ubDecodeHtml(i.name)}${i.qty > 1 ? ` x${i.qty}` : ''}`).join('\n');
+  const link = ubSiteUrl('panier.html');
+  const tpl = [
+    { label: 'Relance douce', text: `${hi}\nVous avez laissé ces articles dans votre panier :\n${list}\nBesoin d'aide pour finaliser ? Je peux répondre à vos questions ou vous les mettre de côté.\n${link}` },
+    { label: 'Aide au paiement', text: `${hi}\nJ'ai vu que vous étiez à l'étape du paiement. Pour info, vous pouvez régler seulement 20% d'acompte sur Wave et le reste à la livraison. Voulez-vous que je vous guide ?` },
+    { label: 'Stock limité', text: `${hi}\nPetit message : il reste peu de pièces sur ${ubDecodeHtml(cart.items[0]?.name || 'votre sélection')}. Voulez-vous que je vous le réserve jusqu'à ce soir ?` },
+  ];
+  if (promo) tpl.push({ label: `Code -${promo.percent}%`, text: `${hi}\nPour finaliser votre panier, profitez de -${promo.percent}% avec le code ${promo.code} 🎁\n${list}\n${link}` });
+  return tpl;
+}
+function ubClientWaTemplates(client, promo) {
+  const first = ubFirstName(ubDecodeHtml(client.name));
+  const hi = `Bonjour ${first} 💜`;
+  const tpl = [
+    { label: 'Remerciement', text: `${hi}\nMerci pour votre fidélité chez Urbann Beauty ! Si vous avez besoin d'un conseil beauté, je suis là.` },
+    { label: 'Nouveautés', text: `${hi}\nDe nouvelles pépites viennent d'arriver chez Urbann Beauty ✨ Découvrez-les ici : ${ubSiteUrl('boutique.html')}` },
+    { label: 'On vous a manqué ?', text: `${hi}\nCela fait un moment ! Votre routine a-t-elle besoin d'être complétée ? Voici nos best-sellers du moment : ${ubSiteUrl('boutique.html')}` },
+    { label: 'Demande d\'avis', text: `${hi}\nComment trouvez-vous vos produits ? Votre avis nous aide beaucoup, vous pouvez le laisser ici avec votre numéro de commande : ${ubSiteUrl('suivi.html')}` },
+  ];
+  if (promo) tpl.push({ label: `Offre -${promo.percent}%`, text: `${hi}\nRien que pour vous : -${promo.percent}% avec le code ${promo.code} sur ${ubSiteUrl('boutique.html')} 🎁` });
+  return tpl;
+}
+
+/* Fenetre de composition : choix du modele, texte modifiable, ouverture de WhatsApp. */
+function ubOpenWaComposer({ title, phone, templates, onSent }) {
+  let overlay = document.getElementById('a-wa-composer');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'a-modal-overlay';
+    overlay.id = 'a-wa-composer';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  }
+  overlay.innerHTML = `<div class="a-modal" style="max-width:560px">
+    <div class="a-modal-head"><h3 style="display:flex;align-items:center;gap:8px"><span style="color:#25D366;display:inline-flex;width:20px">${ubIcon('whatsapp')}</span> ${title || 'Message WhatsApp'}</h3><button class="a-modal-close" type="button">${ubIcon('close')}</button></div>
+    <div class="a-modal-body">
+      <div style="font-size:.78rem;color:var(--a-ink-soft);margin-bottom:10px">Destinataire : <strong>${ubEscapeHtml(phone)}</strong> · choisissez un modèle puis ajustez si besoin</div>
+      <div class="a-wa-chips">${templates.map((t, i) => `<button type="button" class="a-wa-chip ${i === 0 ? 'active' : ''}" data-i="${i}">${t.label}</button>`).join('')}</div>
+      <textarea id="a-wa-text" rows="8" style="width:100%;margin-top:12px;border:1px solid var(--a-line);border-radius:12px;padding:12px;font:inherit;font-size:.84rem;resize:vertical">${ubEscapeHtml(templates[0]?.text || '')}</textarea>
+    </div>
+    <div class="a-modal-foot"><button class="a-btn a-btn-outline" type="button" data-close>Annuler</button><button class="a-btn" type="button" id="a-wa-send" style="background:#25D366;color:#fff">${ubIcon('whatsapp')} Ouvrir dans WhatsApp</button></div>
+  </div>`;
+  overlay.classList.add('open');
+  const close = () => overlay.classList.remove('open');
+  overlay.querySelector('.a-modal-close').onclick = close;
+  overlay.querySelector('[data-close]').onclick = close;
+  overlay.querySelectorAll('.a-wa-chip').forEach(b => b.addEventListener('click', () => {
+    overlay.querySelectorAll('.a-wa-chip').forEach(x => x.classList.toggle('active', x === b));
+    document.getElementById('a-wa-text').value = templates[+b.dataset.i].text;
+  }));
+  document.getElementById('a-wa-send').onclick = () => {
+    const text = document.getElementById('a-wa-text').value;
+    window.open(`https://wa.me/${ubPhoneToWhatsAppNumber(ubDecodeHtml(phone))}?text=${encodeURIComponent(text)}`, '_blank');
+    close();
+    if (onSent) onSent();
+  };
+}
+
+/* ---------- Alertes (cloche + pastilles du menu) ---------- */
+async function ubAdminRefreshAlerts() {
+  const since = new Date(Date.now() - 7 * 86400000).toISOString();
+  const [products, pendingRes, cartsRes] = await Promise.all([
+    ubAdminGetProducts(),
+    ubSupabase.from('orders').select('id, client_name, created_at', { count: 'exact' }).eq('status', 'en_attente').order('created_at', { ascending: false }).limit(5),
+    ubSupabase.from('cart_sessions').select('id, client_name, cart_value, updated_at, status, phone').in('status', ['ouvert']).not('phone', 'is', null).gte('updated_at', since).order('updated_at', { ascending: false }),
+  ]);
+  const low = products.filter(p => p.stock <= 5).sort((a, b) => a.stock - b.stock);
+  const pending = pendingRes.data || [];
+  const pendingCount = pendingRes.count || 0;
+  const carts = (cartsRes.data || []).filter(c => Date.now() - new Date(c.updated_at).getTime() > 45 * 60000);
+  const setBadge = (key, n) => document.querySelectorAll(`[data-nav-badge="${key}"]`).forEach(el => { el.textContent = n; el.style.display = n ? '' : 'none'; });
+  setBadge('orders', pendingCount);
+  setBadge('carts', carts.length);
+  const dot = document.getElementById('a-bell-dot'), list = document.getElementById('a-bell-list');
+  if (!dot || !list) return;
+  dot.style.display = (low.length || pendingCount || carts.length) ? 'block' : 'none';
+  const section = (title, rows) => rows.length ? `<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--a-ink-soft);margin-top:6px">${title}</div>${rows.join('')}` : '';
+  const row = (href, left, right, color) => `<a href="${href}" style="display:flex;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--a-ink);text-decoration:none"><span>${left}</span><strong style="color:${color};white-space:nowrap">${right}</strong></a>`;
+  const html = section(`Commandes en attente (${pendingCount})`, pending.map(o => row('commandes.html', ubEscapeHtml(o.client_name), o.id, 'var(--a-mauve)')))
+    + section(`Paniers à relancer (${carts.length})`, carts.slice(0, 5).map(c => row('relances.html', ubEscapeHtml(c.client_name || c.phone), ubFormatPrice(c.cart_value), 'var(--a-warning)')))
+    + section('Stock faible', low.slice(0, 6).map(p => row('produits.html', ubEscapeHtml(p.name), `${p.stock} en stock`, p.stock === 0 ? 'var(--a-danger)' : 'var(--a-warning)')));
+  list.innerHTML = html || `<p style="font-size:.8rem;color:var(--a-ink-soft);margin:0">Rien à traiter pour le moment 🎉</p>`;
 }
