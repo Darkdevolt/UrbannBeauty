@@ -368,3 +368,97 @@ h1,h2,h3,h4 { font-family: 'Playfair Display', serif; margin: 0; color: var(--a-
   .a-funnel-row { grid-template-columns: 1fr; gap: 4px; }
   .a-kpi-row { grid-template-columns: 1fr 1fr; }
 }
+
+/* ============================================
+   ADMIN MOBILE — echelle, en-tete, tableaux en cartes
+   ============================================ */
+@media (max-width: 700px) {
+  html, body { overflow-x: hidden; }
+  .a-main { min-width: 0; width: 100%; }
+  .a-content { padding: 16px 12px 40px !important; }
+
+  /* En-tete compact : titre sur une ligne, sous-titre masque */
+  .a-topbar { padding: 10px 12px !important; gap: 8px; position: sticky; top: 0; z-index: 150; }
+  .a-topbar > div:first-child { min-width: 0; gap: 10px !important; }
+  .a-topbar h1 { font-size: 1.05rem !important; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; }
+  .a-topbar .sub { display: none; }
+  .a-topbar-actions { gap: 6px !important; flex-shrink: 0; }
+  .a-topbar-actions > a.a-btn { display: none; }
+  .a-icon-btn { width: 36px !important; height: 36px !important; }
+  #a-bell-panel { position: fixed !important; left: 12px; right: 12px !important; top: 58px !important; width: auto !important; }
+
+  /* Statistiques : 2 par ligne, format compact */
+  .a-stats-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; gap: 10px !important; margin-bottom: 16px !important; }
+  .a-stat-card { padding: 14px !important; }
+  .a-stat-card .icon { width: 32px !important; height: 32px !important; border-radius: 9px !important; margin-bottom: 8px !important; }
+  .a-stat-card .icon svg { width: 16px !important; height: 16px !important; }
+  .a-stat-card .value { font-size: 1.1rem !important; line-height: 1.2; word-break: break-word; }
+  .a-stat-card .label { font-size: .7rem !important; line-height: 1.3; }
+  .a-stat-card .a-trend { font-size: .66rem !important; }
+
+  /* Panneaux */
+  .a-panel { border-radius: 14px !important; }
+  .a-panel-head { padding: 14px !important; flex-wrap: wrap; gap: 8px; }
+  .a-panel-head h3 { font-size: 1rem !important; }
+  .a-panel-body { padding: 14px !important; }
+  .a-grid-2, .a-grid-3 { gap: 14px !important; }
+
+  /* Barre d'outils : recherche pleine largeur, filtres qui se partagent la ligne */
+  .a-toolbar { flex-direction: column; align-items: stretch !important; gap: 10px !important; }
+  .a-search { width: 100% !important; max-width: none !important; min-width: 0 !important; }
+  .a-search input { width: 100%; min-width: 0; }
+  .a-filters { display: flex; flex-wrap: wrap; gap: 8px !important; width: 100%; }
+  .a-filters > * { flex: 1 1 140px; min-width: 0; }
+  .a-select { max-width: 100%; min-width: 0; }
+  .a-seg-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
+  .a-seg-chip { flex-shrink: 0; }
+
+  /* Tableaux -> cartes */
+  .a-table-wrap { overflow: visible !important; }
+  .a-table-wrap::before, .a-table-wrap::after { display: none; }
+  .a-table, .a-table tbody, .a-table tr, .a-table td { display: block; width: 100%; }
+  .a-table { min-width: 0 !important; }
+  .a-table thead { display: none; }
+  .a-table tbody { padding: 10px; display: grid; gap: 10px; }
+  .a-table tr { background: #fff; border: 1px solid var(--a-line); border-radius: 12px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(69,37,99,.04); }
+  .a-table td { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px 8px; padding: 8px 0 !important; border-bottom: 1px dashed var(--a-line) !important; font-size: .82rem !important; text-align: right; min-width: 0; }
+  .a-table td:last-child { border-bottom: 0 !important; }
+  .a-table td::before { content: attr(data-label); flex-shrink: 0; max-width: 45%; margin-right: auto; text-align: left; font-size: .66rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--a-ink-soft); }
+  .a-table td[data-label=""]::before, .a-table td:not([data-label])::before { display: none; }
+  .a-table td > * { min-width: 0; }
+  .a-table td:first-child { justify-content: flex-start; text-align: left; font-size: .9rem !important; border-bottom: 1px solid var(--a-line) !important; padding-top: 6px !important; }
+  .a-table td:first-child::before { display: none; }
+  .a-table td.a-cell-full { display: block; text-align: center; border: 0 !important; }
+  .a-table td.a-cell-full::before { display: none; }
+  .a-table tr:has(td.a-cell-full) { border: 0; box-shadow: none; background: transparent; }
+  .a-table td .a-select { max-width: 60%; font-size: .76rem !important; }
+  .a-table td .a-actions-cell { justify-content: flex-end; flex-wrap: wrap; }
+  .a-table tr.is-clickable:hover td { background: transparent; }
+  .a-prod-cell { min-width: 0; }
+  .a-prod-cell img { width: 44px !important; height: 44px !important; }
+
+  /* Fenetres et panneau lateral plein ecran */
+  .a-modal-overlay { padding: 0 !important; align-items: flex-end !important; }
+  .a-modal { max-height: 92vh !important; border-radius: 18px 18px 0 0 !important; }
+  .a-modal-head, .a-modal-body, .a-modal-foot { padding-left: 16px !important; padding-right: 16px !important; }
+  .a-modal-foot { flex-wrap: wrap; }
+  .a-modal-foot .a-btn { flex: 1 1 auto; justify-content: center; }
+  .a-side-panel-head { padding: 14px 16px; }
+  .a-side-panel-body { padding: 16px 16px 40px; }
+
+  /* Graphiques et listes */
+  .chart-bars { gap: 6px; height: 160px; }
+  .chart-bars .bar-col { min-width: 22px; }
+  .a-todo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; gap: 8px; }
+  .a-todo a { flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; }
+  .a-todo .n { font-size: 1.3rem; }
+  .a-todo strong { font-size: .8rem; line-height: 1.25; }
+  .a-todo small { font-size: .66rem; }
+  .a-form-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .a-btn { white-space: normal; }
+}
+.a-mobile-only { display: none !important; }
+@media (max-width: 700px) {
+  .a-mobile-only { display: flex !important; justify-content: center; }
+  .a-sidebar.open { box-shadow: 0 0 0 100vmax rgba(46,25,67,.45); }
+}

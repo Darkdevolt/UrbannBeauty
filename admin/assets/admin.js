@@ -550,6 +550,7 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
         ).join('')}
       </nav>
       <div class="a-sidebar-footer">
+        <a href="../index.html" target="_blank" class="a-btn a-btn-sm a-btn-block a-mobile-only" style="background:rgba(255,255,255,.1);color:#fff;margin-bottom:8px">Voir le site</a>
         <a href="https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent('Bonjour, j\'ai besoin d\'aide sur mon espace admin Urbann Beauty.')}" target="_blank" rel="noopener" class="a-btn a-btn-sm a-btn-block" style="background:#25D366;color:#fff;margin-bottom:10px">${ubIcon('whatsapp')} Assistance WhatsApp</a>
         <div class="a-user-chip">
           <div class="avatar">UB</div>
@@ -597,7 +598,9 @@ async function ubAdminRenderShell(active, pageTitle, pageSub) {
   const sidebar = document.getElementById('a-sidebar');
   if (window.innerWidth <= 980) burger.style.display = 'flex';
   window.addEventListener('resize', () => { burger.style.display = window.innerWidth <= 980 ? 'flex' : 'none'; });
-  burger.addEventListener('click', () => sidebar.classList.toggle('open'));
+  burger.addEventListener('click', (e) => { e.stopPropagation(); sidebar.classList.toggle('open'); });
+  /* Sur mobile, toucher en dehors du menu le referme. */
+  document.addEventListener('click', (e) => { if (sidebar.classList.contains('open') && !sidebar.contains(e.target)) sidebar.classList.remove('open'); });
 
   const content = document.getElementById('a-content');
   if (content) {
@@ -621,6 +624,24 @@ function ubWireTableScrollShadow(wrap) {
 }
 function ubInitTableScrollShadows(scope) {
   (scope || document).querySelectorAll('.a-table-wrap').forEach(ubWireTableScrollShadow);
+  ubLabelTableCells(scope);
+}
+/* Sur mobile, les tableaux s'affichent en cartes (voir admin.css) : chaque cellule
+   recoit le titre de sa colonne pour rester lisible sans l'en-tete du tableau. */
+function ubLabelTableCells(scope) {
+  (scope || document).querySelectorAll('table.a-table').forEach(table => {
+    const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    if (!heads.length) return;
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      let col = 0;
+      [...tr.children].forEach(td => {
+        const span = +td.getAttribute('colspan') || 1;
+        if (span > 1) td.classList.add('a-cell-full');
+        else if (td.dataset.label !== heads[col]) td.dataset.label = heads[col] || '';
+        col += span;
+      });
+    });
+  });
 }
 
 function ubStockBadge(stock) {
