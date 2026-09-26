@@ -39,6 +39,7 @@ async function ubAdminSaveProduct(p) {
     image_url: p.img, video_url: p.video || null, gallery_images: p.gallery || [], updated_at: new Date().toISOString(),
     shade_hex: p.shadeHex || null, shade_label: p.shadeLabel || null,
     requires_client_note: !!p.requiresClientNote, client_note_prompt: p.requiresClientNote ? (p.clientNotePrompt || null) : null,
+    shade_options: p.shadeOptions || [], requires_photo: !!p.requiresPhoto,
   });
   if (error) console.error('ubAdminSaveProduct', error);
   return !error;
@@ -204,7 +205,7 @@ async function ubAdminGetNewsletterSubscribers() {
 
 /* ---------- Commandes ---------- */
 async function ubAdminGetOrders() {
-  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty, product_name, unit_price, unit_cost, client_note, client_photo_path)').order('order_date', { ascending: false });
+  const { data, error } = await ubSupabase.from('orders').select('*, order_items(product_id, qty, product_name, unit_price, unit_cost, client_note, client_photo_path, shade_name, shade_hex)').order('order_date', { ascending: false });
   if (error) { console.error('ubAdminGetOrders', error); return []; }
   return data.map(o => ({
     id: o.id, client: ubEscapeHtml(o.client_name), phone: ubEscapeHtml(o.phone), address: ubEscapeHtml(o.address), date: o.order_date,
@@ -217,6 +218,7 @@ async function ubAdminGetOrders() {
     items: (o.order_items || []).map(it => ({
       productId: it.product_id, qty: it.qty, name: it.product_name, price: it.unit_price, cost: it.unit_cost,
       clientNote: it.client_note || null, clientPhotoPath: it.client_photo_path || null,
+      shadeName: it.shade_name ? ubEscapeHtml(it.shade_name) : null, shadeHex: /^#[0-9a-f]{3,8}$/i.test(it.shade_hex || '') ? it.shade_hex : null,
     })),
   }));
 }
@@ -310,11 +312,12 @@ function ubOrderLines(order, productsById) {
       price: l.price != null ? l.price : (p ? p.price : 0),
       cost: l.cost != null ? l.cost : (p ? p.costPrice : 0) || 0,
       clientNote: l.clientNote || null, clientPhotoPath: l.clientPhotoPath || null,
+      shadeName: l.shadeName || null, shadeHex: l.shadeHex || null,
     };
   });
 }
 function ubOrderHasClientInfo(order) {
-  return order.items.some(l => l.clientNote || l.clientPhotoPath);
+  return order.items.some(l => l.clientNote || l.clientPhotoPath || l.shadeName);
 }
 /* Le bucket "client-uploads" est prive (photos personnelles des clientes) : on ne
    stocke que le chemin en base, et on genere une URL signee temporaire a l'affichage,
@@ -882,5 +885,5 @@ async function ubAdminRefreshAlerts() {
   const html = section(`Commandes en attente (${pendingCount})`, pending.map(o => row('commandes.html', ubEscapeHtml(o.client_name), o.id, 'var(--a-mauve)')))
     + section(`Paniers à relancer (${carts.length})`, carts.slice(0, 5).map(c => row('relances.html', ubEscapeHtml(c.client_name || c.phone), ubFormatPrice(c.cart_value), 'var(--a-warning)')))
     + section('Stock faible', low.slice(0, 6).map(p => row('produits.html', ubEscapeHtml(p.name), `${p.stock} en stock`, p.stock === 0 ? 'var(--a-danger)' : 'var(--a-warning)')));
-  list.innerHTML = html || `<p style="font-size:.8rem;color:var(--a-ink-soft);margin:0">Rien à traiter pour le moment 🎉</p>`;
+  list.innerHTML = html || `<p style="font-size:.8rem;color:var(--a-ink-soft);margin:0">Rien à traiter pour le moment.</p>`;
 }

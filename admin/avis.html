@@ -186,7 +186,7 @@ async function main() {
     const url = await ubUploadImage(file, 'testimonials');
     if (!url) { ubAToast('Échec de l\'envoi'); document.getElementById('t-avatar-preview').innerHTML = ''; return; }
     currentAvatar = url;
-    document.getElementById('t-avatar-preview').innerHTML = `<div class="item"><img src="${url}"><button type="button" onclick="event.stopPropagation();currentAvatar=null;document.getElementById('t-avatar-preview').innerHTML=''">✕</button></div>`;
+    document.getElementById('t-avatar-preview').innerHTML = `<div class="item"><img src="${url}"><button type="button" onclick="event.stopPropagation();currentAvatar=null;document.getElementById('t-avatar-preview').innerHTML=''">${ubIcon('close')}</button></div>`;
   });
   document.getElementById('t-shot-input').addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) return;
@@ -194,7 +194,7 @@ async function main() {
     const url = await ubUploadImage(file, 'testimonials');
     if (!url) { ubAToast('Échec de l\'envoi'); document.getElementById('t-shot-preview').innerHTML = ''; return; }
     currentShot = url;
-    document.getElementById('t-shot-preview').innerHTML = `<div class="item"><img src="${url}"><button type="button" onclick="event.stopPropagation();currentShot=null;document.getElementById('t-shot-preview').innerHTML=''">✕</button></div>`;
+    document.getElementById('t-shot-preview').innerHTML = `<div class="item"><img src="${url}"><button type="button" onclick="event.stopPropagation();currentShot=null;document.getElementById('t-shot-preview').innerHTML=''">${ubIcon('close')}</button></div>`;
   });
 
   window.ubSaveTestimonial = async function () {

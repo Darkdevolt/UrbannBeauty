@@ -72,11 +72,16 @@ function ubSampleColorAt(canvas, x, y, radius = 14) {
   return ubRgbToHex({ r: r / n, g: g / n, b: b / n });
 }
 
-/* Classe les produits qui ont une teinte de reference (shadeHex, renseignee en admin)
-   par ressemblance decroissante avec la couleur de peau captee. */
+/* Classe les teintes par ressemblance decroissante avec la couleur de peau captee.
+   Chaque teinte proposee d'un produit est un candidat (un fond de teint en 6 teintes
+   donne 6 resultats possibles) ; les produits a couleur unique restent compares a
+   leur couleur de reference. */
 function ubFindShadeMatches(sampledHex, products) {
+  const valid = h => /^#[0-9a-f]{6}$/i.test(h || '');
   return products
-    .filter(p => p.shadeHex)
-    .map(p => ({ product: p, deltaE: ubDeltaE(sampledHex, p.shadeHex), match: ubMatchPercent(ubDeltaE(sampledHex, p.shadeHex)) }))
+    .flatMap(p => (p.shadeOptions && p.shadeOptions.length ? p.shadeOptions : (p.shadeHex ? [{ name: p.shadeLabel || 'Teinte', hex: p.shadeHex }] : []))
+      .filter(o => valid(o.hex))
+      .map(o => ({ product: p, shade: o, deltaE: ubDeltaE(sampledHex, o.hex) })))
+    .map(m => ({ ...m, match: ubMatchPercent(m.deltaE) }))
     .sort((a, b) => a.deltaE - b.deltaE);
 }

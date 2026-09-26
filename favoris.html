@@ -27,7 +27,7 @@ async function main() {
     const inStock = wished.filter(p => p.stock > 0);
     document.getElementById('wish-grid').innerHTML = wished.length
       ? wished.map(p => ubProductCardHTML(p, catsById)).join('')
-      : `<div class="shop-empty" style="grid-column:1/-1"><span>♡</span><h3>Aucun favori pour l'instant</h3><p>Touchez le cœur sur un produit pour le retrouver ici.</p><a class="btn btn-primary" href="boutique.html">Explorer la boutique</a></div>`;
+      : `<div class="shop-empty" style="grid-column:1/-1"><span>${ubIcon('heart')}</span><h3>Aucun favori pour l'instant</h3><p>Touchez le cœur sur un produit pour le retrouver ici.</p><a class="btn btn-primary" href="boutique.html">Explorer la boutique</a></div>`;
     document.getElementById('wish-actions').innerHTML = inStock.length
       ? `<button class="btn btn-primary" type="button" id="add-all">${ubIcon('bag')} Tout ajouter au panier (${inStock.length})</button>
          <a class="btn btn-outline" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('Ma liste d\'envies Urbann Beauty 💜\n' + wished.map(p => `- ${p.name} (${ubFormatPrice(p.price)}) : ${new URL('produit.html?id=' + p.id, location.href).href}`).join('\n'))}">${ubIcon('whatsapp')} Partager ma liste</a>`
