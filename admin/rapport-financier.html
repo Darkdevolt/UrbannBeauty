@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapport financier — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<style>
+  /* Document A4 (794px a 96 dpi) : c'est ce bloc exact qui est converti en PDF. */
+  body { background: #ece6f2; }
+  .rf-toolbar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--a-line); box-shadow: var(--a-shadow); }
+  .rf-toolbar .spacer { flex: 1; }
+  .rf-toolbar select, .rf-toolbar input { padding: 8px 10px; border: 1px solid var(--a-line); border-radius: 10px; font: inherit; font-size: .84rem; background: #fff; }
+  .rf-toolbar .a-btn svg { width: 16px; height: 16px; }
+  .rf-wrap { padding: 28px 12px 60px; overflow-x: auto; }
+  #rf-doc { width: 794px; margin: 0 auto; }
+  .rf-page { width: 794px; height: 1123px; overflow: hidden; background: #fff; margin: 0 auto 24px; box-shadow: 0 10px 40px rgba(46,25,67,.12); position: relative; padding: 0 0 64px; color: #241b2e; font-family: 'Poppins', sans-serif; }
+  .rf-band { background: #2e1943; color: #fff; padding: 26px 48px 22px; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
+  .rf-band .logo img { height: 42px; background: #fff; border-radius: 10px; padding: 6px 12px; }
+  .rf-band .logo-text { font: 700 1.3rem 'Playfair Display', serif; }
+  .rf-band .logo-text span { color: #c199e0; font-style: italic; }
+  .rf-band .meta { text-align: right; font-size: .72rem; color: #d8c6ec; line-height: 1.6; }
+  .rf-band .meta strong { color: #fff; font-size: .8rem; }
+  .rf-body { padding: 30px 48px 0; }
+  .rf-title { font: 700 1.9rem 'Playfair Display', serif; color: #2e1943; margin: 0 0 2px; }
+  .rf-sub { font-size: .8rem; color: #6b6478; margin: 0 0 24px; }
+  .rf-h2 { display: flex; align-items: center; gap: 10px; font: 600 1.15rem 'Playfair Display', serif; color: #2e1943; margin: 26px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #ead9f5; }
+  .rf-h2 .n { width: 24px; height: 24px; border-radius: 50%; background: #8e56bd; color: #fff; font: 600 .72rem 'Poppins', sans-serif; display: grid; place-items: center; flex-shrink: 0; }
+  .rf-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .rf-kpi { border: 1px solid #ece4f3; border-radius: 12px; padding: 12px 14px; background: #fcfafe; }
+  .rf-kpi span { display: block; font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; color: #6b6478; }
+  .rf-kpi strong { display: block; font: 600 1.05rem 'Poppins', sans-serif; color: #2e1943; margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rf-kpi small { display: block; font-size: .64rem; margin-top: 2px; color: #6b6478; }
+  .rf-kpi small.up { color: #2f9e63; } .rf-kpi small.down { color: #d1495c; }
+  .rf-table { width: 100%; border-collapse: collapse; font-size: .76rem; font-variant-numeric: tabular-nums; }
+  .rf-table th { text-align: left; font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: #6b6478; font-weight: 600; padding: 7px 8px; border-bottom: 1px solid #d8bced; }
+  .rf-table td { padding: 7px 8px; border-bottom: 1px solid #f0eaf5; }
+  .rf-table .num { text-align: right; white-space: nowrap; }
+  .rf-table tr.sub td { font-weight: 600; background: #faf6fd; }
+  .rf-table tr.total td { font-weight: 700; color: #2e1943; border-top: 2px solid #2e1943; border-bottom: 0; background: #f5eefb; font-size: .82rem; }
+  .rf-table tr.minus td:first-child { padding-left: 20px; color: #5c5468; }
+  .rf-table .neg { color: #d1495c; } .rf-table .pos { color: #2f9e63; }
+  .rf-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .rf-note { font-size: .7rem; color: #6b6478; line-height: 1.55; background: #faf8fc; border-left: 3px solid #c199e0; padding: 10px 12px; border-radius: 0 8px 8px 0; margin-top: 10px; }
+  .rf-callout { display: flex; gap: 12px; align-items: flex-start; border-radius: 12px; padding: 12px 14px; font-size: .76rem; line-height: 1.5; margin-top: 12px; }
+  .rf-callout.good { background: #e6f6ec; color: #1e6b43; } .rf-callout.warn { background: #fbf1e3; color: #7a4f16; } .rf-callout.bad { background: #fbe9ec; color: #8f2335; }
+  .rf-callout svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+  .rf-chart { width: 100%; height: auto; }
+  .rf-foot { position: absolute; left: 48px; right: 48px; bottom: 22px; display: flex; justify-content: space-between; font-size: .62rem; color: #a59bb1; border-top: 1px solid #f0eaf5; padding-top: 8px; }
+  .rf-empty { color: #6b6478; font-size: .76rem; padding: 10px 0; }
+  .rf-bar { height: 6px; background: #f0eaf5; border-radius: 99px; overflow: hidden; min-width: 60px; }
+  .rf-bar i { display: block; height: 100%; background: linear-gradient(90deg, #8e56bd, #c199e0); border-radius: 99px; }
+  #rf-doc.pdf-mode { margin: 0; }
+  #rf-doc.pdf-mode .rf-page { margin: 0; box-shadow: none; }
+  .rf-section { break-inside: avoid; }
+  .rf-loading { text-align: center; color: #6b6478; padding: 80px 0; }
+  @media print {
+    body { background: #fff; }
+    .rf-toolbar { display: none; }
+    .rf-wrap { padding: 0; }
+    .rf-page { box-shadow: none; margin: 0; page-break-after: always; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+<link rel="icon" type="image/png" href="https://tbowuuxvjaadawhmpumr.supabase.co/storage/v1/object/public/media/logo.png"></head>
+<body>
+<div class="rf-toolbar">
+  <a href="finances.html" class="a-btn a-btn-outline a-btn-sm" id="rf-back"></a>
+  <select id="rf-type">
+    <option value="month">Mensuel</option>
+    <option value="quarter">Trimestriel</option>
+    <option value="semester">Semestriel</option>
+    <option value="year">Annuel</option>
+    <option value="custom">Personnalisé</option>
+  </select>
+  <select id="rf-period"></select>
+  <select id="rf-year"></select>
+  <input type="date" id="rf-from" style="display:none"><input type="date" id="rf-to" style="display:none">
+  <span class="spacer"></span>
+  <button class="a-btn a-btn-outline a-btn-sm" id="rf-print"></button>
+  <button class="a-btn a-btn-primary a-btn-sm" id="rf-pdf"></button>
+</div>
+<div class="rf-wrap"><div id="rf-doc"><div class="rf-loading">Préparation du rapport…</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const fmt = v => ubFormatPrice(Math.round(v || 0));
+const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : 0;
+let DATA = null;
+let logoUrl = null;
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  document.getElementById('rf-back').innerHTML = `${ubIcon('arrowRight').replace('<svg', '<svg style="transform:rotate(180deg)"')} Finances`;
+  document.getElementById('rf-print').innerHTML = `${ubIcon('printer')} Imprimer`;
+  document.getElementById('rf-pdf').innerHTML = `${ubIcon('fileDown')} Télécharger le PDF`;
+
+  const [orders, products, suppliers, packaging, categories, media] = await Promise.all([
+    ubAdminGetOrders(), ubAdminGetProducts(), ubAdminGetSuppliers(), ubAdminGetPackagingItems(), ubGetAllCategories(),
+    ubGetMediaConfig().catch(() => ({})),
+  ]);
+  logoUrl = media && media.logo ? media.logo : null;
+  DATA = { orders, products, suppliers, packaging, categories, productsById: ubProductsById(products), catsById: ubCatsById(categories) };
+
+  const now = new Date();
+  const years = new Set([now.getFullYear()]);
+  orders.forEach(o => years.add(+String(o.date).slice(0, 4)));
+  document.getElementById('rf-year').innerHTML = [...years].sort((a, b) => b - a).map(y => `<option>${y}</option>`).join('');
+  const params = new URLSearchParams(location.search);
+  document.getElementById('rf-type').value = params.get('type') || 'month';
+  fillPeriods();
+  document.getElementById('rf-period').value = params.get('period') || String(now.getMonth() + 1);
+  document.getElementById('rf-from').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  document.getElementById('rf-to').value = now.toISOString().slice(0, 10);
+  ['rf-type', 'rf-period', 'rf-year', 'rf-from', 'rf-to'].forEach(id => document.getElementById(id).addEventListener('change', e => { if (id === 'rf-type') fillPeriods(); render(); }));
+  document.getElementById('rf-print').addEventListener('click', () => window.print());
+  document.getElementById('rf-pdf').addEventListener('click', downloadPdf);
+  render();
+}
+
+function fillPeriods() {
+  const type = document.getElementById('rf-type').value, now = new Date();
+  const sel = document.getElementById('rf-period');
+  const opts = type === 'month' ? MONTHS.map((m, i) => [i + 1, m])
+    : type === 'quarter' ? [1, 2, 3, 4].map(q => [q, `${q}${q === 1 ? 'er' : 'e'} trimestre`])
+    : type === 'semester' ? [[1, '1er semestre'], [2, '2e semestre']] : [];
+  sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  sel.style.display = opts.length ? '' : 'none';
+  document.getElementById('rf-year').style.display = type === 'custom' ? 'none' : '';
+  document.getElementById('rf-from').style.display = document.getElementById('rf-to').style.display = type === 'custom' ? '' : 'none';
+  if (type === 'month') sel.value = String(now.getMonth() + 1);
+  if (type === 'quarter') sel.value = String(Math.floor(now.getMonth() / 3) + 1);
+  if (type === 'semester') sel.value = now.getMonth() < 6 ? '1' : '2';
+}
+
+function currentRange() {
+  const type = document.getElementById('rf-type').value;
+  const y = +document.getElementById('rf-year').value, p = +document.getElementById('rf-period').value;
+  if (type === 'custom') {
+    const from = document.getElementById('rf-from').value, to = document.getElementById('rf-to').value;
+    return { start: from, end: to, label: `du ${new Date(from).toLocaleDateString('fr-FR')} au ${new Date(to).toLocaleDateString('fr-FR')}`, prev: null };
+  }
+  let start, end, label, prev;
+  if (type === 'month') { [start, end] = ubMonthRange(y, p); label = `${MONTHS[p - 1]} ${y}`; const [py, pp] = ubPreviousRange('month', y, p); prev = ubMonthRange(py, pp); }
+  if (type === 'quarter') { [start, end] = ubQuarterRange(y, p); label = `${p}${p === 1 ? 'er' : 'e'} trimestre ${y}`; const [py, pp] = ubPreviousRange('quarter', y, p); prev = ubQuarterRange(py, pp); }
+  if (type === 'semester') { [start, end] = ubSemesterRange(y, p); label = `${p === 1 ? '1er' : '2e'} semestre ${y}`; const [py, pp] = ubPreviousRange('semester', y, p); prev = ubSemesterRange(py, pp); }
+  if (type === 'year') { start = `${y}-01-01`; end = `${y}-12-31`; label = `Exercice ${y}`; prev = [`${y - 1}-01-01`, `${y - 1}-12-31`]; }
+  return { start, end, label, prev: prev ? { start: prev[0], end: prev[1] } : null };
+}
+
+/* ---------- Calculs ---------- */
+function orderAmount(o) { return ubOrderGrandTotal(o) ?? (ubOrderTotal(o, DATA.productsById) + (o.deliveryFee || 0) - (o.discountAmount || 0)); }
+function isCod(o) { return ubDecodeHtml(o.payment) === 'Paiement à la livraison'; }
+
+function computePeriod(start, end) {
+  const inRange = DATA.orders.filter(o => o.date >= start && o.date <= end);
+  const active = inRange.filter(o => o.status !== 'annulee');
+  const cancelled = inRange.filter(o => o.status === 'annulee');
+  const refunded = inRange.filter(o => o.paymentStatus === 'rembourse');
+  const sum = (list, f) => list.reduce((s, o) => s + (f(o) || 0), 0);
+  const grossSales = sum(active, o => ubOrderTotal(o, DATA.productsById));
+  const discounts = sum(active, o => o.discountAmount);
+  const deliveryFees = sum(active, o => o.deliveryFee);
+  const revenue = sum(active, orderAmount);
+  const cogs = sum(active, o => ubOrderLines(o, DATA.productsById).reduce((s, l) => s + l.qty * (l.cost || 0), 0));
+  const packagingUsed = sum(active, o => o.packagingCost);
+  const grossMargin = grossSales - discounts - cogs - packagingUsed;
+
+  /* Tresorerie : encaissements confirmes (paye) ; paiements declares avec capture Wave
+     mais pas encore verifies (acompte 20% ou totalite) ; soldes a encaisser a la livraison. */
+  const paidOrders = active.filter(o => o.paymentStatus === 'paye');
+  const cashIn = sum(paidOrders, orderAmount);
+  const pendingOrders = active.filter(o => o.paymentStatus === 'en_attente');
+  const declared = sum(pendingOrders, o => isCod(o) ? (o.depositAmount || 0) : orderAmount(o));
+  const receivable = sum(pendingOrders.filter(isCod), o => orderAmount(o) - (o.depositAmount || 0));
+  const refunds = sum(refunded, orderAmount);
+  const supplierPaid = DATA.suppliers.filter(s => s.status === 'paye' && s.dueDate >= start && s.dueDate <= end).reduce((s, f) => s + (f.amount || 0), 0);
+  const packagingBought = DATA.packaging.filter(p => p.purchasedAt >= start && p.purchasedAt <= end).reduce((s, p) => s + (p.totalCost || 0), 0);
+  const netCash = cashIn - refunds - supplierPaid - packagingBought;
+
+  const byCat = {}, byProduct = {};
+  active.forEach(o => ubOrderLines(o, DATA.productsById).forEach(l => {
+    const prod = DATA.productsById[l.productId];
+    const cat = prod ? (DATA.catsById[prod.category]?.name || 'Autre') : 'Produits archivés';
+    const c = byCat[cat] || (byCat[cat] = { name: cat, qty: 0, sales: 0, cost: 0 });
+    c.qty += l.qty; c.sales += l.qty * l.price; c.cost += l.qty * (l.cost || 0);
+    const k = l.productId || l.name;
+    const pr = byProduct[k] || (byProduct[k] = { name: l.name, qty: 0, sales: 0, cost: 0 });
+    pr.qty += l.qty; pr.sales += l.qty * l.price; pr.cost += l.qty * (l.cost || 0);
+  }));
+  const clients = new Set(active.map(o => ubPhoneKey(ubDecodeHtml(o.phone)) || o.client));
+  return {
+    count: active.length, cancelledCount: cancelled.length, cancelledValue: sum(cancelled, orderAmount),
+    grossSales, discounts, deliveryFees, revenue, cogs, packagingUsed, grossMargin,
+    avgBasket: active.length ? revenue / active.length : 0,
+    cashIn, declared, receivable, refunds, supplierPaid, packagingBought, netCash,
+    categories: Object.values(byCat).sort((a, b) => b.sales - a.sales),
+    products: Object.values(byProduct).sort((a, b) => b.sales - a.sales),
+    clients: clients.size, pickups: active.filter(o => o.isPickup).length,
+  };
+}
+
+function computePosition() {
+  const stockValue = DATA.products.reduce((s, p) => s + Math.max(0, p.stock) * (p.costPrice || 0), 0);
+  const stockRetail = DATA.products.reduce((s, p) => s + Math.max(0, p.stock) * (p.price || 0), 0);
+  const missingCost = DATA.products.filter(p => p.costPrice == null && p.stock > 0).length;
+  const packagingValue = DATA.packaging.reduce((s, p) => s + Math.max(0, p.quantityRemaining || 0) * (p.unitCost || 0), 0);
+  const openOrders = DATA.orders.filter(o => o.status !== 'annulee' && o.paymentStatus === 'en_attente' && isCod(o));
+  const receivables = openOrders.reduce((s, o) => s + orderAmount(o) - (o.depositAmount || 0), 0);
+  const payablesList = DATA.suppliers.filter(s => s.status === 'a_payer').sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+  const payables = payablesList.reduce((s, f) => s + (f.amount || 0), 0);
+  const late = payablesList.filter(ubSupplierIsLate);
+  return { stockValue, stockRetail, missingCost, packagingValue, receivables, openOrders, payables, payablesList, late };
+}
+
+/* 6 derniers mois glissants jusqu'a la fin de la periode, pour la tendance. */
+function computeTrend(end) {
+  const d = new Date(end + 'T00:00:00');
+  const out = [];
+  for (let i = 5; i >= 0; i--) {
+    const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
+    const [s, e] = ubMonthRange(m.getFullYear(), m.getMonth() + 1);
+    const r = computePeriod(s, e);
+    out.push({ label: MONTHS[m.getMonth()].slice(0, 3) + '.', revenue: r.revenue, margin: r.grossMargin });
+  }
+  return out;
+}
+
+function trendChart(rows) {
+  const W = 698, H = 190, pad = 34, bw = (W - pad * 2) / rows.length;
+  const max = Math.max(1, ...rows.map(r => r.revenue));
+  const y = v => H - 26 - (v / max) * (H - 62);
+  const bars = rows.map((r, i) => {
+    const x = pad + i * bw + bw * .18, w = bw * .64;
+    return `<rect x="${x}" y="${y(r.revenue)}" width="${w}" height="${H - 26 - y(r.revenue)}" rx="4" fill="#d8bced"/>
+      <rect x="${x + w * .28}" y="${y(Math.max(0, r.margin))}" width="${w * .44}" height="${H - 26 - y(Math.max(0, r.margin))}" rx="3" fill="#74409e"/>
+      <text x="${x + w / 2}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#6b6478">${r.label}</text>
+      ${r.revenue ? `<text x="${x + w / 2}" y="${y(r.revenue) - 5}" text-anchor="middle" font-size="9" fill="#2e1943">${Math.round(r.revenue / 1000)}k</text>` : ''}`;
+  }).join('');
+  return `<svg class="rf-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Évolution du chiffre d'affaires">
+    <line x1="${pad}" x2="${W - pad}" y1="${H - 26}" y2="${H - 26}" stroke="#e5dcee"/>
+    ${bars}
+    <g font-size="10" fill="#6b6478"><rect x="${pad}" y="2" width="10" height="10" rx="2" fill="#d8bced"/><text x="${pad + 15}" y="11">Chiffre d'affaires</text><rect x="${pad + 120}" y="2" width="10" height="10" rx="2" fill="#74409e"/><text x="${pad + 135}" y="11">Marge brute</text></g>
+  </svg>`;
+}
+
+/* ---------- Rendu ---------- */
+function page(num, total, range, inner) {
+  return `<section class="rf-page">
+    <div class="rf-band">
+      <div class="logo">${logoUrl ? `<img src="${logoUrl}" crossorigin="anonymous" alt="Urbann Beauty">` : `<span class="logo-text">Urbann<span>Beauty</span></span>`}</div>
+      <div class="meta"><strong>Rapport financier</strong><br>${range.label}<br>Édité le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+    </div>
+    <div class="rf-body">${inner}</div>
+    <div class="rf-foot"><span>Urbann Beauty · ${UB_CONTACT.city} · Document confidentiel à usage interne</span><span>Page ${num} / ${total}</span></div>
+  </section>`;
+}
+function delta(cur, prev) {
+  if (prev == null) return '';
+  if (!prev) return cur ? '<small class="up">Nouveau sur la période</small>' : '<small>—</small>';
+  const d = Math.round((cur - prev) / Math.abs(prev) * 100);
+  return `<small class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '+' : ''}${d}% vs période précédente</small>`;
+}
+function row(label, value, cls = '') { return `<tr class="${cls}"><td>${label}</td><td class="num ${value < 0 ? 'neg' : ''}">${fmt(value)}</td></tr>`; }
+
+function render() {
+  const range = currentRange();
+  if (!range.start || !range.end) return;
+  const cur = computePeriod(range.start, range.end);
+  const prev = range.prev ? computePeriod(range.prev.start, range.prev.end) : null;
+  const pos = computePosition();
+  const trend = computeTrend(range.end);
+  const marginRate = pct(cur.grossMargin, cur.grossSales - cur.discounts);
+  const net = pos.stockValue + pos.packagingValue + pos.receivables - pos.payables;
+
+  const health = cur.count === 0
+    ? { cls: 'warn', icon: 'info', text: "Aucune commande sur la période : le rapport présente surtout la situation du stock et des dettes." }
+    : cur.netCash >= 0
+      ? { cls: 'good', icon: 'checkCircle', text: `Trésorerie positive sur la période (${fmt(cur.netCash)}). Taux de marge brute de ${marginRate} %.` }
+      : { cls: 'bad', icon: 'alert', text: `Les sorties d'argent dépassent les encaissements confirmés de ${fmt(-cur.netCash)} : vérifiez les paiements Wave en attente et étalez les achats si possible.` };
+
+  const p1 = `
+    <h1 class="rf-title">Rapport financier</h1>
+    <p class="rf-sub">${range.label} · période du ${new Date(range.start).toLocaleDateString('fr-FR')} au ${new Date(range.end).toLocaleDateString('fr-FR')}</p>
+    <div class="rf-h2"><span class="n">1</span>Synthèse</div>
+    <div class="rf-kpis">
+      <div class="rf-kpi"><span>Chiffre d'affaires</span><strong>${fmt(cur.revenue)}</strong>${delta(cur.revenue, prev?.revenue)}</div>
+      <div class="rf-kpi"><span>Marge brute</span><strong>${fmt(cur.grossMargin)}</strong><small>${marginRate} % des ventes nettes</small></div>
+      <div class="rf-kpi"><span>Commandes</span><strong>${cur.count}</strong>${delta(cur.count, prev?.count)}</div>
+      <div class="rf-kpi"><span>Panier moyen</span><strong>${fmt(cur.avgBasket)}</strong>${delta(cur.avgBasket, prev?.avgBasket)}</div>
+      <div class="rf-kpi"><span>Encaissé (confirmé)</span><strong>${fmt(cur.cashIn)}</strong><small>Paiements marqués payés</small></div>
+      <div class="rf-kpi"><span>Trésorerie nette</span><strong style="color:${cur.netCash >= 0 ? '#2f9e63' : '#d1495c'}">${fmt(cur.netCash)}</strong><small>Entrées − sorties</small></div>
+      <div class="rf-kpi"><span>Clientes servies</span><strong>${cur.clients}</strong><small>${cur.pickups} retrait(s) en magasin</small></div>
+      <div class="rf-kpi"><span>Valeur du stock</span><strong>${fmt(pos.stockValue)}</strong><small>Au prix d'achat, à date</small></div>
+    </div>
+    <div class="rf-callout ${health.cls}">${ubIcon(health.icon)}<span>${health.text}</span></div>
+
+    <div class="rf-h2"><span class="n">2</span>Compte de résultat simplifié</div>
+    <table class="rf-table">
+      <thead><tr><th>Poste</th><th class="num">Montant</th></tr></thead>
+      <tbody>
+        ${row('Ventes de produits (prix catalogue)', cur.grossSales)}
+        ${row('− Remises accordées (codes promo)', -cur.discounts, 'minus')}
+        ${row('= Ventes nettes de produits', cur.grossSales - cur.discounts, 'sub')}
+        ${row("− Coût d'achat des produits vendus", -cur.cogs, 'minus')}
+        ${row('− Emballages utilisés', -cur.packagingUsed, 'minus')}
+        ${row('= Marge brute', cur.grossMargin, 'total')}
+        ${row('Frais de livraison facturés (reversés au livreur)', cur.deliveryFees)}
+        ${row('Chiffre d\'affaires total encaissable (produits + livraison)', cur.revenue, 'sub')}
+      </tbody>
+    </table>
+    <div class="rf-note">Commandes annulées exclues (${cur.cancelledCount} commande(s), ${fmt(cur.cancelledValue)}). Les charges fixes (loyer, salaires, publicité, abonnements) ne sont pas enregistrées dans l'outil : la marge brute n'est pas le bénéfice net.</div>
+
+    <div class="rf-h2"><span class="n">3</span>Évolution sur 6 mois</div>
+    ${trendChart(trend)}`;
+
+  const p2 = `
+    <div class="rf-h2" style="margin-top:4px"><span class="n">4</span>Trésorerie de la période</div>
+    <div class="rf-grid2">
+      <table class="rf-table">
+        <thead><tr><th>Entrées d'argent</th><th class="num">Montant</th></tr></thead>
+        <tbody>
+          ${row('Paiements confirmés (commandes payées)', cur.cashIn)}
+          ${row('− Remboursements clients', -cur.refunds, 'minus')}
+          ${row('= Entrées nettes', cur.cashIn - cur.refunds, 'total')}
+        </tbody>
+      </table>
+      <table class="rf-table">
+        <thead><tr><th>Sorties d'argent</th><th class="num">Montant</th></tr></thead>
+        <tbody>
+          ${row('Fournisseurs payés (échéance sur la période)', cur.supplierPaid)}
+          ${row("Achats d'emballages", cur.packagingBought)}
+          ${row('= Sorties totales', cur.supplierPaid + cur.packagingBought, 'total')}
+        </tbody>
+      </table>
+    </div>
+    <table class="rf-table" style="margin-top:12px">
+      <tbody>
+        ${row('Flux de trésorerie net de la période', cur.netCash, 'total')}
+        ${row('Paiements Wave déclarés, à vérifier (captures reçues)', cur.declared)}
+        ${row('Soldes à encaisser à la livraison (commandes de la période)', cur.receivable)}
+      </tbody>
+    </table>
+    <div class="rf-note">« À vérifier » : la cliente a joint une capture Wave mais la commande n'est pas encore marquée « Payé » dans l'admin. Marquez-les payées après contrôle pour qu'elles entrent dans la trésorerie confirmée.</div>
+
+    <div class="rf-h2"><span class="n">5</span>Bilan simplifié à date</div>
+    <div class="rf-grid2">
+      <table class="rf-table">
+        <thead><tr><th>Ce que l'entreprise possède</th><th class="num">Montant</th></tr></thead>
+        <tbody>
+          ${row("Stock de produits (au prix d'achat)", pos.stockValue)}
+          ${row('Stock d\'emballages', pos.packagingValue)}
+          ${row('Créances clientes (soldes à la livraison)', pos.receivables)}
+          ${row('Total', pos.stockValue + pos.packagingValue + pos.receivables, 'total')}
+        </tbody>
+      </table>
+      <table class="rf-table">
+        <thead><tr><th>Ce que l'entreprise doit</th><th class="num">Montant</th></tr></thead>
+        <tbody>
+          ${row('Dettes fournisseurs à payer', pos.payables)}
+          ${row('dont en retard', pos.late.reduce((s, f) => s + f.amount, 0), 'minus')}
+          ${row('Total', pos.payables, 'total')}
+        </tbody>
+      </table>
+    </div>
+    <table class="rf-table" style="margin-top:12px"><tbody>${row('Position nette (possédé − dû)', net, 'total')}</tbody></table>
+    <div class="rf-note">Le stock vendu au prix public représenterait ${fmt(pos.stockRetail)} de chiffre d'affaires potentiel.${pos.missingCost ? ` ${pos.missingCost} produit(s) en stock n'ont pas de prix d'achat renseigné : leur valeur n'est pas comptée.` : ''} La trésorerie bancaire / Wave n'étant pas connectée, elle n'apparaît pas dans ce bilan.</div>`;
+
+  const maxCat = Math.max(1, ...cur.categories.map(c => c.sales));
+  const rot = ubComputeProductRotation(DATA.products, DATA.orders.filter(o => o.date >= range.start && o.date <= range.end));
+  const sleeping = rot.filter(r => r.qtySold === 0 && r.product.stock > 0).slice(0, 8);
+  const low = DATA.products.filter(p => p.stock <= 5).sort((a, b) => a.stock - b.stock).slice(0, 8);
+  const p3 = `
+    <div class="rf-h2" style="margin-top:4px"><span class="n">6</span>Ventes par catégorie</div>
+    ${cur.categories.length ? `<table class="rf-table">
+      <thead><tr><th>Catégorie</th><th class="num">Unités</th><th class="num">Ventes</th><th class="num">Marge</th><th class="num">Taux</th><th style="width:120px">Poids</th></tr></thead>
+      <tbody>${cur.categories.map(c => `<tr><td>${ubEscapeHtml(c.name)}</td><td class="num">${c.qty}</td><td class="num">${fmt(c.sales)}</td><td class="num">${fmt(c.sales - c.cost)}</td><td class="num">${pct(c.sales - c.cost, c.sales)} %</td><td><div class="rf-bar"><i style="width:${c.sales / maxCat * 100}%"></i></div></td></tr>`).join('')}</tbody>
+    </table>` : '<p class="rf-empty">Aucune vente sur la période.</p>'}
+
+    <div class="rf-h2"><span class="n">7</span>Produits les plus vendus</div>
+    ${cur.products.length ? `<table class="rf-table">
+      <thead><tr><th>Produit</th><th class="num">Unités</th><th class="num">Ventes</th><th class="num">Marge</th><th class="num">Taux</th></tr></thead>
+      <tbody>${cur.products.slice(0, 10).map(p => `<tr><td>${p.name}</td><td class="num">${p.qty}</td><td class="num">${fmt(p.sales)}</td><td class="num">${fmt(p.sales - p.cost)}</td><td class="num">${pct(p.sales - p.cost, p.sales)} %</td></tr>`).join('')}</tbody>
+    </table>` : '<p class="rf-empty">Aucune vente sur la période.</p>'}
+
+    <div class="rf-h2"><span class="n">8</span>Gestion du stock</div>
+    <div class="rf-grid2">
+      <div><table class="rf-table"><thead><tr><th>Stock faible (≤ 5)</th><th class="num">Unités</th></tr></thead>
+        <tbody>${low.length ? low.map(p => `<tr><td>${ubEscapeHtml(p.name)}</td><td class="num ${p.stock === 0 ? 'neg' : ''}">${p.stock}</td></tr>`).join('') : '<tr><td colspan="2" class="rf-empty">Aucun produit en stock faible.</td></tr>'}</tbody></table></div>
+      <div><table class="rf-table"><thead><tr><th>Sans vente sur la période</th><th class="num">Immobilisé</th></tr></thead>
+        <tbody>${sleeping.length ? sleeping.map(r => `<tr><td>${ubEscapeHtml(r.product.name)}</td><td class="num">${fmt(r.product.stock * (r.product.costPrice || 0))}</td></tr>`).join('') : '<tr><td colspan="2" class="rf-empty">Tous les produits ont été vendus au moins une fois.</td></tr>'}</tbody></table></div>
+    </div>`;
+
+  const p4 = `
+    <div class="rf-h2" style="margin-top:4px"><span class="n">9</span>Créances clientes (soldes à encaisser)</div>
+    ${pos.openOrders.length ? `<table class="rf-table">
+      <thead><tr><th>Commande</th><th>Cliente</th><th>Date</th><th class="num">Total</th><th class="num">Acompte</th><th class="num">Reste dû</th></tr></thead>
+      <tbody>${pos.openOrders.slice(0, 20).map(o => `<tr><td>${o.id}</td><td>${o.client}</td><td>${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="num">${fmt(orderAmount(o))}</td><td class="num">${fmt(o.depositAmount)}</td><td class="num">${fmt(orderAmount(o) - (o.depositAmount || 0))}</td></tr>`).join('')}
+      <tr class="total"><td colspan="5">Total à encaisser</td><td class="num">${fmt(pos.receivables)}</td></tr></tbody>
+    </table>` : '<p class="rf-empty">Aucun solde client en attente.</p>'}
+
+    <div class="rf-h2"><span class="n">10</span>Dettes fournisseurs</div>
+    ${pos.payablesList.length ? `<table class="rf-table">
+      <thead><tr><th>Fournisseur</th><th>Catégorie</th><th>Échéance</th><th>Statut</th><th class="num">Montant</th></tr></thead>
+      <tbody>${pos.payablesList.map(f => `<tr><td>${ubEscapeHtml(f.name)}</td><td>${ubEscapeHtml(f.category || '—')}</td><td>${f.dueDate ? new Date(f.dueDate).toLocaleDateString('fr-FR') : '—'}</td><td class="${ubSupplierIsLate(f) ? 'neg' : ''}">${ubSupplierIsLate(f) ? 'En retard' : 'À payer'}</td><td class="num">${fmt(f.amount)}</td></tr>`).join('')}
+      <tr class="total"><td colspan="4">Total dû</td><td class="num">${fmt(pos.payables)}</td></tr></tbody>
+    </table>` : '<p class="rf-empty">Aucune dette fournisseur en cours.</p>'}
+
+    <div class="rf-h2"><span class="n">11</span>Méthode</div>
+    <div class="rf-note" style="margin-top:0">
+      Les montants proviennent des commandes enregistrées sur le site (prix et coûts figés au moment de la commande). Période appliquée sur la date de commande.
+      Chiffre d'affaires = produits − remises + livraison. Marge brute = ventes nettes − coût d'achat − emballages.
+      Trésorerie confirmée = commandes marquées « Payé » ; les paiements Wave non encore vérifiés sont présentés à part.
+      Valeurs arrondies au franc CFA.
+    </div>`;
+
+  /* Chaque bloc commence a un titre de section ; les blocs sont ensuite repartis sur
+     des pages A4 de hauteur fixe (saut de page automatique si un bloc ne tient plus). */
+  const html = (p1 + p2 + p3 + p4).replace(/ style="margin-top:4px"/g, '');
+  const parts = html.split(/(?=<div class="rf-h2")/).filter(x => x.trim());
+  const intro = parts[0].includes('rf-h2') ? '' : parts.shift();
+  const sections = parts.map((x, i) => (i === 0 ? intro : '') + x);
+  paginate(sections, range);
+}
+
+function paginate(sections, range) {
+  const doc = document.getElementById('rf-doc');
+  doc.innerHTML = '';
+  let body = null;
+  const newPage = () => {
+    doc.insertAdjacentHTML('beforeend', page(0, 0, range, ''));
+    body = doc.lastElementChild.querySelector('.rf-body');
+  };
+  const limit = () => 1123 - 64 - body.offsetTop;
+  newPage();
+  sections.forEach(html => {
+    const sec = document.createElement('div');
+    sec.className = 'rf-section';
+    sec.innerHTML = html;
+    body.appendChild(sec);
+    if (body.scrollHeight > limit() && body.children.length > 1) {
+      sec.remove();
+      newPage();
+      body.appendChild(sec);
+      const h2 = sec.querySelector('.rf-h2'); if (h2 && sec === body.firstElementChild) h2.style.marginTop = '4px';
+    }
+  });
+  const pages = doc.querySelectorAll('.rf-page');
+  pages.forEach((p, i) => { p.querySelector('.rf-foot span:last-child').textContent = `Page ${i + 1} / ${pages.length}`; });
+}
+
+async function downloadPdf() {
+  const btn = document.getElementById('rf-pdf');
+  const range = currentRange();
+  btn.disabled = true;
+  btn.innerHTML = 'Génération du PDF…';
+  const doc = document.getElementById('rf-doc');
+  doc.classList.add('pdf-mode');
+  try {
+    /* Chaque page A4 est capturee separement (haute definition) puis assemblee :
+       le PDF reproduit exactement l'apercu, une page ecran = une page PDF. */
+    const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait', compress: true });
+    const pages = [...doc.querySelectorAll('.rf-page')];
+    for (let i = 0; i < pages.length; i++) {
+      const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: -window.scrollY, windowWidth: document.documentElement.scrollWidth });
+      if (i) pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 595.28, 841.89, undefined, 'FAST');
+    }
+    pdf.setProperties({ title: `Rapport financier Urbann Beauty — ${range.label}`, author: 'Urbann Beauty', subject: 'Rapport financier' });
+    pdf.save(`urbann-beauty-rapport-financier-${range.start}_${range.end}.pdf`);
+  } catch (e) {
+    console.error(e);
+    alert("La génération du PDF a échoué. Utilisez « Imprimer » puis « Enregistrer au format PDF ».");
+  }
+  doc.classList.remove('pdf-mode');
+  btn.disabled = false;
+  btn.innerHTML = `${ubIcon('fileDown')} Télécharger le PDF`;
+}
+main();
+</script>
+</body>
+</html>
