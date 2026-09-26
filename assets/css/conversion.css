@@ -300,3 +300,87 @@ html.ub-no-scroll, html.ub-no-scroll body { overflow: hidden; }
   .pd-bundle-items label span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .pd-actions .btn-buy-now { flex: 1; }
 }
+
+/* ============================================
+   PASSE DESIGN & CORRECTIFS
+   ============================================ */
+
+/* Fiche produit : l'image carree forcee a 380px de haut debordait de l'ecran mobile. */
+@media (max-width: 900px) {
+  .product-detail > div { min-width: 0; }
+  .pd-gallery-main { width: 100%; height: auto !important; min-height: 0 !important; aspect-ratio: 1 / 1; }
+  .pd-gallery-main img, .pd-gallery-main video { height: 100% !important; min-height: 0 !important; }
+  .pd-thumbs { overflow-x: auto; padding-bottom: 4px; }
+  .pd-thumbs .thumb { flex-shrink: 0; }
+}
+.pd-info h1 { font-size: clamp(1.7rem, 4vw, 2.5rem); line-height: 1.15; }
+
+/* Cartes produit : prix et bouton ne se chevauchent plus sur mobile. */
+.editorial-price { flex-wrap: wrap; row-gap: 0; }
+.ub-card-new { color: var(--mauve-500) !important; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: .6rem; }
+@media (max-width: 700px) {
+  .editorial-product-bottom { gap: 6px !important; }
+  .editorial-price { min-width: 0; flex: 1; }
+  .editorial-price strong { font-size: .86rem !important; }
+  .editorial-add { width: 38px !important; height: 38px !important; min-width: 38px !important; flex: 0 0 38px !important; padding: 0 !important; border-radius: 50% !important; flex-shrink: 0; background: var(--mauve-900) !important; color: #fff !important; border-color: var(--mauve-900) !important; }
+  .editorial-add span { display: none !important; }
+  .editorial-add svg { width: 17px !important; height: 17px !important; min-width: 17px !important; min-height: 17px !important; flex: 0 0 17px !important; }
+  .editorial-add.is-soldout { background: #fff !important; color: var(--mauve-700) !important; border-color: var(--mauve-300) !important; }
+  .ub-card-new { font-size: .5rem; }
+}
+
+/* Boutons flottants : WhatsApp a droite sur mobile pour ne plus masquer le texte. */
+@media (max-width: 700px) {
+  .whatsapp-float { left: auto !important; right: 14px; bottom: 16px !important; width: 50px; height: 50px; }
+  body.has-sticky-bar .whatsapp-float { bottom: 86px !important; }
+  #ub-guide-root { bottom: 14px !important; left: 10px !important; transform: scale(.82); transform-origin: bottom left; }
+  body.has-sticky-bar #ub-guide-root { bottom: 84px !important; }
+  .toast { left: 16px; right: 16px; bottom: auto; top: 16px; transform: translateY(-140%); justify-content: center; }
+  .toast.show { transform: translateY(0); }
+}
+
+/* Pied de page : logo lisible sur fond sombre. */
+.site-footer .logo img { background: #fff; padding: 6px 12px; border-radius: 12px; height: 46px !important; }
+
+/* Curseur de prix aux couleurs de la marque. */
+input[type="range"] { accent-color: var(--mauve-600); }
+
+/* Accueil */
+.ub-home .ub-newsletter input { flex: none !important; min-height: 48px; }
+.ub-home .ub-newsletter .btn { flex: none; min-height: 48px; }
+@media (max-width: 850px) {
+  .ub-hero-script, .ub-slider-dots { display: none !important; }
+  .ub-hero-art { min-height: 340px !important; }
+}
+.ub-help-card { position: relative; overflow: hidden; min-height: 245px; border-radius: 18px; padding: 31px; color: #fff; background: radial-gradient(circle at 80% 15%, rgba(37, 211, 102, .25), transparent 40%), linear-gradient(145deg, #2d1741, #4a2863); display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.ub-help-card .eyebrow { color: #dfbd72; }
+.ub-help-card h2 { color: #fff; font-size: 1.8rem; margin: 0; }
+.ub-help-card h2 em { color: #d6a7e7; }
+.ub-help-card p { color: #e8dff0; font-size: .82rem; margin: 0; }
+.ub-help-card .btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; }
+.ub-help-card .btn svg { width: 18px; height: 18px; }
+.ub-help-card ul { display: grid; gap: 6px; font-size: .78rem; color: #f1e9f6; }
+.ub-help-card li::before { content: '✓ '; color: #7ee0a0; font-weight: 700; }
+
+/* Categories vides : clairement signalees au lieu de "0 produit". */
+.category-card.is-empty { opacity: .65; }
+.category-card.is-empty .category-card-count { color: var(--mauve-500); font-weight: 600; }
+
+/* Etats vides avec action */
+.ub-empty-cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; }
+.ub-empty-cta svg { width: 18px; height: 18px; }
+
+/* Boutique : en-tete plus compact sur mobile pour voir les produits plus vite. */
+@media (max-width: 700px) {
+  .shop-intro-copy { padding: 26px 0 !important; }
+  .shop-intro-copy h1 { font-size: 2rem !important; margin-bottom: 8px; }
+  .shop-intro-copy p { font-size: .82rem; margin-bottom: 10px; }
+  .shop-intro-visual { display: none !important; }
+  .shop-section { padding-top: 28px !important; }
+  .catalog-head p { display: none; }
+}
+
+/* Bandeau "Un doute ?" utilise directement sur un .container (categories, infos) */
+.container.shop-confidence { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 30px 36px; border-radius: 22px; }
+.shop-confidence strong { margin-bottom: 4px; }
+@media (max-width: 700px) { .container.shop-confidence { padding: 24px 20px; margin: 0 16px; width: auto; } }

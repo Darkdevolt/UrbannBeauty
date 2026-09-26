@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/pages.css">
 <link rel="stylesheet" href="assets/css/premium-enhancements.css">
 <link rel="stylesheet" href="assets/css/cart-buttons.css">
 <link rel="icon" type="image/png" href="https://tbowuuxvjaadawhmpumr.supabase.co/storage/v1/object/public/media/logo.png"></head>
@@ -67,8 +68,8 @@
 <!-- ROUTINE + BRANDS -->
 <section class="ub-editorial">
   <div class="container ub-editorial-grid">
-    <a href="boutique.html?cat=visage" class="ub-routine"><div><span class="eyebrow">Conseils personnalisés</span><h2>Votre routine beauté<br><em>sur-mesure</em></h2><p>Des conseils personnalisés pour révéler le meilleur de votre peau.</p><button class="btn btn-primary">Faire le diagnostic <b>→</b></button></div><img id="editorial-routine-image" src="https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?q=80&w=900&auto=format&fit=crop" alt="Routine beauté"></a>
-    <div class="ub-brands"><span class="eyebrow">Sélection</span><h2>Des marques qui<br><em>inspirent confiance</em></h2><div><b>Urbann Beauty</b><span>CAUDALIE</span><span>L'ORÉAL</span><span>NIVEA</span><span>MAYBELLINE</span><span>THE BODY SHOP</span></div></div>
+    <a href="diagnostic-teint.html" class="ub-routine"><div><span class="eyebrow">Diagnostic teint</span><h2>Trouvez votre teinte<br><em>en une photo</em></h2><p>Prenez une photo, touchez votre peau : on vous indique le fond de teint qui vous correspond.</p><span class="btn btn-primary">Faire le diagnostic <b>→</b></span></div><img id="editorial-routine-image" src="https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?q=80&w=900&auto=format&fit=crop" alt="Routine beauté"></a>
+    <div class="ub-help-card"><span class="eyebrow">Conseil personnalisé</span><h2>Une question ?<br><em>On vous répond.</em></h2><ul><li>Choix de teinte et de routine</li><li>Disponibilité et délais de livraison</li><li>Commande assistée sur WhatsApp</li></ul><a class="btn btn-primary btn-wa" id="home-wa-help" target="_blank" rel="noopener" href="#"><span data-icon="whatsapp"></span> Écrire à une conseillère</a></div>
   </div>
 </section>
 
@@ -79,7 +80,7 @@
 <section class="ub-recent-strip" id="recent-section" style="display:none;padding-top:0"><div class="container"><div class="ub-section-split-head"><div><span class="eyebrow">Reprenez où vous en étiez</span><h2>Vus <em>récemment</em></h2></div><a href="favoris.html">Mes favoris <b>→</b></a></div><div class="product-grid" id="recent-grid"></div></div></section>
 
 <!-- TESTIMONIALS -->
-<section class="ub-testimonials"><div class="container"><div class="section-head"><span class="eyebrow">Avis clients</span><h2>Elles nous font <em>confiance</em></h2><p>Plus de 2 300 avis vérifiés partagés par notre communauté.</p></div><div class="testi-grid" id="testi-grid"></div></div></section>
+<section class="ub-testimonials"><div class="container"><div class="section-head"><span class="eyebrow">Avis clients</span><h2>Elles nous font <em>confiance</em></h2><p>Les retours de notre communauté, partagés après leurs achats.</p></div><div class="testi-grid" id="testi-grid"></div></div></section>
 
 <!-- NEWSLETTER -->
 <section class="ub-newsletter-section"><div class="container"><div class="newsletter ub-newsletter"><div><span class="eyebrow">Rejoignez notre univers</span><h2>Recevez nos offres <em>exclusives</em></h2><p>Conseils beauté, nouveautés et avantages privés directement dans votre boîte mail.</p></div><form id="newsletter-form-home"><input type="email" required placeholder="Votre adresse email"><button class="btn btn-primary" type="submit">S'inscrire <b>→</b></button></form></div></div></section>
@@ -104,15 +105,23 @@ async function main() {
     catLayout.classList.add('no-promo');
   }
   document.getElementById('cat-rail').innerHTML=categories.map(c=>{const label=c.name.replace('Soins ','');return `<a class="ub-cat-pill reveal" href="boutique.html?cat=${c.id}"><span><img src="${ubGetCategoryImage(c)}" alt="${c.name}"></span><b>${label.charAt(0).toUpperCase()+label.slice(1)}</b></a>`;}).join('');
-  const bestsellers=products.filter(p=>p.tag==='Best-seller'||p.rating>=4.7).slice(0,4);
+  /* Jamais de section vide tant qu'il y a des produits : les best-sellers tagues passent
+     en premier, completes par les mieux notes ; les nouveautes sont les derniers ajouts. */
+  const inStock=products.filter(p=>p.stock>0);
+  const pool=inStock.length?inStock:products;
+  const bestsellers=[...pool].sort((a,b)=>((b.tag==='Best-seller')-(a.tag==='Best-seller'))||((b.reviews>0)-(a.reviews>0))||(b.rating-a.rating)).slice(0,4);
   document.getElementById('bestsellers-grid').innerHTML=bestsellers.length?bestsellers.map(p=>ubProductCardHTML(p,catsById)).join(''):`<div class="ub-grid-empty">${ubIcon('bag')}<p>Nos produits arrivent très bientôt.</p><a href="boutique.html" class="btn btn-outline btn-sm">Voir la boutique</a></div>`;
-  const newArrivals=products.filter(p=>p.tag==='Nouveau'||p.tag==='Promo'||p.tag==='Édition limitée').slice(0,4);
+  const bestIds=new Set(bestsellers.map(p=>p.id));
+  const newest=[...pool].reverse();
+  const newArrivals=[...newest.filter(p=>['Nouveau','Promo','Édition limitée'].includes(p.tag)),...newest.filter(p=>!bestIds.has(p.id)),...newest].filter((p,i,a)=>a.findIndex(x=>x.id===p.id)===i).slice(0,4);
   document.getElementById('new-grid').innerHTML=newArrivals.length?newArrivals.map(p=>ubProductCardHTML(p,catsById)).join(''):`<div class="ub-grid-empty">${ubIcon('bag')}<p>De nouvelles pépites arrivent très bientôt.</p><a href="boutique.html" class="btn btn-outline btn-sm">Voir la boutique</a></div>`;
   document.getElementById('testi-grid').innerHTML=testimonials.map(t=>ubTestimonialCardHTML(t)).join('');
   const productsById=Object.fromEntries(products.map(p=>[p.id,p]));
   const recent=ubGetRecentlyViewed().map(id=>productsById[id]).filter(Boolean).slice(0,4);
   if(recent.length){document.getElementById('recent-section').style.display='';document.getElementById('recent-grid').innerHTML=recent.map(p=>ubProductCardHTML(p,catsById)).join('');ubInitReveal();}
   document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=ubIcon(el.dataset.icon));
+  const waHelp=document.getElementById('home-wa-help');
+  if(waHelp){waHelp.href=`https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent('Bonjour Urbann Beauty, j\'aimerais un conseil beauté.')}`;waHelp.addEventListener('click',()=>ubTrack('whatsapp_click'));}
   document.getElementById('newsletter-form-home').addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = e.target.querySelector('input[type="email"]');

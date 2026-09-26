@@ -273,7 +273,7 @@ function ubProductCardHTML(p, catsById) {
     <div class="editorial-product-info">
       <div class="editorial-product-meta">
         <span>${cat ? cat.name : 'Urbann Beauty'}</span>
-        <span>${ubStars(p.rating)} <b>${p.rating.toFixed(1)}</b></span>
+        ${p.reviews > 0 ? `<span>${ubStars(p.rating)} <b>${p.rating.toFixed(1)}</b></span>` : `<span class="ub-card-new">Nouveau</span>`}
       </div>
       <h3><a href="produit.html?id=${p.id}">${p.name}</a></h3>
       <div class="editorial-product-bottom">
@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const UB_FREE_SHIPPING_THRESHOLD = 50000;
 function ubTopbarText() {
-  return `Livraison offerte dès ${ubFormatPrice(UB_FREE_SHIPPING_THRESHOLD)} d'achat &nbsp;•&nbsp; Expédition sous 24h ouvrées`;
+  return `Livraison offerte dès ${ubFormatPrice(UB_FREE_SHIPPING_THRESHOLD)} d'achat &nbsp;•&nbsp; Commande préparée sous 24 à 48h`;
 }
 function ubIsCartPage() {
   return /panier\.html$/.test(location.pathname);

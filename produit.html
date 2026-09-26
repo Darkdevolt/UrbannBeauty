@@ -67,7 +67,7 @@ ${stockHTML}
 ${actionsHTML}
 ${product.shadeHex?`<button class="btn" style="margin:-8px 0 16px;width:100%" onclick="ubOpenShadeCheck()">${ubIcon('camera')} Est-ce ma teinte ? Vérifiez avec une photo</button>`:''}
 <div class="pd-delivery-box">
-<div>${ubIcon('truck')}<span><strong>Expédition sous 24h ouvrées</strong> · livraison offerte dès ${ubFormatPrice(UB_FREE_SHIPPING_THRESHOLD)}</span></div>
+<div>${ubIcon('truck')}<span><strong>Préparée sous 24 à 48h</strong> · livraison offerte dès ${ubFormatPrice(UB_FREE_SHIPPING_THRESHOLD)}</span></div>
 <div>${ubIcon('pin')}<span><strong>Retrait gratuit</strong> à notre point de vente (${UB_CONTACT.pickupAddress})</span></div>
 <div>${ubIcon('shield')}<span><strong>Paiement Wave</strong> : en totalité, ou acompte de 20% et solde à la livraison</span></div>
 <div>${ubIcon('return')}<span><a href="retour.html" style="color:inherit"><strong>Retour possible sous 7 jours</strong></a></span></div>
@@ -78,7 +78,7 @@ ${product.shadeHex?`<button class="btn" style="margin:-8px 0 16px;width:100%" on
 </div></div>
 <div class="pd-tabs" id="pd-tabs"><button class="active" onclick="ubSwitchTab(0)">Description</button><button onclick="ubSwitchTab(1)">Livraison &amp; paiement</button><button onclick="ubSwitchTab(2)">Avis (${product.reviews})</button></div>
 <div class="pd-tab-panel active" id="tab-0"><p>${product.desc||''}</p><p style="color:var(--ink-soft)">Besoin de la composition détaillée ou d'un conseil d'utilisation ? <a href="${askLink}" target="_blank" rel="noopener" style="color:var(--mauve-600);font-weight:600">Demandez-nous sur WhatsApp</a>.</p></div>
-<div class="pd-tab-panel" id="tab-1"><p><strong>Livraison :</strong> expédition sous 24h ouvrées à Dakar et environs, frais selon votre zone (affichés au panier) et offerts dès ${ubFormatPrice(UB_FREE_SHIPPING_THRESHOLD)}. Retrait gratuit possible à notre point de vente.</p><p><strong>Paiement :</strong> via Wave, en totalité ou avec un acompte de 20% (le solde se règle à la livraison). Joignez simplement la capture de votre paiement au moment de valider.</p><p><strong>Suivi :</strong> vous recevez la confirmation et le suivi sur WhatsApp, et pouvez suivre votre commande à tout moment depuis <a href="suivi.html" style="color:var(--mauve-600)">cette page</a>.</p></div>
+<div class="pd-tab-panel" id="tab-1"><p><strong>Livraison :</strong> préparation sous 24 à 48h puis livraison à Dakar et environs, frais selon votre zone (affichés au panier) et offerts dès ${ubFormatPrice(UB_FREE_SHIPPING_THRESHOLD)}. Retrait gratuit possible à notre point de vente.</p><p><strong>Paiement :</strong> via Wave, en totalité ou avec un acompte de 20% (le solde se règle à la livraison). Joignez simplement la capture de votre paiement au moment de valider.</p><p><strong>Suivi :</strong> vous recevez la confirmation et le suivi sur WhatsApp, et pouvez suivre votre commande à tout moment depuis <a href="suivi.html" style="color:var(--mauve-600)">cette page</a>.</p></div>
 <div class="pd-tab-panel" id="tab-2"><div class="testi-grid" style="grid-template-columns:1fr">${testimonials.slice(0,4).map(t=>ubTestimonialCardHTML(t)).join('')}</div></div></div>`;
 
 window.ubChangeQty=d=>{const max=product.stock>0?product.stock:99;qty=Math.min(max,Math.max(1,qty+d));document.getElementById('qty-value').textContent=qty};

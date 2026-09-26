@@ -168,7 +168,7 @@ async function renderCart(){
       <button class="btn btn-primary btn-block ub-co-cta" id="checkout-submit" onclick="ubSubmitOrder()">${ubIcon('shield')} <span id="checkout-submit-label">Valider ma commande</span></button>
       <div class="ub-co-trust">
         <div>${ubIcon('shield')} Paiement vérifié manuellement par notre équipe</div>
-        <div>${ubIcon('truck')} Expédition sous 24h ouvrées · suivi WhatsApp</div>
+        <div>${ubIcon('truck')} Préparée sous 24 à 48h · suivi WhatsApp</div>
         <div>${ubIcon('return')} Retour possible sous 7 jours</div>
       </div>
       <a class="ub-help-wa" id="help-wa" target="_blank" rel="noopener" href="#">${ubIcon('whatsapp')}<span><strong>Une question avant de valider ?</strong>Une conseillère vous répond sur WhatsApp.</span></a>
@@ -497,7 +497,7 @@ async function ubSubmitOrder(){
         <ol class="ub-wave-steps" style="margin:0">
           <li><span>Notre équipe vérifie votre capture Wave (en général en moins d'une heure, 9h–20h).</span></li>
           <li><span>Nous vous confirmons la commande au <strong>${ubEscapeHtml(phone)}</strong> sur WhatsApp.</span></li>
-          <li><span>${zone.isPickup ? 'Vous passez la récupérer au point de retrait.' : 'Votre colis est préparé et expédié sous 24h ouvrées.'}</span></li>
+          <li><span>${zone.isPickup ? 'Vous passez la récupérer au point de retrait.' : 'Votre colis est préparé sous 24 à 48h puis livré dans votre zone.'}</span></li>
         </ol>
       </div>
       <a href="boutique.html" style="font-size:.84rem;color:var(--mauve-600)">Continuer mes achats →</a>
