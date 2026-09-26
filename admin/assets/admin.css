@@ -462,3 +462,50 @@ h1,h2,h3,h4 { font-family: 'Playfair Display', serif; margin: 0; color: var(--a-
   .a-mobile-only { display: flex !important; justify-content: center; }
   .a-sidebar.open { box-shadow: 0 0 0 100vmax rgba(46,25,67,.45); }
 }
+
+/* ============================================
+   ADMIN ORDINATEUR — densite et lisibilite
+   ============================================ */
+.a-sub { font-size: .72rem; color: var(--a-ink-soft); margin-top: 2px; white-space: nowrap; }
+.a-nowrap { white-space: nowrap; }
+.a-badge { white-space: nowrap; }
+.a-select-sm { padding: 6px 28px 6px 10px !important; font-size: .78rem !important; max-width: 190px; }
+.a-actions-cell { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+
+@media (min-width: 701px) {
+  /* Menu lateral plus dense : toutes les rubriques tiennent sur un ecran de portable */
+  .a-sidebar .brand { padding: 18px 22px !important; }
+  .a-nav { padding: 12px 12px !important; }
+  .a-nav a { padding: 9px 12px !important; margin-bottom: 2px !important; font-size: .84rem !important; }
+  .a-nav .group-label { margin: 12px 0 4px !important; padding-left: 12px; }
+  .a-sidebar-footer { padding: 14px 16px !important; }
+
+  /* Cartes de statistiques horizontales : icone a gauche, chiffre a droite */
+  .a-stat-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; align-items: center; padding: 18px 20px !important; }
+  .a-stat-card > .row, .a-stat-card > .icon { grid-column: 1; grid-row: 1 / span 3; align-self: start; }
+  .a-stat-card > :not(.row):not(.icon) { grid-column: 2; }
+  .a-stat-card .value { font-size: 1.45rem !important; margin: 0 0 2px !important; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .a-stat-card .a-trend { margin-top: 4px !important; }
+  .a-stats-grid { gap: 16px !important; margin-bottom: 22px !important; }
+
+  /* Tableaux : lignes plus compactes, pas de retour a la ligne inutile */
+  .a-table td { padding: 11px 14px; font-size: .84rem; }
+  .a-table td:first-child strong, .a-prod-cell strong { white-space: nowrap; }
+  .a-table td[data-label="Téléphone"], .a-table td[data-label="Date"], .a-table td[data-label="Dernière commande"], .a-table td[data-label="Total"], .a-table td[data-label="Total dépensé"], .a-table td[data-label="Commandes"], .a-table td[data-label="Valeur"] { white-space: nowrap; }
+
+  /* Barre d'outils : la recherche prend la place disponible */
+  .a-toolbar { gap: 12px; }
+  .a-toolbar .a-search { flex: 1 1 280px; max-width: 460px; }
+}
+@media (min-width: 1600px) {
+  .a-content { max-width: 1500px; }
+}
+.a-select-sm { width: auto !important; max-width: 158px !important; }
+.a-tag { white-space: nowrap; }
+@media (min-width: 701px) and (max-width: 1500px) {
+  .a-sidebar { width: 224px !important; }
+  .a-content { padding: 24px 22px !important; }
+  .a-topbar { padding-left: 22px !important; padding-right: 22px !important; }
+  .a-table th { padding: 11px 10px !important; }
+  .a-table td { padding: 10px 10px !important; }
+}
