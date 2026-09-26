@@ -16,16 +16,48 @@
 <script src="../assets/js/media.js"></script>
 <script src="assets/admin.js"></script>
 <script>
+/* Entonnoir : chaque etape en nombre de visiteuses distinctes, avec le taux de
+   passage depuis l'etape precedente -- la plus forte chute indique quoi ameliorer. */
+function renderFunnel(f, productsById) {
+  const el = document.getElementById('funnel-body');
+  if (!f) { el.innerHTML = '<p style="font-size:.82rem;color:var(--a-ink-soft);margin:0">Données indisponibles pour le moment.</p>'; return; }
+  const steps = [
+    ['Visiteuses', f.visits], ['Ont vu un produit', f.productViews], ['Ont ajouté au panier', f.addToCart],
+    ['Ont ouvert le panier', f.checkoutStart], ['Ont saisi leurs coordonnées', f.checkoutInfo], ['Ont commandé', f.orders],
+  ];
+  const max = Math.max(1, ...steps.map(x => x[1]));
+  let worst = null;
+  steps.forEach((st, i) => { if (i && steps[i - 1][1] >= 5) { const rate = st[1] / steps[i - 1][1]; if (!worst || rate < worst.rate) worst = { i, rate }; } });
+  const advice = {
+    1: 'Peu de visiteuses ouvrent une fiche produit : mettez en avant vos best-sellers et de belles photos sur l\'accueil.',
+    2: 'Beaucoup regardent sans ajouter au panier : travaillez photos, descriptions, prix barrés et avis sur les fiches.',
+    3: 'Des ajouts au panier ne vont pas jusqu\'au panier : relancez via WhatsApp et vérifiez le mini-panier.',
+    4: 'Des clientes ouvrent le panier sans laisser leurs coordonnées : frais de livraison ou acompte peut-être freinants.',
+    5: 'Des clientes laissent leurs coordonnées sans commander : c\'est le moment idéal pour les relancer (Paniers abandonnés).',
+  };
+  const topViewed = (f.topViewed || []).map(t => ({ ...t, name: productsById[t.product_id]?.name || t.product_id }));
+  el.innerHTML = `<div class="a-funnel">${steps.map((st, i) => `<div class="a-funnel-row"><span>${st[0]}</span><div class="a-funnel-bar"><span style="width:${st[1] / max * 100}%"></span></div><strong>${st[1]} ${i ? `<em>(${steps[i - 1][1] ? Math.round(st[1] / steps[i - 1][1] * 100) : 0}%)</em>` : ''}</strong></div>`).join('')}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:16px;font-size:.8rem">
+      <div><span style="color:var(--a-ink-soft)">Taux de conversion global :</span> <strong>${f.visits ? (f.orders / f.visits * 100).toFixed(1) : 0}%</strong></div>
+      <div><span style="color:var(--a-ink-soft)">Clics WhatsApp :</span> <strong>${f.whatsappClicks}</strong></div>
+    </div>
+    ${worst && advice[worst.i] ? `<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--a-warning-bg);font-size:.8rem"><strong>Point à améliorer en priorité :</strong> ${advice[worst.i]}</div>` : ''}
+    ${topViewed.length ? `<div style="margin-top:16px"><div style="font-size:.78rem;font-weight:600;margin-bottom:8px">Produits les plus consultés</div><div class="a-mini-list">${topViewed.slice(0, 5).map(t => { const adds = (f.topAdded || []).find(a => a.product_id === t.product_id)?.adds || 0; return `<div><span>${ubEscapeHtml(t.name)}</span><span>${t.views} vues · <strong>${adds} ajouts</strong></span></div>`; }).join('')}</div></div>` : ''}`;
+}
+
 async function main() {
   if (!(await ubAdminGuard())) return;
   await ubAdminRenderShell('dashboard', 'Tableau de bord', 'Aperçu de l\'activité de votre boutique aujourd\'hui');
 
-  const [products, orders, suppliers, categories, summaryRes] = await Promise.all([
+  const [products, orders, suppliers, categories, summaryRes, funnel, carts] = await Promise.all([
     ubAdminGetProducts(), ubAdminGetOrders(), ubAdminGetSuppliers(), ubGetAllCategories(),
-    ubSupabase.rpc('ub_dashboard_summary'),
+    ubSupabase.rpc('ub_dashboard_summary'), ubAdminGetFunnel(30), ubAdminGetCartSessions(7),
   ]);
   const summary = summaryRes.data || { revenueThisMonth: 0, revenueLastMonth: 0, ordersThisMonth: orders.length, ordersLastMonth: 0, ordersToday: 0, last7Days: [] };
   const productsById = ubProductsById(products);
+  const todoPending = orders.filter(o => o.status === 'en_attente').length;
+  const todoDeliveries = orders.filter(o => o.status === 'en_cours').length;
+  const todoCarts = carts.filter(c => c.rawPhone && ubCartIsAbandoned(c) && c.status === 'ouvert');
   const lowStock = products.filter(p => p.stock <= 5);
   const activeOrders = orders.filter(o => o.status !== 'annulee');
   const revenue = summary.revenueThisMonth;
@@ -50,6 +82,15 @@ async function main() {
       <div class="a-panel a-stat-card"><div class="row"><div class="icon" style="background:#fbe9ec;color:#d1495c">${ubIcon('users')}</div></div><div class="value">${ubFormatPrice(avgBasket)}</div><div class="label">Panier moyen (ce mois-ci)</div>${ubTrend(summary.ordersThisMonth?summary.revenueThisMonth/summary.ordersThisMonth:0, summary.ordersLastMonth?summary.revenueLastMonth/summary.ordersLastMonth:0)}</div>
     </div>
 
+    <div class="a-panel" style="margin-bottom:22px"><div class="a-panel-head"><h3>À traiter maintenant</h3></div><div class="a-panel-body"><div class="a-todo">
+      <a href="commandes.html"><span class="n" style="color:var(--a-mauve)">${todoPending}</span><span><strong>Commandes en attente</strong><small>Vérifier la capture Wave et confirmer</small></span></a>
+      <a href="relances.html"><span class="n" style="color:var(--a-warning)">${todoCarts.length}</span><span><strong>Paniers à relancer</strong><small>${ubFormatPrice(todoCarts.reduce((s, c) => s + c.value, 0))} à récupérer</small></span></a>
+      <a href="livraison.html"><span class="n" style="color:#2f9e63">${todoDeliveries}</span><span><strong>Livraisons en cours</strong><small>Préparer, attribuer, clôturer</small></span></a>
+      <a href="produits.html"><span class="n" style="color:var(--a-danger)">${lowStock.length}</span><span><strong>Produits en stock faible</strong><small>À réapprovisionner</small></span></a>
+    </div></div></div>
+
+    <div class="a-panel" style="margin-bottom:22px"><div class="a-panel-head"><div><h3>Entonnoir de conversion (30 derniers jours)</h3><div style="font-size:.78rem;color:var(--a-ink-soft)">Où les visiteuses décrochent entre l'arrivée sur le site et la commande.</div></div></div><div class="a-panel-body" id="funnel-body"></div></div>
+
     <div class="a-panel" style="margin-bottom:22px"><div class="a-panel-body" style="display:flex;align-items:center;flex-wrap:wrap;gap:24px">
       <div style="flex:1;min-width:200px"><div style="font-size:.78rem;color:var(--a-ink-soft)">À recevoir (créances clients)</div><div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--a-warning)">${ubFormatPrice(receivablesQuick.total)}</div></div>
       <div style="flex:1;min-width:200px"><div style="font-size:.78rem;color:var(--a-ink-soft)">À payer (dettes fournisseurs)</div><div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--a-danger)">${ubFormatPrice(payablesQuick.total)}</div></div>
@@ -68,6 +109,7 @@ async function main() {
     <div class="a-grid-2" style="margin-top:22px"><div class="a-panel"><div class="a-panel-head"><h3>Dernières commandes</h3><a href="commandes.html" class="a-btn a-btn-outline a-btn-sm">Voir tout</a></div><div class="a-table-wrap"><table class="a-table"><thead><tr><th>Commande</th><th>Client</th><th>Total</th><th>Paiement</th><th>Statut</th></tr></thead><tbody id="orders-tbody"></tbody></table></div></div>
     <div class="a-panel"><div class="a-panel-head"><h3>Alertes stock faible</h3><a href="produits.html" class="a-btn a-btn-outline a-btn-sm">Gérer le stock</a></div><div class="a-panel-body" style="padding-top:8px"><div id="low-stock-list"></div></div></div></div>`;
 
+  renderFunnel(funnel, productsById);
   const dayLabels = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
   const last7 = summary.last7Days.length ? summary.last7Days : [{date:new Date().toISOString().slice(0,10),total:0}];
   const maxDay = Math.max(...last7.map(d=>d.total), 1);

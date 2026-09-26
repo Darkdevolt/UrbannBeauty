@@ -1,6 +1,6 @@
-<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Panier — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css">
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Panier — Urbann Beauty</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/pages.css"><link rel="stylesheet" href="assets/css/cart-buttons.css">
 <style>
-.note-overlay{position:fixed;inset:0;background:rgba(36,27,46,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+.note-overlay{position:fixed;inset:0;background:rgba(36,27,46,.55);display:none;align-items:center;justify-content:center;z-index:1100;padding:16px}
 .note-overlay.open{display:flex}
 .note-modal{background:var(--white);border-radius:var(--radius-lg);max-width:440px;width:100%;max-height:90vh;overflow:auto;padding:24px}
 .note-modal h3{margin:0 0 4px}
@@ -12,47 +12,220 @@
 .proof-upload{display:flex;align-items:center;gap:8px;border:2px dashed var(--mauve-300);border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--mauve-700);background:var(--mauve-50)}
 .proof-upload svg{width:18px;height:18px;flex-shrink:0}
 .note-photo-zone img{max-width:100%;max-height:160px;border-radius:8px;display:block;margin:0 auto}
+.ub-co-summary .summary-row{margin-bottom:0}
 </style>
 <link rel="icon" type="image/png" href="https://tbowuuxvjaadawhmpumr.supabase.co/storage/v1/object/public/media/logo.png"></head><body>
 <div id="site-header"></div><div class="breadcrumb"><div class="container"><a href="index.html">Accueil</a><span>/</span><span>Panier</span></div></div>
-<section style="padding-top:48px"><div class="container"><div class="section-head" style="text-align:left;margin-bottom:36px"><span class="eyebrow">Votre sélection</span><h2>Mon panier</h2><p>Vérifiez votre sélection avant de finaliser votre commande.</p></div><div id="cart-content"></div></div></section><div id="site-footer"></div>
+<section style="padding-top:40px"><div class="container"><div class="section-head" style="text-align:left;margin:0 0 22px;max-width:none"><span class="eyebrow">Commande sécurisée</span><h2 style="margin:0">Mon panier</h2></div><div id="cart-content"></div></div></section>
+<section class="ub-co-upsell" id="upsell-section" style="display:none;background:var(--off-white);padding:56px 0"><div class="container"><div class="section-head" style="text-align:left;margin:0 0 24px;max-width:none"><span class="eyebrow">Les clientes ajoutent aussi</span><h2 style="margin:0">Complétez votre routine</h2></div><div class="product-grid" id="upsell-grid"></div></div></section>
+<div id="site-footer"></div>
 <div class="note-overlay" id="note-overlay"><div class="note-modal" id="note-modal-body"></div></div>
+<div class="ub-mobile-cta" id="mobile-cta"><div><small id="mobile-cta-label">À payer maintenant</small><strong id="mobile-cta-amount"></strong></div><button type="button" class="btn btn-primary" onclick="ubSubmitOrder()">Valider ma commande</button></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script><script src="assets/js/icons.js"></script><script src="assets/js/data.js"></script><script src="assets/js/media.js"></script><script src="assets/js/main.js"></script><script src="assets/js/ub-guide.js"></script>
 <script>
 ubRenderHeader('boutique');ubRenderFooter();
 
-const UB_PAYMENT_METHODS = ['Wave', 'Paiement à la livraison'];
+const UB_PAYMENT_METHODS = [
+  { value: 'Wave', title: 'Payer la totalité avec Wave', desc: 'Commande préparée en priorité, rien à régler à la réception.', tag: 'Recommandé' },
+  { value: 'Paiement à la livraison', title: 'Acompte 20% + solde à la livraison', desc: 'Réglez l\'acompte sur Wave, le reste en espèces ou Wave à la réception.' },
+];
 const UB_WAVE_PAYMENT_LINK = 'https://pay.wave.com/m/M_sn_DP533wZ-yIia/c/sn/';
+const UB_DEPOSIT_RATE = 0.2;
+let catalog = null;
 let currentLines = [];
+let currentSum = null;
 let currentZones = [];
 let currentSubtotal = 0;
 let appliedPromo = null;
 let availablePromoCodes = {}; // rempli depuis l'admin (promo_codes), vide par defaut
 let wavePaymentProofPath = null; // capture d'ecran Wave jointe, obligatoire avant de valider
+let orderDone = false;
 
-function ubCurrentZoneFee(){
-  const id = document.getElementById('co-zone')?.value;
-  const zone = currentZones.find(z => String(z.id) === id) || currentZones[0];
-  return zone ? zone.fee : 2500;
+/* ---------- Coordonnees memorisees (la cliente n'a rien a ressaisir la prochaine fois) ---------- */
+function ubGetSavedCustomer(){ return ubStore('ub_customer', {}); }
+function ubSaveCustomerField(key, value){ const c = ubGetSavedCustomer(); c[key] = value; ubStoreSet('ub_customer', c); }
+
+/* ---------- Panier abandonne : l'admin peut relancer sur WhatsApp ---------- */
+function ubCartSessionId(){
+  let id = ubStore('ub_cart_sid', null);
+  if(!id){ id = ubRandomId('c'); ubStoreSet('ub_cart_sid', id); }
+  return id;
+}
+let cartSaveTimer = null;
+function ubQueueCartSessionSave(){
+  clearTimeout(cartSaveTimer);
+  cartSaveTimer = setTimeout(ubSaveCartSessionNow, 1200);
+}
+function ubSaveCartSessionNow(){
+  if(orderDone || !currentSum || !currentSum.count) return;
+  const zone = ubSelectedZone();
+  const items = [
+    ...currentSum.boxes.map(b => ({ id: b.templateId, name: 'Box cadeau — ' + (b.label || ''), qty: 1, price: b.price, box: true })),
+    ...currentSum.regular.map(l => ({ id: l.id, name: l.product.name, qty: l.qty, price: l.product.price })),
+  ];
+  const v = ubFormValues();
+  ubSupabase.rpc('ub_save_cart_session', {
+    p_id: ubCartSessionId(), p_client_name: v.name || null, p_phone: v.phone || null, p_zone: zone ? zone.name : null,
+    p_items: items, p_cart_value: currentSubtotal, p_step: ubCurrentStep() === 3 ? 'paiement' : (v.name || v.phone) ? 'coordonnees' : 'panier',
+  }).then(() => {}, () => {});
 }
 
-function ubDiscountAmount(){
-  return appliedPromo ? Math.round(currentSubtotal * appliedPromo.percent / 100) : 0;
-}
-
-const UB_DEPOSIT_RATE = 0.2;
-function ubCurrentTotal(){
-  const discount = ubDiscountAmount();
-  const shipping = (currentSubtotal - discount) >= 50000 ? 0 : ubCurrentZoneFee();
-  return currentSubtotal - discount + shipping;
-}
-function ubDepositAmount(total){
-  return Math.ceil((total != null ? total : ubCurrentTotal()) * UB_DEPOSIT_RATE);
-}
-
+/* ---------- Montants ---------- */
 function ubSelectedZone(){
   const id = document.getElementById('co-zone')?.value;
   return currentZones.find(z => String(z.id) === id) || currentZones[0];
+}
+function ubDiscountAmount(){ return appliedPromo ? Math.round(currentSubtotal * appliedPromo.percent / 100) : 0; }
+function ubShippingAmount(){
+  const zone = ubSelectedZone();
+  return (currentSubtotal - ubDiscountAmount()) >= UB_FREE_SHIPPING_THRESHOLD ? 0 : (zone ? zone.fee : 2500);
+}
+function ubCurrentTotal(){ return currentSubtotal - ubDiscountAmount() + ubShippingAmount(); }
+function ubDepositAmount(total){ return Math.ceil((total != null ? total : ubCurrentTotal()) * UB_DEPOSIT_RATE); }
+function ubSelectedPayment(){ return document.querySelector('input[name="payment"]:checked')?.value || UB_PAYMENT_METHODS[0].value; }
+function ubAmountDueNow(){ const t = ubCurrentTotal(); return ubSelectedPayment() === 'Paiement à la livraison' ? ubDepositAmount(t) : t; }
+
+function ubFormValues(){
+  return {
+    name: (document.getElementById('co-name')?.value || '').trim(),
+    phone: (document.getElementById('co-phone')?.value || '').trim(),
+    address: (document.getElementById('co-address')?.value || '').trim(),
+  };
+}
+function ubPhoneValid(phone){ const d = String(phone || '').replace(/\D/g, ''); return d.length >= 9 && d.length <= 15; }
+function ubMissingNoteLine(){ return currentLines.find(l => !l.boxInstanceId && l.product.requiresClientNote && !(l.clientNote || l.clientPhotoPath)); }
+function ubCurrentStep(){
+  const v = ubFormValues();
+  if(ubMissingNoteLine()) return 1;
+  if(!v.name || !ubPhoneValid(v.phone)) return 2;
+  return 3;
+}
+function ubUpdateSteps(){
+  const step = ubCurrentStep();
+  document.querySelectorAll('.ub-steps li').forEach((li, i) => {
+    const n = i + 1;
+    li.classList.toggle('is-done', n < step || (n === 3 && !!wavePaymentProofPath && step === 3));
+    li.classList.toggle('is-active', n === step && !(n === 3 && wavePaymentProofPath));
+  });
+}
+
+/* ---------- Rendu ---------- */
+function ubEmptyCartHTML(){
+  return `<div class="empty-cart">${ubIcon('bag')}<h3>Votre panier est vide</h3><p style="color:var(--ink-soft)">Vous n’avez encore rien ajouté. Découvrez nos soins et trouvez vos essentiels.</p><a href="boutique.html" class="btn btn-primary">Découvrir la boutique</a></div>`;
+}
+
+async function renderCart(){
+  const container = document.getElementById('cart-content');
+  if(!ubGetCart().length){ container.innerHTML = ubEmptyCartHTML(); document.getElementById('upsell-section').style.display = 'none'; ubToggleMobileCta(false); return; }
+  const [cat, zones, promoCodes] = await Promise.all([ubGetCatalog(), ubGetDeliveryZones(), ubGetActivePromoCodes()]);
+  catalog = cat;
+  currentZones = zones;
+  availablePromoCodes = Object.fromEntries(promoCodes.map(c => [c.code.toUpperCase(), { percent: c.percent, label: c.label }]));
+  const saved = ubGetSavedCustomer();
+  const savedZone = zones.find(z => String(z.id) === String(saved.zoneId));
+  const hasPromos = Object.keys(availablePromoCodes).length > 0;
+
+  container.innerHTML = `
+  <ol class="ub-steps"><li class="is-active">Panier</li><span class="sep"></span><li>Coordonnées</li><span class="sep"></span><li>Paiement</li></ol>
+  <div class="ub-co-grid">
+    <div class="ub-co-main">
+      <section class="ub-co-card" id="co-step-cart">
+        <h3><span class="num">1</span> Votre sélection <small id="co-count"></small></h3>
+        <div id="co-ship-progress"></div>
+        <div class="ub-co-lines" id="co-lines"></div>
+        <a href="boutique.html" style="display:inline-block;margin-top:10px;font-size:.8rem;color:var(--mauve-600)">← Continuer mes achats</a>
+      </section>
+
+      <section class="ub-co-card" id="co-step-info">
+        <h3><span class="num">2</span> Vos coordonnées <small>Aucun compte à créer</small></h3>
+        <div class="ub-co-fields">
+          <div class="field" id="f-name"><label for="co-name">Nom complet *</label><input id="co-name" type="text" autocomplete="name" placeholder="Ex : Awa Diop" value="${ubEscapeHtml(saved.name || '')}"><p class="field-hint" style="display:none"></p></div>
+          <div class="field" id="f-phone"><label for="co-phone">Téléphone WhatsApp *</label><div class="ub-phone-wrap"><span>🇸🇳 +221</span><input id="co-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="77 000 00 00" value="${ubEscapeHtml(saved.phone || '')}"></div><p class="field-hint">Pour la confirmation et le suivi de livraison.</p></div>
+          <div class="field full" id="f-zone"><label for="co-zone">Zone de livraison *</label><select id="co-zone">${zones.map((z, i) => `<option value="${z.id}" ${(savedZone ? z.id === savedZone.id : i === 0) ? 'selected' : ''}>${ubEscapeHtml(z.name)} — ${z.fee === 0 ? 'Gratuit' : ubFormatPrice(z.fee)}</option>`).join('')}</select>
+            <p id="pickup-hint" style="display:none;font-size:.78rem;line-height:1.5;color:var(--mauve-700);background:var(--mauve-50);border-radius:var(--radius-sm);padding:8px 10px;margin:8px 0 0"><span style="display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-right:4px">${ubIcon('bag')}</span>Retrait gratuit à notre point de vente : <strong>${UB_CONTACT.pickupAddress}</strong>. Nous vous contacterons sur WhatsApp pour convenir de l'heure.</p></div>
+          <div class="field full"><label id="address-label" for="co-address">Adresse précise (quartier, repère...)</label><input id="co-address" type="text" autocomplete="street-address" placeholder="Ex : Villa 12, Cité Keur Gorgui" value="${ubEscapeHtml(saved.address || '')}"></div>
+        </div>
+        <p class="ub-remember">${ubIcon('shield')} Vos coordonnées restent sur cet appareil pour vos prochaines commandes.</p>
+      </section>
+
+      <section class="ub-co-card" id="co-step-pay">
+        <h3><span class="num">3</span> Paiement</h3>
+        <div class="ub-pay-options">${UB_PAYMENT_METHODS.map((m, i) => `<label class="ub-pay-option"><input type="radio" name="payment" value="${m.value}" ${(saved.payment ? saved.payment === m.value : i === 0) ? 'checked' : ''}><span><strong>${m.title}</strong><small>${m.desc}</small></span>${m.tag ? `<span class="tag">${m.tag}</span>` : '<span></span>'}</label>`).join('')}</div>
+        <div id="wave-pay-note" class="wave-pay-note" style="display:flex;margin-top:14px"></div>
+      </section>
+    </div>
+
+    <aside class="ub-co-summary">
+      <h3>Récapitulatif</h3>
+      <div class="ub-co-mini-lines" id="co-mini-lines"></div>
+      <div class="summary-row"><span>Sous-total</span><span id="subtotal-value"></span></div>
+      <div class="summary-row"><span>Livraison <small id="ship-zone" style="color:var(--ink-soft)"></small></span><span id="ship-value"></span></div>
+      <div class="summary-row" id="discount-row" style="display:none;color:var(--success)"><span>Réduction (<span id="discount-code-label"></span>)</span><span id="discount-value"></span></div>
+      ${hasPromos ? `<button type="button" class="ub-link-btn ub-promo-toggle" id="promo-toggle">Vous avez un code promo ?</button><div class="coupon-row" id="promo-row" style="display:none;margin:10px 0 0"><input type="text" id="co-promo" placeholder="Code promo" value="${appliedPromo ? appliedPromo.code : ''}"><button class="btn btn-outline btn-sm" type="button" onclick="ubApplyPromo()">Appliquer</button></div><p id="promo-msg" style="font-size:.72rem;margin:4px 0 0"></p>` : ''}
+      <div class="summary-row total"><span>Total</span><span id="total-value"></span></div>
+      <div class="deposit-box"><div class="summary-row"><span>À payer maintenant (Wave)</span><strong id="deposit-value"></strong></div><div class="summary-row"><span>À la livraison</span><span id="remainder-value"></span></div></div>
+      <div id="checkout-error" class="checkout-error" style="display:none;margin-top:12px"></div>
+      <button class="btn btn-primary btn-block ub-co-cta" id="checkout-submit" onclick="ubSubmitOrder()">${ubIcon('shield')} <span id="checkout-submit-label">Valider ma commande</span></button>
+      <div class="ub-co-trust">
+        <div>${ubIcon('shield')} Paiement vérifié manuellement par notre équipe</div>
+        <div>${ubIcon('truck')} Préparée sous 24 à 48h · suivi WhatsApp</div>
+        <div>${ubIcon('return')} Retour possible sous 7 jours</div>
+      </div>
+      <a class="ub-help-wa" id="help-wa" target="_blank" rel="noopener" href="#">${ubIcon('whatsapp')}<span><strong>Une question avant de valider ?</strong>Une conseillère vous répond sur WhatsApp.</span></a>
+    </aside>
+  </div>`;
+
+  const bind = (id, key) => document.getElementById(id).addEventListener('input', e => { ubSaveCustomerField(key, e.target.value.trim()); ubClearFieldError(e.target); ubUpdateSteps(); ubQueueCartSessionSave(); ubMaybeTrackInfo(); });
+  bind('co-name', 'name'); bind('co-phone', 'phone'); bind('co-address', 'address');
+  document.getElementById('co-zone').addEventListener('change', e => { ubSaveCustomerField('zoneId', e.target.value); ubRecalcSummary(); ubQueueCartSessionSave(); });
+  document.querySelectorAll('input[name="payment"]').forEach(r => r.addEventListener('change', e => { ubSaveCustomerField('payment', e.target.value); ubRecalcSummary(); }));
+  const promoToggle = document.getElementById('promo-toggle');
+  if(promoToggle) promoToggle.addEventListener('click', () => { document.getElementById('promo-row').style.display = 'flex'; promoToggle.style.display = 'none'; document.getElementById('co-promo').focus(); });
+
+  ubTrackOncePerDay('checkout_start');
+  ubMaybeTrackInfo();
+  ubRefreshCart();
+  ubWatchMobileCta();
+}
+
+/* Met a jour les lignes, le recap et les suggestions sans toucher au formulaire
+   (la cliente ne perd jamais ce qu'elle a saisi en changeant une quantite). */
+function ubRefreshCart(){
+  if(orderDone || !catalog) return;
+  const cart = ubGetCart();
+  if(!cart.length){ renderCart(); return; }
+  if(!document.getElementById('co-lines')){ renderCart(); return; }
+  const sum = ubComputeCartSummary(cart, catalog.productsById, catalog.templatesById);
+  currentSum = sum;
+  currentLines = [...sum.boxes.flatMap(b => b.items), ...sum.regular];
+  currentSubtotal = sum.subtotal;
+  if(!sum.count){ document.getElementById('cart-content').innerHTML = ubEmptyCartHTML(); ubToggleMobileCta(false); return; }
+
+  document.getElementById('co-count').textContent = `${sum.count} article${sum.count > 1 ? 's' : ''}`;
+  document.getElementById('co-ship-progress').innerHTML = ubFreeShippingHTML(sum.subtotal);
+  document.getElementById('co-lines').innerHTML =
+    sum.boxes.map(b => `<div class="ub-co-line"><div class="ub-drawer-thumb is-box">${ubIcon('box')}</div><div class="ub-co-line-info"><strong>Box cadeau — ${ubEscapeHtml(b.label || '')}</strong>${!b.available ? '<small style="color:var(--danger)">Indisponible, merci de la retirer</small>' : ''}<small>${b.items.map(l => l.product.name).join(', ')}</small><div class="ub-co-line-actions"><button class="ub-link-btn" type="button" onclick="ubRemoveBoxFromCart('${b.instanceId}')">Retirer</button></div></div><div class="ub-co-line-price"><b>${ubFormatPrice(b.price)}</b></div></div>`).join('')
+    + sum.regular.map(l => {
+      const needsNote = l.product.requiresClientNote, hasNote = !!(l.clientNote || l.clientPhotoPath);
+      const maxed = l.product.stock != null && l.qty >= l.product.stock;
+      return `<div class="ub-co-line"><a href="produit.html?id=${l.id}"><img src="${l.product.img}" alt="${ubEscapeHtml(l.product.name)}"></a><div class="ub-co-line-info"><a href="produit.html?id=${l.id}"><strong>${l.product.name}</strong></a><small>${ubFormatPrice(l.product.price)} l'unité${l.product.stock > 0 && l.product.stock <= 5 ? ` · <span style="color:var(--warning)">plus que ${l.product.stock} en stock</span>` : ''}${l.product.stock <= 0 ? ' · <span style="color:var(--danger)">épuisé, à retirer</span>' : ''}</small><div class="ub-co-line-actions"><div class="qty-selector qty-sm"><button type="button" aria-label="Retirer un" onclick="ubUpdateLine('${l.id}',${l.qty - 1})">−</button><span>${l.qty}</span><button type="button" aria-label="Ajouter un" ${maxed ? 'disabled' : ''} onclick="ubUpdateLine('${l.id}',${l.qty + 1})">+</button></div><button class="ub-link-btn" type="button" onclick="ubUpdateLine('${l.id}',0)">Retirer</button>${needsNote ? `<button type="button" class="ub-note-btn ${hasNote ? 'is-ok' : ''}" onclick="ubOpenNoteModal('${l.id}')">${hasNote ? ubIcon('check') : ubIcon('camera')} ${hasNote ? 'Info fournie — modifier' : 'Info requise avant validation'}</button>` : ''}</div></div><div class="ub-co-line-price"><b>${ubFormatPrice(l.product.price * l.qty)}</b>${l.product.oldPrice ? `<del>${ubFormatPrice(l.product.oldPrice * l.qty)}</del>` : ''}</div></div>`;
+    }).join('');
+  document.getElementById('co-mini-lines').innerHTML =
+    sum.boxes.map(b => `<div class="ub-co-mini-line"><i></i><span>Box — ${ubEscapeHtml(b.label || '')}</span><b>${ubFormatPrice(b.price)}</b></div>`).join('')
+    + sum.regular.map(l => `<div class="ub-co-mini-line"><img src="${l.product.img}" alt=""><span>${l.product.name} <em>× ${l.qty}</em></span><b>${ubFormatPrice(l.product.price * l.qty)}</b></div>`).join('');
+
+  const suggestions = ubCartSuggestions(cart, catalog.products, sum.subtotal, 3);
+  document.getElementById('upsell-section').style.display = suggestions.length ? '' : 'none';
+  document.getElementById('upsell-grid').innerHTML = suggestions.map(p => ubProductCardHTML(p, null)).join('');
+  ubInitReveal();
+
+  const helpText = `Bonjour Urbann Beauty, j'ai une question avant de valider ma commande :\n${sum.regular.map(l => `- ${l.product.name} x${l.qty}`).concat(sum.boxes.map(b => `- Box cadeau ${b.label || ''}`)).join('\n')}\nTotal panier : ${ubFormatPrice(sum.subtotal)}`;
+  document.getElementById('help-wa').href = `https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent(helpText)}`;
+  document.getElementById('help-wa').onclick = () => ubTrack('whatsapp_click');
+  ubSetWhatsAppContext(helpText);
+
+  ubRecalcSummary();
+  ubQueueCartSessionSave();
 }
 
 function ubRecalcSummary(){
@@ -60,212 +233,197 @@ function ubRecalcSummary(){
   const pickupHint = document.getElementById('pickup-hint');
   const addressLabel = document.getElementById('address-label');
   const addressInput = document.getElementById('co-address');
+  if(!addressInput) return;
   if(pickupHint) pickupHint.style.display = zone && zone.isPickup ? 'block' : 'none';
-  if(addressLabel) addressLabel.textContent = zone && zone.isPickup ? 'Précision (heure de passage souhaitée...)' : 'Adresse précise (quartier, repère...)';
-  if(addressInput) addressInput.placeholder = zone && zone.isPickup ? 'Ex : je passerai en fin de journée' : 'Ex : Villa 12, Cité Keur Gorgui';
+  addressLabel.textContent = zone && zone.isPickup ? 'Précision (heure de passage souhaitée...)' : 'Adresse précise (quartier, repère...)';
+  addressInput.placeholder = zone && zone.isPickup ? 'Ex : je passerai en fin de journée' : 'Ex : Villa 12, Cité Keur Gorgui';
 
-  const discount = ubDiscountAmount();
-  const shipping = (currentSubtotal - discount) >= 50000 ? 0 : ubCurrentZoneFee();
-  const total = currentSubtotal - discount + shipping;
-  const deposit = ubDepositAmount(total);
-  const shipEl = document.getElementById('ship-value'), totalEl = document.getElementById('total-value'), hintEl = document.getElementById('ship-hint');
-  const discountRow = document.getElementById('discount-row'), discountValueEl = document.getElementById('discount-value'), discountLabelEl = document.getElementById('discount-code-label');
-  const depositEl = document.getElementById('deposit-value'), remainderEl = document.getElementById('remainder-value');
-  if(shipEl) shipEl.textContent = shipping === 0 ? 'Offerte' : ubFormatPrice(shipping);
-  if(totalEl) totalEl.textContent = ubFormatPrice(total);
-  if(hintEl) hintEl.textContent = shipping > 0 ? 'Livraison offerte dès 50 000 FCFA.' : 'Vous bénéficiez de la livraison offerte.';
-  if(depositEl) depositEl.textContent = ubFormatPrice(deposit);
-  if(remainderEl) remainderEl.textContent = ubFormatPrice(total - deposit);
-  if(discountRow){
-    if(appliedPromo){
-      discountRow.style.display='flex';
-      discountLabelEl.textContent=appliedPromo.label;
-      discountValueEl.textContent='−'+ubFormatPrice(discount);
-    } else {
-      discountRow.style.display='none';
-    }
-  }
+  const discount = ubDiscountAmount(), shipping = ubShippingAmount(), total = ubCurrentTotal(), dueNow = ubAmountDueNow();
+  document.getElementById('subtotal-value').textContent = ubFormatPrice(currentSubtotal);
+  document.getElementById('ship-zone').textContent = zone ? `(${zone.name})` : '';
+  document.getElementById('ship-value').innerHTML = shipping === 0 ? '<span style="color:var(--success);font-weight:600">Offerte</span>' : ubFormatPrice(shipping);
+  document.getElementById('total-value').textContent = ubFormatPrice(total);
+  document.getElementById('deposit-value').textContent = ubFormatPrice(dueNow);
+  document.getElementById('remainder-value').textContent = total - dueNow > 0 ? ubFormatPrice(total - dueNow) : 'Rien';
+  document.getElementById('checkout-submit-label').textContent = `Valider ma commande · ${ubFormatPrice(dueNow)}`;
+  document.getElementById('mobile-cta-amount').textContent = ubFormatPrice(dueNow);
+  const discountRow = document.getElementById('discount-row');
+  if(appliedPromo){
+    discountRow.style.display = 'flex';
+    document.getElementById('discount-code-label').textContent = appliedPromo.code;
+    document.getElementById('discount-value').textContent = '−' + ubFormatPrice(discount);
+  } else discountRow.style.display = 'none';
   ubTogglePaymentNote();
+  ubUpdateSteps();
 }
 
 function ubApplyPromo(){
-  const input=document.getElementById('co-promo'), msg=document.getElementById('promo-msg');
-  const code=(input.value||'').trim().toUpperCase();
-  if(!code){ msg.textContent='Merci de saisir un code promo.'; msg.style.color='var(--danger)'; return; }
-  const promo=availablePromoCodes[code];
-  if(!promo){ appliedPromo=null; msg.textContent='Ce code promo n\'est pas valide.'; msg.style.color='var(--danger)'; ubRecalcSummary(); return; }
-  appliedPromo={ code, ...promo };
-  msg.textContent=`Code ${code} appliqué : ${promo.label}.`;
-  msg.style.color='var(--success)';
+  const input = document.getElementById('co-promo'), msg = document.getElementById('promo-msg');
+  const code = (input.value || '').trim().toUpperCase();
+  if(!code){ msg.textContent = 'Merci de saisir un code promo.'; msg.style.color = 'var(--danger)'; return; }
+  const promo = availablePromoCodes[code];
+  if(!promo){ appliedPromo = null; msg.textContent = 'Ce code promo n\'est pas valide.'; msg.style.color = 'var(--danger)'; ubRecalcSummary(); return; }
+  appliedPromo = { code, ...promo };
+  msg.textContent = `Code ${code} appliqué : ${promo.label || '-' + promo.percent + '%'}.`;
+  msg.style.color = 'var(--success)';
   ubRecalcSummary();
 }
 
 function ubCopyWaveAmount(amount){
-  const text = String(amount);
   const done = () => {
     const btn = document.getElementById('wave-copy-btn');
     if(!btn) return;
-    const original = btn.dataset.label || btn.textContent;
-    btn.dataset.label = original;
-    btn.textContent = 'Montant copié ✓';
-    setTimeout(() => { btn.textContent = original; }, 2000);
+    btn.textContent = 'Copié ✓';
+    setTimeout(() => { btn.textContent = 'Copier'; }, 2000);
   };
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(done).catch(()=>ubShowToast('Impossible de copier, notez le montant manuellement'));
-  } else {
-    ubShowToast('Copie non supportée, notez le montant manuellement');
-  }
+    navigator.clipboard.writeText(String(amount)).then(done).catch(() => ubShowToast('Impossible de copier, notez le montant manuellement'));
+  } else ubShowToast('Copie non supportée, notez le montant manuellement');
 }
 
 function ubTogglePaymentNote(){
-  const selected = document.querySelector('input[name="payment"]:checked')?.value;
   const note = document.getElementById('wave-pay-note');
   if(!note) return;
-  const total = ubCurrentTotal();
-  const deposit = ubDepositAmount(total);
-  const isDeposit = selected === 'Paiement à la livraison';
-  const amountToPay = isDeposit ? deposit : total;
-  const amountBox = `<div class="wave-amount-box"><div><span>Montant exact à payer sur Wave</span><strong>${ubFormatPrice(amountToPay)}</strong></div><button type="button" id="wave-copy-btn" class="btn btn-outline btn-sm" onclick="ubCopyWaveAmount(${amountToPay})">Copier le montant</button></div>`;
-  const proofZone = `<div class="proof-zone" id="proof-zone">
-    <label class="proof-upload" for="wave-proof-input" id="proof-upload-label">
-      ${wavePaymentProofPath ? `${ubIcon('check')} Capture jointe — touchez pour la remplacer` : `${ubIcon('camera')} Joindre la capture d'écran de la transaction Wave *`}
-    </label>
-    <input type="file" id="wave-proof-input" accept="image/*" hidden>
-    <p style="font-size:.72rem;color:var(--ink-soft);margin:6px 0 0">Obligatoire : sans cette preuve, la commande ne peut pas être validée.</p>
-  </div>`;
-  note.style.display='flex';
-  note.style.flexDirection='column';
-  if(isDeposit){
-    note.innerHTML = amountBox + `<span>Cet acompte (20% minimum) est obligatoire pour valider la commande. Le solde de <strong>${ubFormatPrice(total-deposit)}</strong> sera réglé à la livraison. Ouvrez Wave et collez le montant copié ci-dessus, via ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a>` + proofZone;
-  } else {
-    note.innerHTML = amountBox + `<span>Ouvrez Wave et collez le montant copié ci-dessus, via ce lien : </span><a href="${UB_WAVE_PAYMENT_LINK}" target="_blank" rel="noopener">${UB_WAVE_PAYMENT_LINK}</a>` + proofZone;
-  }
-  document.getElementById('wave-proof-input').addEventListener('change', async e=>{
+  const total = ubCurrentTotal(), isDeposit = ubSelectedPayment() === 'Paiement à la livraison';
+  const amountToPay = isDeposit ? ubDepositAmount(total) : total;
+  note.style.flexDirection = 'column';
+  note.innerHTML = `
+    <div class="wave-amount-box"><div><span>${isDeposit ? 'Acompte à payer sur Wave (20%)' : 'Montant exact à payer sur Wave'}</span><strong>${ubFormatPrice(amountToPay)}</strong></div><button type="button" id="wave-copy-btn" class="btn btn-outline btn-sm" onclick="ubCopyWaveAmount(${amountToPay})">Copier</button></div>
+    ${isDeposit ? `<p style="margin:2px 0 0;font-size:.76rem">Le solde de <strong>${ubFormatPrice(total - amountToPay)}</strong> sera réglé à la livraison.</p>` : ''}
+    <ol class="ub-wave-steps">
+      <li><span>Ouvrez Wave et payez <strong>${ubFormatPrice(amountToPay)}</strong> :<br><a class="ub-wave-btn" href="${UB_WAVE_PAYMENT_LINK}?amount=${amountToPay}" target="_blank" rel="noopener">Payer avec Wave ↗</a></span></li>
+      <li><span>Faites une capture d'écran de la confirmation Wave.</span></li>
+      <li><span>Joignez-la ici, puis validez votre commande.</span></li>
+    </ol>
+    <div class="proof-zone" id="proof-zone">
+      <label class="proof-upload ${wavePaymentProofPath ? 'is-ok' : ''}" for="wave-proof-input" id="proof-upload-label">
+        ${wavePaymentProofPath ? `${ubIcon('check')} Capture jointe — touchez pour la remplacer` : `${ubIcon('camera')} Joindre la capture de la transaction Wave *`}
+      </label>
+      <input type="file" id="wave-proof-input" accept="image/*" hidden>
+      <p style="font-size:.72rem;color:var(--ink-soft);margin:6px 0 0">Obligatoire : notre équipe vérifie chaque paiement avant de préparer la commande.</p>
+    </div>`;
+  document.getElementById('wave-proof-input').addEventListener('change', async e => {
     const file = e.target.files[0];
     if(!file) return;
     const label = document.getElementById('proof-upload-label');
     label.textContent = 'Envoi de la capture...';
     const path = await ubUploadPaymentProof(file);
-    if(!path){ ubShowToast("Échec de l'envoi, réessayez"); label.innerHTML = `${ubIcon('camera')} Joindre la capture d'écran de la transaction Wave *`; return; }
+    if(!path){ ubShowToast("Échec de l'envoi, réessayez"); label.innerHTML = `${ubIcon('camera')} Joindre la capture de la transaction Wave *`; return; }
     wavePaymentProofPath = path;
+    label.classList.add('is-ok');
     label.innerHTML = `${ubIcon('check')} Capture jointe — touchez pour la remplacer`;
+    ubUpdateSteps();
+    ubQueueCartSessionSave();
   });
 }
 
-async function renderCart(){
-  const cart=ubGetCart(), container=document.getElementById('cart-content');
-  if(!cart.length){
-    container.innerHTML=`<div class="empty-cart">${ubIcon('bag')}<h3>Votre panier est vide</h3><p style="color:var(--ink-soft)">Vous n’avez encore rien ajouté. Découvrez nos soins et trouvez vos essentiels.</p><a href="boutique.html" class="btn btn-primary">Découvrir la boutique</a></div>`;
-    currentLines=[];
-    return;
-  }
-  const [allProducts, allCategories, zones, boxTemplates, promoCodes] = await Promise.all([ubGetAllProducts(), ubGetAllCategories(), ubGetDeliveryZones(), ubGetGiftBoxTemplates(), ubGetActivePromoCodes()]);
-  const productsById=Object.fromEntries(allProducts.map(p=>[p.id,p])), catsById=ubCatsById(allCategories);
-  const boxTemplatesById=Object.fromEntries(boxTemplates.map(t=>[t.id,t]));
-  availablePromoCodes=Object.fromEntries(promoCodes.map(c=>[c.code.toUpperCase(),{percent:c.percent,label:c.label}]));
-  const lines=cart.map(l=>({...l,product:productsById[l.id]})).filter(l=>l.product);
-  currentLines=lines;
-  currentZones=zones;
+function ubUpdateLine(id, qty){ if(qty <= 0) ubRemoveFromCart(id); else ubSetQty(id, qty); }
 
-  const regularLines = lines.filter(l=>!l.boxInstanceId);
-  const boxGroups = {};
-  lines.filter(l=>l.boxInstanceId).forEach(l=>{
-    if(!boxGroups[l.boxInstanceId]) boxGroups[l.boxInstanceId]=[];
-    boxGroups[l.boxInstanceId].push(l);
-  });
-  const boxGroupList = Object.entries(boxGroups).map(([instanceId,items])=>{
-    const tpl = boxTemplatesById[items[0].boxTemplateId];
-    return { instanceId, items, label: items[0].boxLabel, price: tpl ? tpl.price : items.reduce((s,l)=>s+l.product.price,0), available: !!tpl };
-  });
-
-  const regularSubtotal = regularLines.reduce((s,l)=>s+l.product.price*l.qty,0);
-  const boxSubtotal = boxGroupList.reduce((s,g)=>s+g.price,0);
-  const subtotal = regularSubtotal + boxSubtotal;
-  currentSubtotal=subtotal;
-  const shipping=subtotal>=50000?0:(zones[0]?zones[0].fee:2500), total=subtotal+shipping;
-  const boxRowsHTML = boxGroupList.map(g=>`<tr class="cart-box-row"><td colspan="3"><div class="cart-box-label">${ubIcon('bag')} <strong>Box Cadeau — ${g.label}</strong>${!g.available?' <span style="color:var(--danger)">(indisponible, à retirer)</span>':''}<span class="cart-box-items">${g.items.map(l=>l.product.name).join(', ')}</span></div></td><td><strong>${ubFormatPrice(g.price)}</strong></td><td><button class="remove-btn" aria-label="Retirer la box" onclick="ubRemoveBoxFromCart('${g.instanceId}');renderCart();">${ubIcon('trash')}</button></td></tr>`).join('');
-  const regularRowsHTML = regularLines.map(l=>{
-    const needsNote = l.product.requiresClientNote;
-    const hasNote = !!(l.clientNote || l.clientPhotoPath);
-    const noteBadge = needsNote ? `<button type="button" onclick="ubOpenNoteModal('${l.product.id}')" style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.72rem;border:1px solid ${hasNote?'var(--success)':'var(--mauve-300)'};color:${hasNote?'var(--success)':'var(--mauve-600)'};background:${hasNote?'rgba(76,154,106,.08)':'var(--mauve-50)'};padding:5px 10px;border-radius:999px;cursor:pointer">${hasNote?ubIcon('check'):ubIcon('camera')} ${hasNote?'Info fournie — modifier':'Info requise avant validation'}</button>` : '';
-    return `<tr><td><a href="produit.html?id=${l.product.id}" class="cart-product"><img src="${l.product.img}" alt="${l.product.name}"><div><strong>${l.product.name}</strong><span>${catsById[l.product.category]?.name||''}</span></div></a>${noteBadge}</td><td>${ubFormatPrice(l.product.price)}</td><td><div class="qty-selector"><button onclick="ubUpdateLine('${l.product.id}',${l.qty-1})">−</button><span>${l.qty}</span><button onclick="ubUpdateLine('${l.product.id}',${l.qty+1})">+</button></div></td><td><strong>${ubFormatPrice(l.product.price*l.qty)}</strong></td><td><button class="remove-btn" aria-label="Supprimer" onclick="ubRemoveFromCart('${l.product.id}');renderCart();">${ubIcon('trash')}</button></td></tr>`;
-  }).join('');
-  container.innerHTML=`<div class="cart-layout"><div><div class="cart-table-wrap"><table class="cart-table"><thead><tr><th>Produit</th><th>Prix</th><th>Quantité</th><th>Total</th><th></th></tr></thead><tbody>${boxRowsHTML}${regularRowsHTML}</tbody></table></div><a href="boutique.html" style="display:inline-block;margin-top:18px;font-size:.82rem;color:var(--mauve-600)">← Continuer mes achats</a></div><div class="cart-summary"><h3>Récapitulatif</h3><div class="summary-row"><span>Sous-total</span><span>${ubFormatPrice(subtotal)}</span></div><div class="summary-row"><span>Livraison</span><span id="ship-value">${shipping===0?'Offerte':ubFormatPrice(shipping)}</span></div><p id="ship-hint" style="font-size:.72rem;color:${shipping>0?'var(--ink-soft)':'var(--success)'}">${shipping>0?'Livraison offerte dès 50 000 FCFA.':'Vous bénéficiez de la livraison offerte.'}</p><div class="summary-row" id="discount-row" style="display:none;color:var(--success)"><span>Réduction (<span id="discount-code-label"></span>)</span><span id="discount-value"></span></div><div class="coupon-row"><input type="text" id="co-promo" placeholder="Code promo" value="${appliedPromo?appliedPromo.code:''}"><button class="btn btn-outline btn-sm" onclick="ubApplyPromo()">Appliquer</button></div><p id="promo-msg" style="font-size:.72rem;margin:2px 0 0"></p><div class="summary-row total"><span>Total</span><span id="total-value">${ubFormatPrice(total)}</span></div><div class="deposit-box"><div class="summary-row"><span>Acompte obligatoire (20%)</span><strong id="deposit-value">${ubFormatPrice(ubDepositAmount(total))}</strong></div><div class="summary-row"><span>Solde restant</span><span id="remainder-value">${ubFormatPrice(total-ubDepositAmount(total))}</span></div><p style="font-size:.7rem;color:var(--ink-soft);margin:4px 0 0">Un acompte minimum de 20% est requis pour valider toute commande, y compris en paiement à la livraison.</p></div><div class="checkout-form"><div class="field"><label>Nom complet *</label><input id="co-name" type="text" placeholder="Votre nom"></div><div class="field"><label>Téléphone *</label><input id="co-phone" type="tel" placeholder="77 000 00 00"></div><div class="field"><label>Zone de livraison *</label><select id="co-zone" onchange="ubRecalcSummary()">${zones.map((z,i)=>`<option value="${z.id}" ${i===0?'selected':''}>${z.name} — ${z.fee===0?'Gratuit':ubFormatPrice(z.fee)}</option>`).join('')}</select><p id="pickup-hint" style="display:none;font-size:.78rem;line-height:1.5;color:var(--mauve-700);background:var(--mauve-50);border-radius:var(--radius-sm);padding:8px 10px;margin:8px 0 0"><span style="display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-right:4px">${ubIcon('bag')}</span>Retrait gratuit à notre point de vente : <strong>${UB_CONTACT.pickupAddress}</strong>. Nous vous contacterons sur WhatsApp pour convenir de l'heure.</p></div><div class="field"><label id="address-label">Adresse précise (quartier, repère...)</label><input id="co-address" type="text" placeholder="Ex : Villa 12, Cité Keur Gorgui"></div><div class="field"><label>Mode de paiement *</label><div class="payment-methods">${UB_PAYMENT_METHODS.map((m,i)=>`<label class="payment-option"><input type="radio" name="payment" value="${m}" ${i===0?'checked':''} onchange="ubTogglePaymentNote()"><span>${m}</span></label>`).join('')}</div><div id="wave-pay-note" class="wave-pay-note"></div></div><div id="checkout-error" class="checkout-error" style="display:none"></div></div><button class="btn btn-primary btn-block" style="margin-top:16px" id="checkout-submit" onclick="ubSubmitOrder()">Passer la commande</button><p style="font-size:.7rem;color:var(--ink-soft);text-align:center;margin-top:12px">Paiement sécurisé · Commande préparée avec soin</p></div></div>`;
-  ubTogglePaymentNote();
-  ubRecalcSummary();
+let infoTracked = false;
+function ubMaybeTrackInfo(){
+  const v = ubFormValues();
+  if(!infoTracked && v.name && ubPhoneValid(v.phone)){ infoTracked = true; ubTrackOncePerDay('checkout_info'); }
 }
 
-function ubUpdateLine(id,qty){ if(qty<=0) ubRemoveFromCart(id); else ubSetQty(id,qty); renderCart(); }
+/* ---------- Barre mobile collante ---------- */
+let ctaObserver = null;
+function ubToggleMobileCta(show){
+  document.getElementById('mobile-cta').classList.toggle('show', !!show);
+  document.body.classList.toggle('has-sticky-bar', !!show);
+}
+function ubWatchMobileCta(){
+  if(ctaObserver) ctaObserver.disconnect();
+  const target = document.getElementById('checkout-submit');
+  if(!target || !('IntersectionObserver' in window)) return;
+  ctaObserver = new IntersectionObserver(([entry]) => ubToggleMobileCta(!orderDone && !entry.isIntersecting && entry.boundingClientRect.top > 0), { threshold: 0 });
+  ctaObserver.observe(target);
+}
 
+/* ---------- Info demandee par certains produits (texte / photo) ---------- */
 function ubOpenNoteModal(productId){
-  const line = currentLines.find(l=>l.product.id===productId && !l.boxInstanceId);
+  const line = currentLines.find(l => l.product.id === productId && !l.boxInstanceId);
   if(!line) return;
   const product = line.product;
   const overlay = document.getElementById('note-overlay'), body = document.getElementById('note-modal-body');
   let photoPath = line.clientPhotoPath || null;
   overlay.classList.add('open');
-  overlay.onclick = e=>{ if(e.target===overlay) overlay.classList.remove('open') };
+  overlay.onclick = e => { if(e.target === overlay) overlay.classList.remove('open'); };
+  body.innerHTML = `<button class="note-close" onclick="document.getElementById('note-overlay').classList.remove('open')">${ubIcon('close')}</button>
+    <h3>${product.name}</h3>
+    <p style="color:var(--ink-soft);font-size:.85rem;margin:4px 0 0">${product.clientNotePrompt || "Merci de préciser ce dont vous avez besoin pour ce produit."}</p>
+    <textarea id="note-text" rows="3" placeholder="Votre précision (optionnel si vous joignez une photo)">${ubEscapeHtml(line.clientNote || '')}</textarea>
+    <label class="note-photo-zone" for="note-photo-input" id="note-photo-zone">
+      ${photoPath ? `${ubIcon('check')} Photo jointe — touchez pour la remplacer` : `${ubIcon('camera')}<br>Joindre une photo (optionnel si vous précisez par texte)`}
+    </label>
+    <input type="file" id="note-photo-input" accept="image/*" hidden>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" type="button" onclick="document.getElementById('note-overlay').classList.remove('open')">Annuler</button>
+      <button class="btn btn-primary" type="button" id="note-save">Enregistrer</button>
+    </div>`;
+  document.getElementById('note-photo-input').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const zone = document.getElementById('note-photo-zone');
+    zone.innerHTML = 'Envoi de la photo...';
+    const path = await ubUploadClientPhoto(file);
+    if(!path){ ubShowToast("Échec de l'envoi de la photo, réessayez"); zone.innerHTML = `${ubIcon('camera')}<br>Joindre une photo (optionnel si vous précisez par texte)`; return; }
+    photoPath = path;
+    zone.innerHTML = `${ubIcon('check')} Photo jointe — touchez pour la remplacer`;
+  });
+  document.getElementById('note-save').addEventListener('click', () => {
+    const note = document.getElementById('note-text').value.trim();
+    if(!note && !photoPath){ ubShowToast('Merci de préciser par texte ou de joindre une photo.'); return; }
+    ubSetCartLineNote(productId, note, photoPath);
+    overlay.classList.remove('open');
+  });
+}
 
-  function render(){
-    body.innerHTML = `<button class="note-close" onclick="document.getElementById('note-overlay').classList.remove('open')">${ubIcon('close')}</button>
-      <h3>${product.name}</h3>
-      <p style="color:var(--ink-soft);font-size:.85rem;margin:4px 0 0">${product.clientNotePrompt || "Merci de préciser ce dont vous avez besoin pour ce produit."}</p>
-      <textarea id="note-text" rows="3" placeholder="Votre précision (optionnel si vous joignez une photo)">${line.clientNote || ''}</textarea>
-      <label class="note-photo-zone" for="note-photo-input" id="note-photo-zone">
-        ${photoPath ? `${ubIcon('check')} Photo jointe — touchez pour la remplacer` : `${ubIcon('camera')}<br>Joindre une photo (optionnel si vous précisez par texte)`}
-      </label>
-      <input type="file" id="note-photo-input" accept="image/*" hidden>
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
-        <button class="btn" type="button" onclick="document.getElementById('note-overlay').classList.remove('open')">Annuler</button>
-        <button class="btn btn-primary" type="button" id="note-save">Enregistrer</button>
-      </div>`;
-    document.getElementById('note-photo-input').addEventListener('change', async e=>{
-      const file = e.target.files[0];
-      if(!file) return;
-      const zone = document.getElementById('note-photo-zone');
-      zone.innerHTML = 'Envoi de la photo...';
-      const path = await ubUploadClientPhoto(file);
-      if(!path){ ubShowToast("Échec de l'envoi de la photo, réessayez"); zone.innerHTML = `${ubIcon('camera')}<br>Joindre une photo (optionnel si vous précisez par texte)`; return; }
-      photoPath = path;
-      zone.innerHTML = `${ubIcon('check')} Photo jointe — touchez pour la remplacer`;
-    });
-    document.getElementById('note-save').addEventListener('click', ()=>{
-      const note = document.getElementById('note-text').value.trim();
-      if(!note && !photoPath){ ubShowToast('Merci de préciser par texte ou de joindre une photo.'); return; }
-      ubSetCartLineNote(productId, note, photoPath);
-      overlay.classList.remove('open');
-      renderCart();
-    });
+/* ---------- Validation ---------- */
+function ubClearFieldError(input){ input.closest('.field')?.classList.remove('has-error'); }
+function ubFocusError(fieldId, inputId, msg){
+  const field = document.getElementById(fieldId);
+  if(field){
+    field.classList.add('has-error');
+    const hint = field.querySelector('.field-hint');
+    if(hint){ hint.textContent = msg; hint.style.display = 'block'; }
   }
-  render();
+  const input = document.getElementById(inputId);
+  if(input){ input.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => input.focus({ preventScroll: true }), 350); }
+}
+function ubShowCheckoutError(msg, scrollTarget){
+  const errBox = document.getElementById('checkout-error');
+  errBox.textContent = msg;
+  errBox.style.display = 'block';
+  const target = document.getElementById(scrollTarget) || errBox;
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.remove('ub-co-error-focus'); void target.offsetWidth; target.classList.add('ub-co-error-focus');
 }
 
 async function ubSubmitOrder(){
-  const btn=document.getElementById('checkout-submit'), errBox=document.getElementById('checkout-error');
-  errBox.style.display='none';
-  const name=document.getElementById('co-name').value.trim();
-  const phone=document.getElementById('co-phone').value.trim();
-  const addressDetail=document.getElementById('co-address').value.trim();
-  const zoneId=document.getElementById('co-zone')?.value;
-  const zone=currentZones.find(z=>String(z.id)===zoneId) || currentZones[0];
-  const address=zone ? (addressDetail ? `${zone.name}, ${addressDetail}` : zone.name) : addressDetail;
-  const payment=document.querySelector('input[name="payment"]:checked')?.value || UB_PAYMENT_METHODS[0];
+  const btn = document.getElementById('checkout-submit'), errBox = document.getElementById('checkout-error');
+  if(!btn) return;
+  errBox.style.display = 'none';
+  const { name, phone, address: addressDetail } = ubFormValues();
+  const zone = ubSelectedZone();
+  const address = zone ? (addressDetail ? `${zone.name}, ${addressDetail}` : zone.name) : addressDetail;
+  const payment = ubSelectedPayment();
 
-  const showError = (msg) => { errBox.textContent=msg; errBox.style.display='block'; };
-  if(!currentLines.length) return showError('Votre panier est vide.');
-  const missingNote = currentLines.find(l=>!l.boxInstanceId && l.product.requiresClientNote && !(l.clientNote || l.clientPhotoPath));
-  if(missingNote) return showError(`Merci de renseigner l'info demandée pour "${missingNote.product.name}" (bouton sur la ligne du produit) avant de valider votre commande.`);
-  if(!name) return showError('Merci de renseigner votre nom complet.');
-  if(!phone || phone.replace(/\D/g,'').length < 9) return showError('Merci de renseigner un numéro de téléphone valide.');
-  if(!zone) return showError('Merci de choisir votre zone de livraison.');
+  if(!currentLines.length) return ubShowCheckoutError('Votre panier est vide.');
+  const soldOut = currentLines.find(l => !l.boxInstanceId && l.product.stock <= 0);
+  if(soldOut) return ubShowCheckoutError(`"${soldOut.product.name}" est épuisé : merci de le retirer du panier.`, 'co-step-cart');
+  const missingNote = ubMissingNoteLine();
+  if(missingNote) return ubShowCheckoutError(`Merci de renseigner l'info demandée pour "${missingNote.product.name}" (bouton sur la ligne du produit).`, 'co-step-cart');
+  if(!name){ ubShowCheckoutError('Merci de renseigner votre nom complet.'); return ubFocusError('f-name', 'co-name', 'Votre nom est nécessaire pour la livraison.'); }
+  if(!ubPhoneValid(phone)){ ubShowCheckoutError('Merci de renseigner un numéro de téléphone valide.'); return ubFocusError('f-phone', 'co-phone', 'Numéro invalide : 9 chiffres minimum (ex : 77 000 00 00).'); }
+  if(!zone) return ubShowCheckoutError('Merci de choisir votre zone de livraison.', 'co-step-info');
   if(!wavePaymentProofPath){
-    const depositNow = ubDepositAmount();
-    return showError(payment==='Paiement à la livraison'
-      ? `Merci de joindre la capture d'écran de la transaction Wave prouvant le paiement de l'acompte de ${ubFormatPrice(depositNow)} : sans cette preuve, la commande ne peut pas être validée.`
-      : "Merci de joindre la capture d'écran de la transaction Wave prouvant votre paiement : sans cette preuve, la commande ne peut pas être validée.");
+    return ubShowCheckoutError(payment === 'Paiement à la livraison'
+      ? `Joignez la capture Wave de votre acompte de ${ubFormatPrice(ubDepositAmount())} pour valider (étape 3).`
+      : `Joignez la capture Wave de votre paiement de ${ubFormatPrice(ubCurrentTotal())} pour valider (étape 3).`, 'proof-zone');
   }
 
-  btn.disabled=true; btn.textContent='Traitement en cours...';
+  btn.disabled = true;
+  document.getElementById('checkout-submit-label').textContent = 'Envoi de votre commande...';
   const result = await ubPlaceOrder({
     clientName: name, phone, address, paymentMethod: payment,
     items: currentLines.map(l => ({ id: l.product.id, qty: l.qty, boxInstanceId: l.boxInstanceId, boxTemplateId: l.boxTemplateId, clientNote: l.clientNote, clientPhotoPath: l.clientPhotoPath })),
@@ -273,69 +431,81 @@ async function ubSubmitOrder(){
     deliveryZoneId: zone.id,
     paymentProofPath: wavePaymentProofPath,
   });
-  btn.disabled=false; btn.textContent='Passer la commande';
+  btn.disabled = false;
 
   if(result.error){
-    if(result.error==='PRODUIT_INDISPONIBLE'){
-      const p=currentLines.find(l=>l.product.id===result.productId)?.product;
-      showError(`Stock insuffisant pour "${p?p.name:result.productId}" : ajustez la quantité ou retirez ce produit du panier.`);
-    } else if(result.error==='PANIER_VIDE'){
-      showError('Votre panier est vide.');
-    } else if(result.error==='NOM_CLIENT_REQUIS'){
-      showError('Merci de renseigner votre nom complet.');
-    } else if(result.error==='TELEPHONE_REQUIS'){
-      showError('Merci de renseigner votre numéro de téléphone.');
-    } else if(result.error==='BOX_INVALIDE'){
-      showError("Une box cadeau de votre panier n'est plus disponible ou a été modifiée entre-temps. Merci de retirer la box et de la recomposer.");
-    } else if(result.error==='PREUVE_PAIEMENT_REQUISE'){
-      showError("Merci de joindre la capture d'écran de la transaction Wave : sans cette preuve, la commande ne peut pas être validée.");
-    } else {
-      showError("Une erreur est survenue lors de l'enregistrement de votre commande. Merci de réessayer dans un instant.");
-    }
+    ubRecalcSummary();
+    if(result.error === 'PRODUIT_INDISPONIBLE'){
+      const p = currentLines.find(l => l.product.id === result.productId)?.product;
+      ubShowCheckoutError(`Stock insuffisant pour "${p ? p.name : result.productId}" : ajustez la quantité ou retirez ce produit du panier.`, 'co-step-cart');
+    } else if(result.error === 'PANIER_VIDE') ubShowCheckoutError('Votre panier est vide.');
+    else if(result.error === 'NOM_CLIENT_REQUIS') ubShowCheckoutError('Merci de renseigner votre nom complet.');
+    else if(result.error === 'TELEPHONE_REQUIS') ubShowCheckoutError('Merci de renseigner votre numéro de téléphone.');
+    else if(result.error === 'BOX_INVALIDE') ubShowCheckoutError("Une box cadeau de votre panier n'est plus disponible ou a été modifiée entre-temps. Merci de retirer la box et de la recomposer.", 'co-step-cart');
+    else if(result.error === 'PREUVE_PAIEMENT_REQUISE') ubShowCheckoutError("Merci de joindre la capture d'écran de la transaction Wave : sans cette preuve, la commande ne peut pas être validée.", 'proof-zone');
+    else ubShowCheckoutError("Une erreur est survenue lors de l'enregistrement de votre commande. Merci de réessayer dans un instant, ou contactez-nous sur WhatsApp.");
     return;
   }
 
-  const finalTotal=ubCurrentTotal();
-  const depositPaid=ubDepositAmount(finalTotal);
-  const remainderDue=finalTotal-depositPaid;
-  const orderedLines=currentLines;
+  const finalTotal = ubCurrentTotal();
+  const depositPaid = payment === 'Paiement à la livraison' ? ubDepositAmount(finalTotal) : finalTotal;
+  const remainderDue = finalTotal - depositPaid;
+  const orderedLines = currentLines;
+  orderDone = true;
+  ubTrack('order_placed', { value: finalTotal });
+  ubSaveCustomerField('name', name); ubSaveCustomerField('phone', phone); ubSaveCustomerField('zoneId', String(zone.id));
+  try { localStorage.removeItem('ub_cart_sid'); } catch(e) {}
   ubSaveCart([]);
-  appliedPromo=null;
-  wavePaymentProofPath=null;
-  const balanceNote = payment==='Paiement à la livraison'
-    ? ` Acompte de <strong>${ubFormatPrice(depositPaid)}</strong> réglé via Wave — solde de <strong>${ubFormatPrice(remainderDue)}</strong> à régler à la livraison.`
-    : ` Montant total de <strong>${ubFormatPrice(finalTotal)}</strong> réglé via Wave.`;
+  appliedPromo = null;
+  wavePaymentProofPath = null;
+  ubToggleMobileCta(false);
+  document.getElementById('upsell-section').style.display = 'none';
 
-  if(zone.whatsappHandoff){
-    const itemsList = orderedLines.map(l=>`- ${l.product.name} x${l.qty}`).join('\n');
-    const amountsBlock = payment==='Paiement à la livraison'
-      ? `Acompte déjà réglé via Wave : ${ubFormatPrice(depositPaid)}\nSolde à récupérer à la livraison : ${ubFormatPrice(remainderDue)}`
-      : `Montant déjà réglé via Wave : ${ubFormatPrice(finalTotal)}`;
-    const waText = zone.isPickup
-      ? `Nouvelle commande à RETIRER EN MAGASIN — ${result.orderId}\n`
-        + `Client : ${name}\n`
-        + `Téléphone : ${phone}\n\n`
-        + `Articles :\n${itemsList}\n\n`
-        + `Montant total : ${ubFormatPrice(finalTotal)}\n`
-        + amountsBlock
-      : `Nouvelle commande ${result.orderId} — ${zone.name}\n`
-        + `Client : ${name}\n`
-        + `Téléphone : ${phone}\n`
-        + `Point de RDV / adresse : ${addressDetail || 'non précisé, à demander au client'}\n\n`
-        + `Articles :\n${itemsList}\n\n`
-        + `Montant total : ${ubFormatPrice(finalTotal)}\n`
-        + amountsBlock;
-    const waLink = `https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent(waText)}`;
-    const handoffMsg = zone.isPickup
-      ? `Vous pourrez venir récupérer votre commande à : <strong>${UB_CONTACT.pickupAddress}</strong>. Continuez pour nous prévenir sur WhatsApp et convenir de l'heure.`
-      : `Ce mode de livraison (${zone.name}) est coordonné directement sur WhatsApp : continuez pour nous envoyer le récapitulatif et organiser la remise.`;
-    document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée.${balanceNote}</p><p style="color:var(--ink-soft)">${handoffMsg}</p><a href="${waLink}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;border-color:#25D366">${ubIcon('whatsapp')} Continuer sur WhatsApp</a><br><a href="boutique.html" style="display:inline-block;margin-top:14px;font-size:.82rem;color:var(--mauve-600)">Continuer mes achats</a></div>`;
-    window.open(waLink, '_blank');
-    return;
-  }
+  /* Recapitulatif envoye a la boutique sur WhatsApp : la commande arrive aussi
+     directement dans la messagerie de l'equipe, avec tout le necessaire. */
+  const itemsList = orderedLines.map(l => `- ${l.product.name} x${l.qty}${l.boxLabel ? ` (Box ${l.boxLabel})` : ''}`).join('\n');
+  const amountsBlock = payment === 'Paiement à la livraison'
+    ? `Acompte réglé via Wave : ${ubFormatPrice(depositPaid)}\nSolde à régler à la livraison : ${ubFormatPrice(remainderDue)}`
+    : `Montant réglé via Wave : ${ubFormatPrice(finalTotal)}`;
+  const waText = (zone.isPickup ? `Nouvelle commande à RETIRER EN MAGASIN — ${result.orderId}\n` : `Nouvelle commande ${result.orderId} — ${zone.name}\n`)
+    + `Client : ${name}\nTéléphone : ${phone}\n`
+    + (zone.isPickup ? '' : `Adresse : ${addressDetail || 'à préciser'}\n`)
+    + `\nArticles :\n${itemsList}\n\nMontant total : ${ubFormatPrice(finalTotal)}\n${amountsBlock}`;
+  const waLink = `https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent(waText)}`;
+  const trackLink = `suivi.html?order=${encodeURIComponent(result.orderId)}&phone=${encodeURIComponent(phone)}`;
+  const handoffMsg = zone.whatsappHandoff
+    ? (zone.isPickup
+      ? `Vous pourrez récupérer votre commande à : <strong>${UB_CONTACT.pickupAddress}</strong>. Envoyez-nous le récapitulatif sur WhatsApp pour convenir de l'heure.`
+      : `La livraison (${ubEscapeHtml(zone.name)}) s'organise directement sur WhatsApp : envoyez-nous le récapitulatif pour caler la remise.`)
+    : `Envoyez-nous le récapitulatif sur WhatsApp pour accélérer la validation de votre paiement.`;
 
-  document.getElementById('cart-content').innerHTML=`<div class="empty-cart">${ubIcon('check')}<h3>Commande confirmée !</h3><p style="color:var(--ink-soft)">Merci ${name.split(' ')[0]}, votre commande <strong>${result.orderId}</strong> a bien été enregistrée.${balanceNote} Nous vous contacterons au ${phone} pour la confirmer.</p><a href="boutique.html" class="btn btn-primary">Continuer mes achats</a></div>`;
+  document.getElementById('cart-content').innerHTML = `
+    <div class="ub-confirm">
+      <div class="ub-confirm-icon">${ubIcon('check')}</div>
+      <h2 style="margin:0">Merci ${ubEscapeHtml(name.split(' ')[0])}, commande reçue !</h2>
+      <div class="ub-confirm-id">${result.orderId}</div>
+      <p style="color:var(--ink-soft)">${payment === 'Paiement à la livraison'
+        ? `Acompte de <strong>${ubFormatPrice(depositPaid)}</strong> reçu via Wave — solde de <strong>${ubFormatPrice(remainderDue)}</strong> à la livraison.`
+        : `Paiement de <strong>${ubFormatPrice(finalTotal)}</strong> reçu via Wave.`}</p>
+      <p style="color:var(--ink-soft)">${handoffMsg}</p>
+      <div class="ub-confirm-actions">
+        <a href="${waLink}" target="_blank" rel="noopener" class="btn btn-primary btn-wa" onclick="ubTrack('whatsapp_click')">${ubIcon('whatsapp')} Envoyer sur WhatsApp</a>
+        <a href="${trackLink}" class="btn btn-outline">${ubIcon('truck')} Suivre ma commande</a>
+      </div>
+      <div class="ub-confirm-next">
+        <h4>Et maintenant ?</h4>
+        <ol class="ub-wave-steps" style="margin:0">
+          <li><span>Notre équipe vérifie votre capture Wave (en général en moins d'une heure, 9h–20h).</span></li>
+          <li><span>Nous vous confirmons la commande au <strong>${ubEscapeHtml(phone)}</strong> sur WhatsApp.</span></li>
+          <li><span>${zone.isPickup ? 'Vous passez la récupérer au point de retrait.' : 'Votre colis est préparé sous 24 à 48h puis livré dans votre zone.'}</span></li>
+        </ol>
+      </div>
+      <a href="boutique.html" style="font-size:.84rem;color:var(--mauve-600)">Continuer mes achats →</a>
+    </div>`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if(zone.whatsappHandoff) window.open(waLink, '_blank');
 }
 
+window.addEventListener('ub:cart', () => ubRefreshCart());
 renderCart();
 </script></body></html>

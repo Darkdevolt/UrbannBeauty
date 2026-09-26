@@ -11,14 +11,17 @@ ubRenderHeader('categories');ubRenderFooter();
   const [categories, products] = await Promise.all([ubGetAllCategories(), ubGetAllProducts()]);
   const counts = {};
   products.forEach(p => { counts[p.category] = (counts[p.category] || 0) + 1; });
-  document.getElementById('categories-grid').innerHTML = categories.map(c => {
+  /* Les univers qui ont des produits passent en premier ; les autres sont signales
+     "bientot disponible" plutot que "0 produit". */
+  const sorted = [...categories].sort((a, b) => ((counts[b.id] || 0) > 0) - ((counts[a.id] || 0) > 0));
+  document.getElementById('categories-grid').innerHTML = sorted.map(c => {
     const count = counts[c.id] || 0;
-    return `<a class="category-card reveal" href="boutique.html?cat=${c.id}">
+    return `<a class="category-card reveal${count ? '' : ' is-empty'}" href="boutique.html?cat=${c.id}">
       <div class="category-card-media"><img src="${ubGetCategoryImage(c)}" alt="${c.name}" loading="lazy"></div>
       <div class="category-card-body">
         <span class="category-card-icon">${ubIcon(c.icon)}</span>
         <h3>${c.name}</h3>
-        <span class="category-card-count">${count} produit${count > 1 ? 's' : ''}</span>
+        <span class="category-card-count">${count ? `${count} produit${count > 1 ? 's' : ''}` : 'Bientôt disponible'}</span>
       </div>
     </a>`;
   }).join('');

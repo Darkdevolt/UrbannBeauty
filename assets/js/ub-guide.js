@@ -24,6 +24,8 @@ const UB_GUIDE_SITEMAP = [
     keywords: ['box', 'box cadeau', 'coffret', 'cadeau', 'offrir'] },
   { title: 'Mon panier', desc: 'Voir mon panier et passer commande', href: 'panier.html',
     keywords: ['panier', 'passer commande', 'valider ma commande', 'payer', 'paiement', 'checkout'] },
+  { title: 'Mes favoris', desc: 'Retrouver les produits que j\'ai aimés', href: 'favoris.html',
+    keywords: ['favoris', 'favori', 'liste d envies', 'wishlist', 'coeur', 'j aime'] },
   { title: 'Suivre ma commande', desc: 'Suivre l\'état de ma commande', href: 'suivi.html',
     keywords: ['suivi', 'suivre ma commande', 'suivre commande', 'ou est ma commande', 'statut commande', 'tracking'] },
   { title: 'Demander un retour', desc: 'Retourner ou échanger un produit', href: 'retour.html',

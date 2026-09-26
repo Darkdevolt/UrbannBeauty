@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paniers abandonnés — Admin Urbann Beauty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css">
+<link rel="icon" type="image/png" href="https://tbowuuxvjaadawhmpumr.supabase.co/storage/v1/object/public/media/logo.png"></head>
+<body>
+<div class="admin-shell" id="admin-shell"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../assets/js/icons.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/media.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+let carts = [];
+let promo = null;
+let filter = { status: 'a_relancer', q: '' };
+
+const STEP_LABELS = { panier: 'Panier consulté', coordonnees: 'Coordonnées saisies', paiement: 'Étape paiement' };
+const STATUS_BADGES = {
+  ouvert: '<span class="a-badge warning">À relancer</span>',
+  relance: '<span class="a-badge neutral">Relancé</span>',
+  converti: '<span class="a-badge success">Converti</span>',
+  perdu: '<span class="a-badge danger">Perdu</span>',
+};
+
+async function main() {
+  if (!(await ubAdminGuard())) return;
+  await ubAdminRenderShell('relances', 'Paniers abandonnés', 'Les clientes qui ont commencé une commande sans la terminer : relancez-les en un clic sur WhatsApp');
+  const [list, promos] = await Promise.all([ubAdminGetCartSessions(30), ubAdminGetPromoCodes()]);
+  carts = list;
+  promo = promos.find(p => p.active) || null;
+  render();
+}
+
+function segment(c) {
+  if (c.status === 'converti') return 'converti';
+  if (c.status === 'perdu') return 'perdu';
+  if (c.status === 'relance') return 'relance';
+  return ubCartIsAbandoned(c) ? 'a_relancer' : 'en_cours';
+}
+
+function render() {
+  const withPhone = carts.filter(c => c.rawPhone);
+  const toRelaunch = withPhone.filter(c => segment(c) === 'a_relancer');
+  const relaunched = withPhone.filter(c => c.relanceCount > 0);
+  const recovered = relaunched.filter(c => c.status === 'converti');
+  const recoveredValue = recovered.reduce((s, c) => s + c.value, 0);
+  const atStake = toRelaunch.reduce((s, c) => s + c.value, 0);
+  const counts = { a_relancer: 0, en_cours: 0, relance: 0, converti: 0, perdu: 0 };
+  carts.forEach(c => { if (c.rawPhone || segment(c) === 'converti') counts[segment(c)]++; });
+  const anonymous = carts.filter(c => !c.rawPhone && segment(c) !== 'converti').length;
+
+  document.getElementById('a-content').innerHTML = `
+    <div class="a-stats-grid">
+      <div class="a-panel a-stat-card"><div class="icon" style="background:#fbf1e3;color:#c98a3e">${ubIcon('bag')}</div><div class="value">${toRelaunch.length}</div><div class="label">Paniers à relancer (avec téléphone)</div></div>
+      <div class="a-panel a-stat-card"><div class="icon" style="background:#f5eefb;color:#8e56bd">${ubIcon('chart')}</div><div class="value">${ubFormatPrice(atStake)}</div><div class="label">Chiffre d'affaires à récupérer</div></div>
+      <div class="a-panel a-stat-card"><div class="icon" style="background:#e6f6ec;color:#2f9e63">${ubIcon('check')}</div><div class="value">${ubFormatPrice(recoveredValue)}</div><div class="label">Récupéré grâce aux relances (30 j)</div></div>
+      <div class="a-panel a-stat-card"><div class="icon" style="background:#e8f9ef;color:#25D366">${ubIcon('whatsapp')}</div><div class="value">${relaunched.length ? Math.round(recovered.length / relaunched.length * 100) : 0}%</div><div class="label">Taux de réussite des relances</div></div>
+    </div>
+    <div class="a-panel" style="margin-bottom:18px"><div class="a-panel-body" style="font-size:.82rem;color:var(--a-ink-soft);line-height:1.6">
+      <strong style="color:var(--a-ink)">Comment ça marche :</strong> dès qu'une cliente saisit son nom ou son téléphone au panier, son panier est enregistré ici. S'il n'y a pas de commande après 45 minutes, il passe « À relancer ». Quand elle commande avec le même numéro, il passe automatiquement en « Converti ».
+      <br><strong style="color:var(--a-ink)">Conseil :</strong> relancez dans les 1 à 3 heures — c'est là que le taux de récupération est le plus élevé. ${anonymous ? `<br>${anonymous} autre${anonymous > 1 ? 's' : ''} panier${anonymous > 1 ? 's' : ''} sans téléphone (non relançable${anonymous > 1 ? 's' : ''}).` : ''}
+    </div></div>
+    <div class="a-seg-chips">
+      ${[['a_relancer', 'À relancer'], ['en_cours', 'En cours (< 45 min)'], ['relance', 'Relancés'], ['converti', 'Convertis'], ['perdu', 'Perdus'], ['all', 'Tous']].map(([k, l]) => `<button type="button" class="a-seg-chip ${filter.status === k ? 'active' : ''}" data-seg="${k}">${l}${k !== 'all' ? ` <b>${counts[k]}</b>` : ''}</button>`).join('')}
+    </div>
+    <div class="a-toolbar"><div class="a-search">${ubIcon('search')}<input type="text" id="search-input" placeholder="Rechercher un nom ou un téléphone..." value="${ubEscapeHtml(filter.q)}"></div></div>
+    <div class="a-panel"><div class="a-table-wrap"><table class="a-table">
+      <thead><tr><th>Dernière activité</th><th>Cliente</th><th>Articles</th><th>Valeur</th><th>Étape atteinte</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody id="carts-tbody"></tbody>
+    </table></div></div>`;
+  document.querySelectorAll('[data-seg]').forEach(b => b.addEventListener('click', () => { filter.status = b.dataset.seg; render(); }));
+  document.getElementById('search-input').addEventListener('input', e => { filter.q = e.target.value; renderTable(); });
+  renderTable();
+}
+
+function renderTable() {
+  const q = ubNormalize(filter.q), qDigits = q.replace(/\D/g, '');
+  const list = carts.filter(c => (c.rawPhone || segment(c) === 'converti')
+    && (filter.status === 'all' || segment(c) === filter.status)
+    && (!q || ubNormalize(c.rawName).includes(q) || (qDigits && c.rawPhone.replace(/\D/g, '').includes(qDigits))));
+  document.getElementById('carts-tbody').innerHTML = list.length ? list.map(c => `
+    <tr>
+      <td><strong>${ubTimeAgo(c.updatedAt)}</strong><div style="font-size:.7rem;color:var(--a-ink-soft)">${new Date(c.updatedAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div></td>
+      <td><strong>${c.client || '—'}</strong><div style="font-size:.74rem;color:var(--a-ink-soft)">${c.phone || 'Pas de téléphone'}${c.zone ? ' · ' + c.zone : ''}</div></td>
+      <td style="max-width:260px;font-size:.78rem">${c.items.map(i => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`).join(', ')}</td>
+      <td><strong>${ubFormatPrice(c.value)}</strong></td>
+      <td style="font-size:.78rem">${STEP_LABELS[c.step] || c.step || '—'}</td>
+      <td>${segment(c) === 'en_cours' ? '<span class="a-badge neutral">En cours</span>' : STATUS_BADGES[c.status] || ''}${c.relanceCount ? `<div style="font-size:.68rem;color:var(--a-ink-soft);margin-top:3px">${c.relanceCount} relance${c.relanceCount > 1 ? 's' : ''}${c.lastRelanceAt ? ' · ' + ubTimeAgo(c.lastRelanceAt) : ''}</div>` : ''}${c.orderId ? `<div style="font-size:.7rem;margin-top:3px"><a href="commandes.html" style="color:var(--a-mauve)">${c.orderId}</a></div>` : ''}</td>
+      <td><div class="a-actions-cell">
+        ${c.rawPhone && c.status !== 'converti' ? `<button class="a-btn a-btn-sm a-btn-wa" type="button" onclick="ubRelaunch('${c.id}')">${ubIcon('whatsapp')} Relancer</button>` : ''}
+        ${c.status !== 'converti' && c.status !== 'perdu' ? `<button class="a-icon-action" type="button" title="Marquer comme perdu" onclick="ubSetCartStatus('${c.id}','perdu')">${ubIcon('close')}</button>` : ''}
+        ${c.status === 'perdu' ? `<button class="a-icon-action" type="button" title="Remettre à relancer" onclick="ubSetCartStatus('${c.id}','ouvert')">${ubIcon('return')}</button>` : ''}
+        <button class="a-icon-action" type="button" title="Supprimer" onclick="ubDeleteCart('${c.id}')">${ubIcon('trash')}</button>
+      </div></td>
+    </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">${ubIcon('bag')}<p>Aucun panier dans cette catégorie.</p></div></td></tr>`;
+}
+
+window.ubRelaunch = function (id) {
+  const c = carts.find(x => x.id === id);
+  if (!c) return;
+  ubOpenWaComposer({
+    title: `Relancer ${c.client || c.phone}`,
+    phone: c.rawPhone,
+    templates: ubCartWaTemplates(c, promo),
+    onSent: async () => {
+      const patch = { status: 'relance', relance_count: (c.relanceCount || 0) + 1, last_relance_at: new Date().toISOString() };
+      if (await ubAdminUpdateCartSession(id, patch)) {
+        Object.assign(c, { status: 'relance', relanceCount: patch.relance_count, lastRelanceAt: patch.last_relance_at });
+        ubAToast('Relance enregistrée');
+        render();
+        ubAdminRefreshAlerts();
+      }
+    },
+  });
+};
+window.ubSetCartStatus = async function (id, status) {
+  const c = carts.find(x => x.id === id);
+  if (!c || !(await ubAdminUpdateCartSession(id, { status }))) return ubAToast('Erreur lors de la mise à jour');
+  c.status = status;
+  render();
+  ubAdminRefreshAlerts();
+};
+window.ubDeleteCart = async function (id) {
+  if (!confirm('Supprimer définitivement ce panier de la liste ?')) return;
+  if (!(await ubAdminDeleteCartSession(id))) return ubAToast('Erreur lors de la suppression');
+  carts = carts.filter(c => c.id !== id);
+  render();
+};
+main();
+</script>
+</body>
+</html>
