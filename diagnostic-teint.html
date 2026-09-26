@@ -134,7 +134,7 @@
             <img src="${m.product.img}" alt="${m.product.name}">
             <div style="flex:1;min-width:0">
               <strong>${m.product.name}</strong><br>
-              <span style="font-size:.82rem;color:var(--ink-soft)"><span class="teint-match-swatch" style="background:${m.product.shadeHex}"></span>${m.product.shadeLabel || 'Teinte'}</span>
+              <span style="font-size:.82rem;color:var(--ink-soft)"><span class="teint-match-swatch" style="background:${m.shade.hex}"></span>${ubEscapeHtml(m.shade.name)}</span>
             </div>
             <span class="teint-match-pct">${m.match}%</span>
           </a>

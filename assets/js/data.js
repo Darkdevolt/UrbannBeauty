@@ -143,6 +143,10 @@ function ubMapProduct(p) {
     desc: p.description, img: p.image_url, video: p.video_url, gallery: p.gallery_images || [],
     shadeHex: p.shade_hex || null, shadeLabel: p.shade_label || null,
     requiresClientNote: !!p.requires_client_note, clientNotePrompt: p.client_note_prompt || null,
+    /* Teintes proposees (fond de teint...) : la cliente doit en choisir une avant
+       l'ajout au panier ; requiresPhoto impose une photo de peau au checkout. */
+    shadeOptions: Array.isArray(p.shade_options) ? p.shade_options.filter(s => s && s.name) : [],
+    requiresPhoto: !!p.requires_photo,
   };
 }
 /* products_storefront est une vue sans la colonne cost_price (prix d'achat) : le prix
@@ -194,6 +198,7 @@ async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items, 
       product_id: l.id, qty: l.qty,
       ...(l.clientNote ? { client_note: l.clientNote } : {}),
       ...(l.clientPhotoPath ? { client_photo_path: l.clientPhotoPath } : {}),
+      ...(l.shade ? { shade_name: l.shade } : {}),
       ...(l.boxInstanceId ? { box_instance_id: l.boxInstanceId, box_template_id: l.boxTemplateId } : {}),
     })),
     p_promo_code: promoCode || null,
@@ -207,6 +212,10 @@ async function ubPlaceOrder({ clientName, phone, address, paymentMethod, items, 
     if (/NOM_CLIENT_REQUIS/.test(error.message)) return { error: 'NOM_CLIENT_REQUIS' };
     if (/TELEPHONE_REQUIS/.test(error.message)) return { error: 'TELEPHONE_REQUIS' };
     if (/PREUVE_PAIEMENT_REQUISE/.test(error.message)) return { error: 'PREUVE_PAIEMENT_REQUISE' };
+    const shadeErr = (error.message || '').match(/TEINTE_REQUISE:\s*(\S+)/);
+    if (shadeErr) return { error: 'TEINTE_REQUISE', productId: shadeErr[1] };
+    const photoErr = (error.message || '').match(/PHOTO_REQUISE:\s*(\S+)/);
+    if (photoErr) return { error: 'PHOTO_REQUISE', productId: photoErr[1] };
     if (/BOX_/.test(error.message)) return { error: 'BOX_INVALIDE' };
     console.error('ubPlaceOrder', error);
     return { error: 'INCONNU' };

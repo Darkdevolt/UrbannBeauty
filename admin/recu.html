@@ -113,7 +113,7 @@ async function main() {
         <tbody>
           ${lines.map(l => `
             <tr>
-              <td>${l.name}</td>
+              <td>${l.name}${l.shadeName ? `<div style="font-size:.78rem;color:var(--a-ink-soft)">Teinte : ${l.shadeName}</div>` : ''}</td>
               <td>${l.qty}</td>
               <td>${ubFormatPrice(l.price)}</td>
               <td>${ubFormatPrice(l.price * l.qty)}</td>
@@ -131,7 +131,7 @@ async function main() {
       </div>
 
       <div class="receipt-foot">
-        Merci pour votre confiance — Urbann Beauty 🦄<br>
+        Merci pour votre confiance — Urbann Beauty<br>
         Une question sur cette commande ? Écrivez-nous sur WhatsApp au ${UB_CONTACT.phoneDisplay}.
       </div>
     `;

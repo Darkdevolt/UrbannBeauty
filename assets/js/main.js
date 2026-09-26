@@ -20,14 +20,25 @@ function ubSaveCart(cart) {
    notification "ajoute" laissait le panier invisible jusqu'a la page panier. */
 function ubAddToCart(id, qty = 1, opts = {}) {
   const cart = ubGetCart();
-  const line = cart.find(l => l.id === id && !l.boxInstanceId);
+  const shade = opts.shade || null;
+  const line = cart.find(l => l.id === id && !l.boxInstanceId && (l.shade || null) === shade);
   if (line) line.qty += qty;
-  else cart.push({ id, qty });
+  else cart.push(shade ? { id, qty, shade } : { id, qty });
   ubSaveCart(cart);
   ubTrack('add_to_cart', { productId: id, value: qty });
   ubBumpCartIcon();
-  if (opts.silent || ubIsCartPage()) { ubShowToast('Produit ajouté au panier'); return; }
-  ubOpenCartDrawer(id);
+  if (opts.silent || ubIsCartPage()) { ubShowToast(shade ? `Ajouté au panier · teinte ${shade}` : 'Produit ajouté au panier'); return; }
+  ubOpenCartDrawer(ubLineKey({ id, shade }));
+}
+/* Une ligne de panier = un produit + une teinte eventuelle (le meme fond de teint en
+   deux teintes fait deux lignes). La cle est sure dans un attribut onclick. */
+function ubLineKey(l) {
+  return (encodeURIComponent(l.id) + '~' + encodeURIComponent(l.shade || '')).replace(/'/g, '%27');
+}
+function ubLineMatches(l, key) {
+  if (l.boxInstanceId) return false;
+  if (!String(key).includes('~')) return l.id === key && !l.shade;
+  return ubLineKey(l) === key;
 }
 /* Ajoute une box cadeau au panier : chaque produit choisi devient sa propre ligne
    (qty 1, jamais fusionnee) rattachee a boxInstanceId/boxTemplateId. Le prix reel de
@@ -39,26 +50,32 @@ function ubAddBoxToCart(templateId, templateName, productIds) {
   productIds.forEach(id => cart.push({ id, qty: 1, boxInstanceId, boxTemplateId: templateId, boxLabel: templateName }));
   ubSaveCart(cart);
 }
-function ubRemoveFromCart(id) {
-  ubSaveCart(ubGetCart().filter(l => !(l.id === id && !l.boxInstanceId)));
+function ubRemoveFromCart(key) {
+  ubSaveCart(ubGetCart().filter(l => !ubLineMatches(l, key)));
 }
 function ubRemoveBoxFromCart(boxInstanceId) {
   ubSaveCart(ubGetCart().filter(l => l.boxInstanceId !== boxInstanceId));
 }
-function ubSetQty(id, qty) {
+function ubSetQty(key, qty) {
   const cart = ubGetCart();
-  const line = cart.find(l => l.id === id && !l.boxInstanceId);
+  const line = cart.find(l => ubLineMatches(l, key));
   if (line) { line.qty = Math.max(1, qty); ubSaveCart(cart); }
 }
-/* Attache l'info demandee par un produit (texte et/ou photo, voir product.requiresClientNote)
-   a sa ligne de panier : elle voyagera avec la commande jusqu'a l'admin au checkout. */
-function ubSetCartLineNote(id, note, photoPath) {
+/* Attache l'info demandee par un produit (texte et/ou photo, voir product.requiresClientNote
+   et product.requiresPhoto) a sa ligne de panier : elle voyagera avec la commande jusqu'a
+   l'admin au checkout. */
+function ubSetCartLineNote(key, note, photoPath) {
   const cart = ubGetCart();
-  const line = cart.find(l => l.id === id && !l.boxInstanceId);
+  const line = cart.find(l => ubLineMatches(l, key));
   if (!line) return;
   line.clientNote = note || null;
   line.clientPhotoPath = photoPath || null;
   ubSaveCart(cart);
+}
+/* Produits qui demandent un choix (teinte) ou une info avant l'achat : pas d'ajout
+   direct depuis une carte ou une suggestion, on passe par la fiche produit. */
+function ubNeedsChoice(p) {
+  return !!(p && ((p.shadeOptions && p.shadeOptions.length) || p.requiresPhoto || p.requiresClientNote));
 }
 function ubCartTotalItems() {
   return ubGetCart().reduce((s, l) => s + l.qty, 0);
@@ -172,7 +189,7 @@ function ubRenderFooter() {
           <div>
             <a href="index.html" class="logo" id="ub-footer-logo">Urbann<span>Beauty</span></a>
             <p class="desc">Votre destination beauté : soins visage, corps, maquillage, accessoires et parfums sélectionnés avec exigence pour révéler votre éclat naturel.</p>
-            <p class="desc" style="margin-top:-6px">📍 ${UB_CONTACT.city} · 📞 ${UB_CONTACT.phoneDisplay}</p>
+            <p class="desc ub-footer-contact"><span>${ubIcon('pin')} ${UB_CONTACT.city}</span><a href="tel:+${UB_CONTACT.whatsapp}">${ubIcon('phone')} ${UB_CONTACT.phoneDisplay}</a></p>
             <div class="social-row">
               <a href="#" aria-label="Instagram">${ubIcon('instagram')}</a>
               <a href="#" aria-label="Facebook">${ubIcon('facebook')}</a>
@@ -283,7 +300,9 @@ function ubProductCardHTML(p, catsById) {
         </div>
         ${soldOut
           ? `<a class="editorial-add is-soldout" href="https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent(`Bonjour, le produit "${p.name}" est épuisé sur le site. Pouvez-vous me prévenir dès son retour en stock ?`)}" target="_blank" rel="noopener" onclick="ubTrack('whatsapp_click',{productId:'${p.id}'})" aria-label="Être prévenue du retour de ${p.name}"><span>Me prévenir</span>${ubIcon('bell')}</a>`
-          : `<button class="editorial-add" type="button" onclick="ubAddToCart('${p.id}',1)" aria-label="Ajouter ${p.name} au panier"><span>Ajouter</span>${ubIcon('bag')}</button>`}
+          : ubNeedsChoice(p)
+            ? `<a class="editorial-add" href="produit.html?id=${p.id}" aria-label="Choisir la teinte de ${p.name}"><span>${p.shadeOptions && p.shadeOptions.length ? 'Choisir' : 'Voir'}</span>${ubIcon('droplet')}</a>`
+            : `<button class="editorial-add" type="button" onclick="ubAddToCart('${p.id}',1)" aria-label="Ajouter ${p.name} au panier"><span>Ajouter</span>${ubIcon('bag')}</button>`}
       </div>
     </div>
   </article>`;
@@ -329,7 +348,12 @@ function ubSetWhatsAppContext(text) {
   if (a) a.href = `https://wa.me/${UB_CONTACT.whatsapp}?text=${encodeURIComponent(text)}`;
 }
 
+/* Icones declarees dans le HTML statique : <span data-ub-icon="gift"></span> */
+function ubHydrateIcons(scope) {
+  (scope || document).querySelectorAll('[data-ub-icon]').forEach(el => { if (!el.firstChild) el.innerHTML = ubIcon(el.dataset.ubIcon); });
+}
 document.addEventListener('DOMContentLoaded', () => {
+  ubHydrateIcons();
   ubInitReveal();
   ubUpdateCartCount();
   ubRenderWhatsAppButton();
@@ -405,7 +429,7 @@ function ubToggleWishlist(id) {
   ubStoreSet('ub_wishlist', list.slice(0, 60));
   document.querySelectorAll(`[data-wish="${CSS.escape(id)}"]`).forEach(b => { b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on); });
   ubUpdateWishCount();
-  ubShowToast(on ? 'Ajouté à vos favoris ♡' : 'Retiré de vos favoris');
+  ubShowToast(on ? 'Ajouté à vos favoris' : 'Retiré de vos favoris');
   return on;
 }
 function ubUpdateWishCount() {
@@ -469,7 +493,7 @@ function ubCartSuggestions(cart, products, subtotal, limit = 3) {
   const cats = new Set(products.filter(p => inCart.has(p.id)).map(p => p.category));
   const gap = UB_FREE_SHIPPING_THRESHOLD - subtotal;
   return products
-    .filter(p => !inCart.has(p.id) && p.stock > 0)
+    .filter(p => !inCart.has(p.id) && p.stock > 0 && !ubNeedsChoice(p))
     .map(p => ({ p, score: (cats.has(p.category) ? 3 : 0) + (gap > 0 && p.price >= gap ? 2 : 0) + (p.tag === 'Best-seller' ? 1 : 0) + p.rating / 5 }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
@@ -529,16 +553,19 @@ async function ubRenderCartDrawer() {
     foot.innerHTML = '';
     return;
   }
-  const added = ubDrawerHighlight ? productsById[ubDrawerHighlight] : null;
+  const hl = ubDrawerHighlight ? String(ubDrawerHighlight) : null;
+  const added = hl ? productsById[decodeURIComponent(hl.split('~')[0])] : null;
+  const addedShade = hl && hl.includes('~') ? decodeURIComponent(hl.split('~')[1] || '') : '';
   const suggestions = ubCartSuggestions(cart, products, sum.subtotal, 3);
   body.innerHTML = `
-    ${added ? `<div class="ub-drawer-added">${ubIcon('check')} <span><strong>${added.name}</strong> a été ajouté à votre panier</span></div>` : ''}
+    ${added ? `<div class="ub-drawer-added">${ubIcon('check')} <span><strong>${added.name}</strong>${addedShade ? ` (teinte ${ubEscapeHtml(addedShade)})` : ''} a été ajouté à votre panier</span></div>` : ''}
     ${ubFreeShippingHTML(sum.subtotal)}
     <ul class="ub-drawer-lines">
       ${sum.boxes.map(b => `<li class="ub-drawer-line"><div class="ub-drawer-thumb is-box">${ubIcon('box')}</div><div class="ub-drawer-info"><strong>Box cadeau — ${b.label || ''}</strong><small>${b.items.map(l => l.product.name).join(', ')}</small><div class="ub-drawer-row"><b>${ubFormatPrice(b.price)}</b><button type="button" class="ub-link-btn" onclick="ubRemoveBoxFromCart('${b.instanceId}');ubRenderCartDrawer()">Retirer</button></div></div></li>`).join('')}
       ${sum.regular.map(l => {
         const maxed = l.product.stock != null && l.qty >= l.product.stock;
-        return `<li class="ub-drawer-line${l.id === ubDrawerHighlight ? ' is-new' : ''}"><a href="produit.html?id=${l.id}" class="ub-drawer-thumb"><img src="${l.product.img}" alt=""></a><div class="ub-drawer-info"><a href="produit.html?id=${l.id}"><strong>${l.product.name}</strong></a><small>${ubFormatPrice(l.product.price)}${maxed ? ' · stock maximum atteint' : ''}</small><div class="ub-drawer-row"><div class="qty-selector qty-sm"><button type="button" aria-label="Retirer un" onclick="ubDrawerQty('${l.id}',${l.qty - 1})">−</button><span>${l.qty}</span><button type="button" aria-label="Ajouter un" ${maxed ? 'disabled' : ''} onclick="ubDrawerQty('${l.id}',${l.qty + 1})">+</button></div><b>${ubFormatPrice(l.product.price * l.qty)}</b></div></div><button type="button" class="ub-drawer-remove" aria-label="Supprimer ${l.product.name}" onclick="ubDrawerQty('${l.id}',0)">${ubIcon('trash')}</button></li>`;
+        const key = ubLineKey(l);
+        return `<li class="ub-drawer-line${hl && (hl === key || hl === l.id) ? ' is-new' : ''}"><a href="produit.html?id=${l.id}" class="ub-drawer-thumb"><img src="${l.product.img}" alt=""></a><div class="ub-drawer-info"><a href="produit.html?id=${l.id}"><strong>${l.product.name}</strong></a>${l.shade ? ubShadeTagHTML(l.product, l.shade) : ''}<small>${ubFormatPrice(l.product.price)}${maxed ? ' · stock maximum atteint' : ''}</small><div class="ub-drawer-row"><div class="qty-selector qty-sm"><button type="button" aria-label="Retirer un" onclick="ubDrawerQty('${key}',${l.qty - 1})">−</button><span>${l.qty}</span><button type="button" aria-label="Ajouter un" ${maxed ? 'disabled' : ''} onclick="ubDrawerQty('${key}',${l.qty + 1})">+</button></div><b>${ubFormatPrice(l.product.price * l.qty)}</b></div></div><button type="button" class="ub-drawer-remove" aria-label="Supprimer ${l.product.name}" onclick="ubDrawerQty('${key}',0)">${ubIcon('trash')}</button></li>`;
       }).join('')}
     </ul>
     ${suggestions.length ? `<div class="ub-drawer-suggest"><h4>Complétez votre routine</h4>${suggestions.map(p => `<div class="ub-suggest-item"><a href="produit.html?id=${p.id}"><img src="${p.img}" alt=""></a><div><a href="produit.html?id=${p.id}"><strong>${p.name}</strong></a><small>${ubFormatPrice(p.price)}</small></div><button type="button" class="btn btn-outline btn-sm" onclick="ubAddToCart('${p.id}',1,{silent:true});ubDrawerHighlight='${p.id}';ubRenderCartDrawer()">+ Ajouter</button></div>`).join('')}</div>` : ''}`;
@@ -549,7 +576,13 @@ async function ubRenderCartDrawer() {
     <button type="button" class="ub-link-btn ub-drawer-continue" onclick="ubCloseCartDrawer()">Continuer mes achats</button>
     <div class="ub-drawer-trust"><span>${ubIcon('shield')} Paiement Wave</span><span>${ubIcon('truck')} Livraison Dakar & régions</span><span>${ubIcon('return')} Retour 7 jours</span></div>`;
 }
-function ubDrawerQty(id, qty) {
-  if (qty <= 0) ubRemoveFromCart(id); else ubSetQty(id, qty);
+/* Pastille "Teinte : X" affichee sur une ligne de panier. */
+function ubShadeTagHTML(product, shadeName) {
+  const opt = (product.shadeOptions || []).find(o => o.name === shadeName);
+  const hex = opt && /^#[0-9a-f]{3,8}$/i.test(opt.hex || '') ? opt.hex : '#c9a58c';
+  return `<span class="ub-shade-tag"><i style="background:${hex}"></i>Teinte : ${ubEscapeHtml(shadeName)}</span>`;
+}
+function ubDrawerQty(key, qty) {
+  if (qty <= 0) ubRemoveFromCart(key); else ubSetQty(key, qty);
   ubRenderCartDrawer();
 }

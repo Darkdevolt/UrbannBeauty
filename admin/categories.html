@@ -73,7 +73,7 @@ async function main(){
   const url = await ubUploadImage(file, 'categories');
   if(!url){ ubAToast('Échec de l\'envoi de l\'image'); document.getElementById('cat-image-preview').innerHTML=''; return; }
   currentCategoryImage=url;
-  document.getElementById('cat-image-preview').innerHTML=`<div class="item"><img src="${url}" alt=""><button type="button" onclick="event.stopPropagation();currentCategoryImage=null;document.getElementById('cat-image-preview').innerHTML=''">✕</button></div>`;
+  document.getElementById('cat-image-preview').innerHTML=`<div class="item"><img src="${url}" alt=""><button type="button" onclick="event.stopPropagation();currentCategoryImage=null;document.getElementById('cat-image-preview').innerHTML=''">${ubIcon('close')}</button></div>`;
  });
  window.ubSaveCategory=async function(){
   const form=document.getElementById('cat-form');if(!form.checkValidity()){form.reportValidity();return;}

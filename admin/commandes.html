@@ -107,7 +107,7 @@ async function main() {
       <tr>
         <td><strong>${o.id}</strong>${o.isPickup ? ` <span title="Retrait en magasin" style="display:inline-flex;width:14px;height:14px;vertical-align:-3px;color:var(--a-mauve)">${ubIcon('bag')}</span>` : ''}<div class="a-sub">${new Date(o.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</div></td>
         <td><strong style="font-weight:600">${o.client}</strong><div class="a-sub">${o.phone || ''}</div></td>
-        <td class="a-nowrap">${ubOrderItemCount(o)} article${ubOrderItemCount(o) > 1 ? 's' : ''}${ubOrderHasClientInfo(o) ? ` <span title="Info fournie par la cliente" style="display:inline-flex;vertical-align:-3px;color:var(--a-mauve)">${ubIcon('camera')}</span>` : ''}</td>
+        <td class="a-nowrap">${o.items.filter(l => l.shadeName).map(l => `<span class="a-shade-dot" title="Teinte : ${l.shadeName}" style="background:${l.shadeHex || '#c9a58c'}"></span>`).join('')}${ubOrderItemCount(o)} article${ubOrderItemCount(o) > 1 ? 's' : ''}${ubOrderHasClientInfo(o) ? ` <span title="Info fournie par la cliente" style="display:inline-flex;vertical-align:-3px;color:var(--a-mauve)">${ubIcon('camera')}</span>` : ''}</td>
         <td>
           <div class="a-sub" style="margin:0 0 4px">${o.payment}</div>
           <select class="a-select a-select-sm" onchange="ubUpdatePayment('${o.id}', this.value)">

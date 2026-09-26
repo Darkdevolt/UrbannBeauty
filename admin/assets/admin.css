@@ -509,3 +509,10 @@ h1,h2,h3,h4 { font-family: 'Playfair Display', serif; margin: 0; color: var(--a-
   .a-table th { padding: 11px 10px !important; }
   .a-table td { padding: 10px 10px !important; }
 }
+.upload-preview .item button svg { width: 12px; height: 12px; }
+.upload-preview .item button { display: grid; place-items: center; }
+.a-shade-list { display: grid; gap: 8px; }
+.a-shade-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.a-shade-row input[type=color] { width: 44px; height: 38px; padding: 2px; border: 1px solid var(--a-line); border-radius: 8px; cursor: pointer; background: #fff; }
+.a-shade-row input[type=text] { min-width: 0; }
+.a-shade-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; box-shadow: 0 0 0 1px rgba(0,0,0,.1); }
